@@ -2,6 +2,8 @@
 
 import ezdxf
 from math import ceil, floor
+from tkinter import *
+from tkinter import filedialog
 
 # Parameter settings
 width_doga   = 20
@@ -83,11 +85,11 @@ class Zone:
 				crocs_list.append(c)
 		return crocs_list
 
-	def draw_box(self, orient):
+	def draw_box(self, msp, orient):
 		pl = msp.add_lwpolyline(self.pline(orient))
 		pl.dxf.layer = layer_box
 
-	def draw_text(self, ind, subind, orient):
+	def draw_text(self, msp, ind, subind, orient):
 		text = 'Zone' + str(ind) + chr(65+subind) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
@@ -226,7 +228,7 @@ class Room:
 				self.omegas.append((d,box.ay,box.by))
 
 
-	def draw_crocs(self, orient):
+	def draw_crocs(self, msp, orient):
 		for c in self.crocs:
 			if (orient==0):
 				line = msp.add_line((c.x1,c.y),(c.x2,c.y))
@@ -235,7 +237,7 @@ class Room:
 
 			line.dxf.layer = layer_croc
 
-	def draw_omegas(self, orient):
+	def draw_omegas(self, msp, orient):
 		for o in self.omegas:
 			if (orient==0):
 				line = msp.add_line((o[0],o[1]), (o[0],o[2]))
@@ -244,40 +246,95 @@ class Room:
 			line.dxf.layer = layer_omega
 		
 
-	def draw_room(self):
+	def draw_room(self, msp):
 
 		subindex = 0
 		for box in self.boxes:
-			box.draw_box(self.orient)
-			box.draw_text(self.index, subindex, self.orient)
+			box.draw_box(msp, self.orient)
+			box.draw_text(msp, self.index, subindex, self.orient)
 			subindex = subindex + 1
 			
-		self.draw_crocs(self.orient)
-		self.draw_omegas(self.orient)
+		self.draw_crocs(msp, self.orient)
+		self.draw_omegas(msp, self.orient)
 
 
 Room.index = 0
 
 
-# Open file and get model space
-doc = ezdxf.readfile("test2.dxf")
-msp = doc.modelspace()
+class App:
+
+	def __init__(self):
+		self.root = Tk()
+		root = self.root
+		self.button = Button(root, text="Open", command=self.search, pady=5)
+		self.button.grid(row=0, column=0)
+
+		self.text = StringVar()
+		self.text.set("Select DXF File")
+		self.flabel = Label(root, textvariable=self.text, width=50)
+		self.flabel.grid(row=0, column=1)
+
+		self.text1 = StringVar()
+		self.flabel = Label(root, textvariable=self.text1, width=50)
+		self.flabel.grid(row=1, column=1)
+
+		self.var = StringVar()
+		self.opt = OptionMenu(root,self.var,[])
+
+		self.button1 = Button(root, text="Build Model", command=self.build_model, pady=5)
+		self.button1.grid(row=5, column=0)
+		self.button1["state"] = "disabled"
+
+		self.root.mainloop()
+	
+
+	def search(self,event=None):
+		self.filename = filedialog.askopenfilename(filetypes=[("DXF files", "*.dxf")])
+		self.loadfile()
+
+	def loadfile(self):
+		try:
+			self.doc = ezdxf.readfile(self.filename)
+		except IOError:
+			self.text.set('Not a DXF file or a generic I/O error.')
+			return
+		except ezdxf.DXFStructureError:
+			self.text.set('Invalid or corrupted DXF file.')
+			return
+
+		self.text.set(self.filename)
+		self.outname = self.filename[:-4]+"_mod.dxf"
+		self.text1.set(self.outname)
+
+		self.msp = self.doc.modelspace()
+		
+
+		layers = [layer.dxf.name for layer in self.doc.layers]
+		self.opt.destroy()
+		self.var.set(layers[0])
+		self.opt = OptionMenu(self.root,self.var,*layers)
+		self.opt.grid(row=2, column=1)
+		self.button1["state"] = "normal" 
+
+	def create_layers(self):
+		self.doc.layers.new(name=layer_text, dxfattribs={'linetype': 'CONTINUOUS', 'color': 7})
+		self.doc.layers.new(name=layer_box, dxfattribs={'linetype': 'CONTINUOUS', 'color': 8})
+		self.doc.layers.new(name=layer_croc, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
+		self.doc.layers.new(name=layer_omega, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
 
 
-# Creating layers
-doc.layers.new(name=layer_text, dxfattribs={'linetype': 'CONTINUOUS', 'color': 7})
-doc.layers.new(name=layer_box, dxfattribs={'linetype': 'CONTINUOUS', 'color': 8})
-doc.layers.new(name=layer_croc, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
-doc.layers.new(name=layer_omega, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
+	def build_model(self):
+		self.create_layers()
+		for poly in  self.msp.query('LWPOLYLINE'):
+			room = Room(poly)
+			room.draw_room(self.msp)
+		self.doc.saveas(self.outname)
 
 
-# Get all the polylines from the layer=XXX
-index = 0
-for poly in  msp.query('LWPOLYLINE'):
-	room = Room(poly)
-	room.draw_room()
+########################### GUI #####################
+
+	
+App()
 
 
-
-doc.saveas("test2_mod.dxf")
 
