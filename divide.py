@@ -1,153 +1,283 @@
 #!/usr/local/bin/python3
 
-print("This program opens a DXF")
-
 import ezdxf
+from math import ceil, floor
 
-#   (ax,ay)    (bx,ay)  p2
-#
-#
-#   (ax,by)    (bx,by)  p1 
+# Parameter settings
+width_doga   = 20
+space_omega  = 60
+croc_first   = 15
+croc_second  = 60
+croc_maxd    = 120
+croc_tol     = 10
 
-class Zone():
+layer_text   = 'Eurotherm_text'
+font_text    = 'LiberationSerif'
+layer_box    = 'Eurotherm_box'
+layer_croc   = 'Eurotherm_crocodile'
+layer_omega   = 'Eurotherm_omega'
 
-	width_doga   = 20
-	croc_first  = 15
-	croc_second = 60
-	croc_maxd    = 120
 
-	text_layer  = 'Eurotherm_text'
-	text_font   = 'LiberationSerif'
-	box_layer   = 'Eurotherm_box'
-	croc_layer = 'Eurotherm_crocodile'
-	doga_layer  = 'Eurotherm_doga'
+def spread(a,b,size):
+	l = []
+	n = ceil(abs(a-b)/size) - 1
+	L = abs(a-b)/(n+1)
+	for i in range(0,n):
+		l.append((i+1)*L+a)
+	return l
 
-	def __init__(self,ax,ay,bx,by):
-		self.ax = ax; self.bx = bx
-		self.ay = ay; self.by = by
-		self.pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+def center(a,b,size):
+	l = []
+	n = ceil(abs(b-a)/size) - 1
+	L = (abs(b-a) - size*n)/2
+	for i in range(0,n+1):
+		l.append(a+L+i*size)	
+	return l
 
-	def extend_right(self, bx):
-		ax = self.ax
-		self.bx = bx
-		ay = self.ay
-		by = self.by
-		self.pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 
-	def draw_box(self):
-		pl = msp.add_lwpolyline(box.pline)
-		pl.dxf.layer = Zone.box_layer
+class Croc:
+	def __init__(self, x1, x2, y):
+		self.x1 = x1
+		self.x2 = x2
+		self.y  = y 
 
-	def draw_text(self, text):
-		pos = ((self.ax + self.bx)/2, (self.ay+self.by)/2)
-		ttype={'style': Zone.text_font, 'height': 50, 'layer': Zone.text_layer}
+	def fit(self, y1, y2):
+		tol = croc_tol
+		return (self.y>=y1 and self.y<=y2)
+
+
+	def extend_right(self, x2):
+		self.x2 = x2
+
+class Zone:
+	def __init__(self, ax, ay, bx, by):
+		self.ax = min(ax, bx)
+		self.bx = max(ax, bx)
+		self.ay = min(ay, by)
+		self.by = max(ay, by)
+		self.TR = (max(ax, bx), max(ay, by))
+		self.TL = (min(ax, bx), max(ay, by))
+		self.BR = (max(ax, bx), min(ay, by))
+		self.BL = (min(ax, bx), min(ay, by))
+
+	def pline(self, orient):
+		ax = self.ax; bx = self.bx
+		ay = self.ay; by = self.by
+		if (orient == 0):
+			return [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		else:	
+			return [(ay,ax),(by,ax),(by,bx),(ay,bx),(ay,ax)]
+
+	def extend_right(self, coord):
+		self.TR = (coord, self.TR[1])
+		self.BR = (coord, self.BR[1])
+		self.bx = coord
+
+	def extend_crocs(self, crocs, y1, y2):
+		crocs_list = list()
+		for c in crocs:
+			print("BOX",self.ax,y1,y2)
+			if (c.x2 == self.ax and c.y>=y1 and c.y<=y2):
+				print("exte",c.x1,c.x2,c.y)
+				c.extend_right(self.bx)
+				crocs_list.append(c)
+		return crocs_list
+
+	def draw_box(self, orient):
+		pl = msp.add_lwpolyline(self.pline(orient))
+		pl.dxf.layer = layer_box
+
+	def draw_text(self, ind, subind, orient):
+		text = 'Zone' + str(ind) + chr(65+subind) 
+		if (orient==0):
+			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
+		else:
+			pos = ((self.ay+self.by)/2, (self.ax+self.bx)/2)
+	
+		ttype={'style': font_text, 'height': 30, 'layer': layer_text}
 		msp.add_text(text, ttype).set_pos(pos, align='MIDDLE')
 
-	def draw_doga(self):
-		ax = self.ax; ay = self.ay
-		bx = self.bx; by = self.by
-		L = Zone.width_doga
-		n = int((self.bx - self.ax) / L)
-		for i in range(0, n):
-			box = Zone(self.ax + i*L, self.ay, self.ax + (i+1)*L, self.by)
-			pl = msp.add_lwpolyline(box.pline)
-			pl.dxf.layer = Zone.doga_layer
 
-	def draw_croc(self):
-		ax = self.ax; ay = self.ay
-		bx = self.bx; by = self.by
 
-		fst = Zone.croc_first
-		snd = Zone.croc_second
-
-		# draw first croc
-		line = msp.add_line((ax,by-fst),(bx,by-fst))
-		line.dxf.layer = Zone.croc_layer
-		line = msp.add_line((ax,ay+fst),(bx,ay+fst))
-		line.dxf.layer = Zone.croc_layer
-
-		# draw second croc
-		line = msp.add_line((ax,by-snd),(bx,by-snd))
-		line.dxf.layer = Zone.croc_layer
-		line = msp.add_line((ax,ay+snd),(bx,ay+snd))
-		line.dxf.layer = Zone.croc_layer
-
-		# draw remaing crocs
-		h1 = ay + Zone.croc_second
-		h2 = by - Zone.croc_second
-		print(ay, h1, h2, by)
-		n = int((h2 - h1) / Zone.croc_maxd)
-		H = (h2-h1)/n
-		for i in range(0,n):
-			hy = h1 + i*H
-			line = msp.add_line((ax,hy),(bx,hy))
-			line.dxf.layer = Zone.croc_layer
-
-# This function divides a polyline into boxes
-# and returns the list of boxes
-def get_boxes(polyline):
+class Room:
+	orient = 0
 	boxes = list()
-	points = list(poly.vertices())
-	xs = sorted(set([p[0] for p in poly.vertices()]))
+	coord = list()
+	crocs = list()
+	omegas = list()
 
-	for i in range(0,len(xs)-1):
-		ax = xs[i]
-		bx = xs[i+1]
-		midx = (ax + bx)/2
-		ys = list()
-		for j in range(0, len(points)-1):
-			if (points[j][1]==points[j+1][1]):
-				# vertical line
-				m0 = min(points[j][0], points[j+1][0])
-				m1 = max(points[j][0], points[j+1][0])
-				if (m0<midx and m1>midx):
-					ys.append(points[j][1])
-		ys.sort()
-		for j in range(0,len(ys),2):
-			ay = ys[j]
-			by = ys[j+1]
-			m = -1
-			for k in range(0,len(boxes)):
-				p1 = boxes[k].pline[2]
-				p2 = boxes[k].pline[3]
-				if (p2==(ax,ay) and p1==(ax,by)):
-					m = k
+	def __init__(self, poly):
 
-			if (m==-1):
-				box = Zone(ax,ay,bx,by)
-				boxes.append(box)
+		self.index = Room.index
+		Room.index = Room.index + 1
+
+		self.points = list(poly.vertices())
+		self.xcoord = sorted(set([p[0] for p in poly.vertices()]))	
+		self.ycoord = sorted(set([p[1] for p in poly.vertices()]))	
+
+		# mirror if polyline is green
+		if (poly.dxf.color==3):
+			self.orient = 1
+			for i in range(0,len(self.points)):
+				self.points[i] = (self.points[i][1], self.points[i][0])
+			self.xcoord, self.ycoord = self.ycoord, self.xcoord
+
+		self.get_boxes()
+		#self.get_crocs()
+		self.simple_crocs()
+		self.get_omegas()
+
+
+	# This function divides a polyline into boxes
+	# and returns the list of boxes
+	def get_boxes(self):
+		boxes = self.boxes
+		points = self.points
+		xcoord = self.xcoord
+		ycoord = self.ycoord
+
+		for i in range(0,len(xcoord)-1):
+			ax = xcoord[i]
+			bx = xcoord[i+1]
+			mid = (ax + bx)/2
+
+			levels = list()
+			for j in range(0, len(points)-1):
+				if (points[j][1] == points[j+1][1]):
+					m0 = min(points[j][0], points[j+1][0])
+					m1 = max(points[j][0], points[j+1][0])
+					if (m0<mid and m1>mid):
+						levels.append(points[j][1])
+			levels.sort()
+
+			for j in range(0,len(levels),2):
+				ay = levels[j]
+				by = levels[j+1]
+				flag = 0
+				for b in boxes:
+					if (b.BR==(ax,ay) and b.TR==(ax,by)):
+						b.extend_right(bx)
+						flag = 1
+				if (flag==0):
+					boxes.append(Zone(ax,ay,bx,by))
+
+
+
+	def get_crocs(self):
+		
+		q = croc_first
+		t = croc_tol
+
+		for box in self.boxes:
+			
+			# get the list of crocs
+			# cuts = list()
+			# for c in self.crocs:
+			#	if (c.x2 == box.ax and c.y>box.bx and c.y<box.by):
+			#		cuts.append(c)
+		
+			# add the crocs at 15cm
+			low = box.extend_crocs(self.crocs, box.ay+q, box.ay+q+t)
+			if (not low):
+				print("NEW", box.ax, box.bx, box.ay+q)
+				low.append(Croc(box.ax,box.bx,box.ay+q))
+				self.crocs = self.crocs + low
+			inf = max([c.y for c in low])
+
+			# add the crocs at -15cm
+			high = box.extend_crocs(self.crocs, box.by - q, box.by - q - t)
+			if (not high):
+				high.append(Croc(box.ax,box.bx,box.by-q))
+				self.crocs = self.crocs + high
+			sup = min([c.y for c in high])
+			
+			print("----------------")
+			# for c in self.crocs:
+			#	print(c.x1, c.x2, c.y)
+
+
+	def simple_crocs(self):
+
+		q = croc_first
+		p = croc_second
+
+		for box in self.boxes:
+			# crocs at +15cm and -15cm
+			self.crocs.append(Croc(box.ax, box.bx, box.by - q))
+			self.crocs.append(Croc(box.ax, box.bx, box.ay + q))
+
+			# crocs at +60cm and -60cm
+			if (box.by-box.ay - 2*q > 3*p):
+				self.crocs.append(Croc(box.ax, box.bx, box.by - p))
+				self.crocs.append(Croc(box.ax, box.bx, box.ay + p))
+				
+				# crocs every 120cm
+				for lev in spread(box.ay+p, box.by-p, croc_maxd):
+					self.crocs.append(Croc(box.ax, box.bx, lev))
+
 			else:
-				boxes[m].extend_right(bx)
+				H = (box.by - box.ay - 2*q)/3
+				self.crocs.append(Croc(box.ax, box.bx, bax.ay + p + H))
+				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + 2*H))
 
-	return boxes
+	def get_omegas(self):	
+		for box in self.boxes:			
+			for d in center(box.ax, box.bx, space_omega):
+				self.omegas.append((d,box.ay,box.by))
 
+
+	def draw_crocs(self, orient):
+		for c in self.crocs:
+			if (orient==0):
+				line = msp.add_line((c.x1,c.y),(c.x2,c.y))
+			else:
+				line = msp.add_line((c.y,c.x1),(c.y,c.x2))
+
+			line.dxf.layer = layer_croc
+
+	def draw_omegas(self, orient):
+		for o in self.omegas:
+			if (orient==0):
+				line = msp.add_line((o[0],o[1]), (o[0],o[2]))
+			else:
+				line = msp.add_line((o[1],o[0]), (o[2],o[0]))
+			line.dxf.layer = layer_omega
+		
+
+	def draw_room(self):
+
+		subindex = 0
+		for box in self.boxes:
+			box.draw_box(self.orient)
+			box.draw_text(self.index, subindex, self.orient)
+			subindex = subindex + 1
+			
+		self.draw_crocs(self.orient)
+		self.draw_omegas(self.orient)
+
+
+Room.index = 0
 
 
 # Open file and get model space
-doc = ezdxf.readfile("test1.dxf")
+doc = ezdxf.readfile("test2.dxf")
 msp = doc.modelspace()
 
 
 # Creating layers
-doc.layers.new(name=Zone.text_layer, dxfattribs={'linetype': 'CONTINUOUS', 'color': 7})
-doc.layers.new(name=Zone.box_layer, dxfattribs={'linetype': 'CONTINUOUS', 'color': 8})
-doc.layers.new(name=Zone.croc_layer, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
-doc.layers.new(name=Zone.doga_layer, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
+doc.layers.new(name=layer_text, dxfattribs={'linetype': 'CONTINUOUS', 'color': 7})
+doc.layers.new(name=layer_box, dxfattribs={'linetype': 'CONTINUOUS', 'color': 8})
+doc.layers.new(name=layer_croc, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
+doc.layers.new(name=layer_omega, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
 
 
 # Get all the polylines from the layer=XXX
 index = 0
 for poly in  msp.query('LWPOLYLINE'):
-	index = index + 1
-	boxes = get_boxes(poly)
-	subzone = 64
-	for box in boxes:
-		subzone = subzone + 1
-		box.draw_box()
-		box.draw_text("Zone"+str(index)+chr(subzone))
-		box.draw_doga()
-		box.draw_croc()
+	room = Room(poly)
+	room.draw_room()
 
 
-doc.saveas("test1_mod.dxf")
+
+doc.saveas("test2_mod.dxf")
 
