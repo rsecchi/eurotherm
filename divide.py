@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter import filedialog
 
 # Parameter settings
+tolerance    = 1         # ignore too little variation
 width_doga   = 20
 space_omega  = 60
 croc_first   = 15
@@ -102,22 +103,55 @@ class Zone:
 
 
 class Room:
-	orient = 0
-	boxes = list()
-	coord = list()
-	crocs = list()
-	omegas = list()
 
 	def __init__(self, poly):
+
+		tol = tolerance
+		self.orient = 0
+		self.boxes = list()
+		self.coord = list()
+		self.crocs = list()
+		self.omegas = list()
 
 		self.index = Room.index
 		Room.index = Room.index + 1
 
 		self.points = list(poly.vertices())
+
+		# Add a final point to closed polylines
+		p = self.points
+		if (poly.is_closed):
+			self.points.append((p[0][0], p[0][1]))
+
+		# Check if the polyine is open with large final gap
+		n = len(p)-1
+		if (abs(p[0][0]-p[n][0])>tol or abs(p[0][1]-p[n][1])>tol):
+			print("Error: Open polyline") 
+			return
+
+		# Straighten up walls
+		finished = False
+		while not finished:
+			for i in range(1, len(p)):
+				if (abs(p[i][0]-p[i-1][0]) < tol):
+					p[i] = (p[i-1][0], p[i][1])
+
+				if (abs(p[i][1]-p[i-1][1]) < tol):
+					p[i] = (p[i][0], p[i-1][1])
+
+			if (p[0][0]==p[n][0] and p[0][1]==p[n][1]):
+				finished = True
+			else:
+				p[0] = p[n]
+
+		#for i in range(1, len(p)):
+		#	print(abs(p[i][0]-p[i-1][0]), abs(p[i][1]-p[i-1][1]))
+
+		# Projections of coordinates on x and y
 		self.xcoord = sorted(set([p[0] for p in poly.vertices()]))	
 		self.ycoord = sorted(set([p[1] for p in poly.vertices()]))	
 
-		# mirror if polyline is green
+		# Mirror if polyline is green
 		if (poly.dxf.color==3):
 			self.orient = 1
 			for i in range(0,len(self.points)):
@@ -133,28 +167,41 @@ class Room:
 	# This function divides a polyline into boxes
 	# and returns the list of boxes
 	def get_boxes(self):
+		
+		tol = tolerance
 		boxes = self.boxes
-		points = self.points
-		xcoord = self.xcoord
-		ycoord = self.ycoord
+		p = self.points
+		xc = self.xcoord
 
-		for i in range(0,len(xcoord)-1):
-			ax = xcoord[i]
-			bx = xcoord[i+1]
+		for i in range(0,len(xc)-1):
+			ax = xc[i]
+			bx = xc[i+1]
 			mid = (ax + bx)/2
 
-			levels = list()
-			for j in range(0, len(points)-1):
-				if (points[j][1] == points[j+1][1]):
-					m0 = min(points[j][0], points[j+1][0])
-					m1 = max(points[j][0], points[j+1][0])
-					if (m0<mid and m1>mid):
-						levels.append(points[j][1])
-			levels.sort()
+			lr = list()
+			ll = list()
 
-			for j in range(0,len(levels),2):
-				ay = levels[j]
-				by = levels[j+1]
+			for j in range(0, len(p)-1):
+				if (p[j][0] < p[j+1][0]):
+					x0, y0 = p[j][0], p[j][1]
+					x1, y1 = p[j+1][0], p[j+1][1]
+				else:
+					x0, y0 = p[j+1][0], p[j+1][1]
+					x1, y1 = p[j][0], p[j][1]
+					
+				if (x0<mid and mid<x1):
+					delta = x1 - x0
+					ay = (y0*(x1-ax) - y1*(x0-ax))/delta
+					by = (y0*(x1-bx) - y1*(x0-bx))/delta
+					ll.append(ay)
+					lr.append(by)
+
+			ll.sort()
+			lr.sort()
+
+			for j in range(0,len(ll),2):
+				ay = min(ll[j], lr[j])
+				by = max(ll[j+1], lr[j+1])
 				flag = 0
 				for b in boxes:
 					if (b.BR==(ax,ay) and b.TR==(ax,by)):
@@ -162,7 +209,6 @@ class Room:
 						flag = 1
 				if (flag==0):
 					boxes.append(Zone(ax,ay,bx,by))
-
 
 
 	def get_crocs(self):
@@ -219,7 +265,7 @@ class Room:
 
 			else:
 				H = (box.by - box.ay - 2*q)/3
-				self.crocs.append(Croc(box.ax, box.bx, bax.ay + p + H))
+				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + H))
 				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + 2*H))
 
 	def get_omegas(self):	
@@ -251,7 +297,7 @@ class Room:
 		subindex = 0
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			box.draw_text(msp, self.index, subindex, self.orient)
+			# box.draw_text(msp, self.index, subindex, self.orient)
 			subindex = subindex + 1
 			
 		self.draw_crocs(msp, self.orient)
@@ -325,9 +371,19 @@ class App:
 
 	def build_model(self):
 		self.create_layers()
+		print("num poly:", len(self.msp.query('LWPOLYLINE')))
+		pc = 0
+		po = 0
 		for poly in  self.msp.query('LWPOLYLINE'):
+			# print(poly.is_closed)
+			if (poly.is_closed):
+				pc = pc + 1
+			else:
+				po = po + 1
 			room = Room(poly)
 			room.draw_room(self.msp)
+		print("open poly", po)
+		print("closed poly", pc)
 		self.doc.saveas(self.outname)
 
 
