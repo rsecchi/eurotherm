@@ -15,11 +15,71 @@ croc_maxd    = 120
 croc_tol     = 10
 
 layer_text   = 'Eurotherm_text'
-font_text    = 'LiberationSerif'
+x_font_size  = 10
+y_font_size  = 20
 layer_box    = 'Eurotherm_box'
 layer_croc   = 'Eurotherm_crocodile'
 layer_omega   = 'Eurotherm_omega'
 
+
+alphabet = {
+	' ': [],
+	'A': [12,3,1,5,14,8,6],
+	'B': [0,1,5,7,6,7,11,13,12,0],
+	'C': [2,1,3,9,13,14],
+	'D': [0,1,5,11,13,12,0],
+	'E': [2,0,6,7,6,12,14],
+	'F': [2,0,6,7,6,12],
+	'G': [2,1,3,9,13,14,8,7],
+	'H': [0,12,6,8,2,14],
+	'I': [1,13],
+	'J': [9,13,1,0,1,2],
+	'K': [0,6,2,6,12,6,14],
+	'L': [0,12,14],
+	'M': [12,0,7,2,14],
+	'N': [12,0,14,2],
+	'O': [3,1,5,11,13,9,3],
+	'P': [12,0,1,5,7,6],
+	'Q': [13,11,5,1,3,9,13,14,13,10],
+	'R': [12,0,1,5,7,6,7,11,14],
+	'S': [12,13,11,3,1,2],
+	'T': [0,2,1,13],
+	'U': [0,9,13,11,2],
+	'V': [0,13,2],
+	'X': [0,14,7,2,12],
+	'Y': [0,7,2,7,13],
+	'Z': [0,2,12,14],
+	'0': [1,3,9,13,11,5,1],
+	'1': [3,1,13,12,14],
+	'2': [3,1,5,12,14],
+	'3': [0,1,5,7,6,7,11,13,12],
+	'4': [0,6,8,2,14],
+	'5': [2,0,6,7,11,13,12],
+	'6': [2,1,3,9,13,11,7,6],
+	'7': [0,2,12],
+	'8': [3,1,5,9,12,14,11,3],
+	'9': [8,6,3,1,5,11,13,12]
+}
+
+def pletter(letter,pos,scale):
+	path = alphabet[letter]
+	poly = []
+	for p in path:
+		x = p % 3
+		y = 4 - (p//3)
+		poly.append((pos[0]+x*scale[0], pos[1]+y*scale[1]))
+	return poly
+
+def writedxf(msp, strn, pos, scale):
+
+	slen = len(strn)*scale[0]*3
+	pos = (pos[0]-slen/2, pos[1]-scale[1]*2)
+	
+	for l in strn:
+		poly = pletter(l, pos, scale)
+		pl = msp.add_lwpolyline(poly)
+		pl.dxf.layer = layer_text
+		pos = (pos[0]+scale[0]*3, pos[1])
 
 def spread(a,b,size):
 	l = []
@@ -91,15 +151,15 @@ class Zone:
 		pl.dxf.layer = layer_box
 
 	def draw_text(self, msp, ind, subind, orient):
-		text = 'Zone' + str(ind) + chr(65+subind) 
+		
+		scale = (x_font_size/2, y_font_size/4)
+		text = 'ZONE' + str(ind) + chr(65+subind) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
 		else:
 			pos = ((self.ay+self.by)/2, (self.ax+self.bx)/2)
 	
-		ttype={'style': font_text, 'height': 30, 'layer': layer_text}
-		msp.add_text(text, ttype).set_pos(pos, align='MIDDLE')
-
+		writedxf(msp, text, pos, scale)
 
 
 class Room:
@@ -297,7 +357,7 @@ class Room:
 		subindex = 0
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			# box.draw_text(msp, self.index, subindex, self.orient)
+			box.draw_text(msp, self.index, subindex, self.orient)
 			subindex = subindex + 1
 			
 		self.draw_crocs(msp, self.orient)
