@@ -1,12 +1,13 @@
 #!/usr/local/bin/python3
 
 import ezdxf
+import openpyxl
 from math import ceil, floor
 from tkinter import *
 from tkinter import filedialog
 
-# Parameter settings
-tolerance    = 1         # ignore too little variation
+# Parameter settings (values in cm)
+tolerance    = 1         # ignore too little variations
 width_doga   = 20
 space_omega  = 60
 croc_first   = 15
@@ -14,9 +15,11 @@ croc_second  = 60
 croc_maxd    = 120
 croc_tol     = 10
 
+x_font_size  = 20
+y_font_size  = 30
+
+default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
-x_font_size  = 10
-y_font_size  = 20
 layer_box    = 'Eurotherm_box'
 layer_croc   = 'Eurotherm_crocodile'
 layer_omega   = 'Eurotherm_omega'
@@ -112,6 +115,9 @@ class Croc:
 	def extend_right(self, x2):
 		self.x2 = x2
 
+	def len(self):
+		return abs(self.x2-self.x1)/100
+
 class Zone:
 	def __init__(self, ax, ay, bx, by):
 		self.ax = min(ax, bx)
@@ -161,10 +167,15 @@ class Zone:
 	
 		writedxf(msp, text, pos, scale)
 
+	def area(self):
+		return (self.bx-self.ax)*(self.by-self.ay)/10000
+
 
 class Room:
 
 	def __init__(self, poly):
+
+		self.errorstr = ""
 
 		tol = tolerance
 		self.orient = 0
@@ -186,7 +197,7 @@ class Room:
 		# Check if the polyine is open with large final gap
 		n = len(p)-1
 		if (abs(p[0][0]-p[n][0])>tol or abs(p[0][1]-p[n][1])>tol):
-			print("Error: Open polyline") 
+			self.errorstr = "Error: open polyline in Zone %d \n" % self.index 
 			return
 
 		# Straighten up walls
@@ -223,6 +234,8 @@ class Room:
 		self.simple_crocs()
 		self.get_omegas()
 
+
+	# Building Room
 
 	# This function divides a polyline into boxes
 	# and returns the list of boxes
@@ -333,6 +346,8 @@ class Room:
 			for d in center(box.ax, box.bx, space_omega):
 				self.omegas.append((d,box.ay,box.by))
 
+	
+	# Drawing Room
 
 	def draw_crocs(self, msp, orient):
 		for c in self.crocs:
@@ -363,33 +378,91 @@ class Room:
 		self.draw_crocs(msp, self.orient)
 		self.draw_omegas(msp, self.orient)
 
+	# Reporting Room
+
+	def report_boxes(self):
+		l = []
+		for box in self.boxes:
+			l.append(box.area())
+		return l
+
+	def report_crocs(self):
+		l = []
+		for croc in self.crocs:
+			l.append(croc.len())
+		return l
+
+	def report_omegas(self):
+		l = []
+		for omega in self.omegas:
+			lomg = abs(omega[2]-omega[1])/100
+			l.append(lomg)
+		return l
+
+	def report(self):
+		rboxes  = self.report_boxes()
+		rcrocs  = self.report_crocs()
+		romegas = self.report_omegas()
+		return [rboxes, rcrocs, romegas]
 
 Room.index = 0
 
 
 class App:
 
+	rooms = list()
+
 	def __init__(self):
 		self.root = Tk()
 		root = self.root
-		self.button = Button(root, text="Open", command=self.search, pady=5)
-		self.button.grid(row=0, column=0)
+		#root.geometry('500x300')
+		root.title("Eurotherm planner")
+		root.resizable(width=False, height=False)
+
+		# Control section
+		ctlname = Label(root, text="Control")
+		ctlname.grid(row=0, column=0, padx=(25,0), pady=(10,0), sticky="w")
+
+		ctl = Frame(root)
+		self.ctl = ctl
+		ctl.config(borderwidth=1, relief='ridge')
+		ctl.grid(row=1, column=0, padx=(25,25), pady=(0,20))
+
+		button = Button(ctl, text="Open", width=5, command=self.search)
+		button.grid(row=1, column=1, sticky="e")
 
 		self.text = StringVar()
 		self.text.set("Select DXF File")
-		self.flabel = Label(root, textvariable=self.text, width=50)
-		self.flabel.grid(row=0, column=1)
+		flabel = Label(ctl, textvariable=self.text, width=30, anchor="w")
+		flabel.config(borderwidth=1, relief='solid')
+		flabel.grid(row=1, column=0, padx=(10,30), pady=(20,10))
 
 		self.text1 = StringVar()
-		self.flabel = Label(root, textvariable=self.text1, width=50)
-		self.flabel.grid(row=1, column=1)
+		self.text1.set("Modified DXF File")
+		flabel = Label(ctl, textvariable=self.text1, width=30, anchor="w")
+		flabel.config(borderwidth=1, relief='solid')
+		flabel.grid(row=2, column=0, padx=(10,30), pady=(10,20))
 
 		self.var = StringVar()
-		self.opt = OptionMenu(root,self.var,[])
+		self.var.set("Select layer")
+		self.opt = OptionMenu(ctl, self.var,['Select layer'])
+		self.opt.config(width=26)
+		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
 
-		self.button1 = Button(root, text="Build Model", command=self.build_model, pady=5)
-		self.button1.grid(row=5, column=0)
+		self.button1 = Button(ctl, text="Build", width=5, command=self.build_model, pady=5)
+		self.button1.grid(row=4, column=1, pady=(30,10))
 		self.button1["state"] = "disabled"
+
+
+		# Info Section
+		ctlname = Label(root, text="Report")
+		ctlname.grid(row=2, column=0, padx=(25,0), pady=(10,0), sticky="w")
+
+		self.textinfo = Text(root, height=10, width=58)
+		self.textinfo.config(borderwidth=1, relief='ridge')
+		self.textinfo.grid(row=3, column=0, pady=(0,15)) 
+		#sb = Scrollbar(root, command=self.textinfo.yview)
+		#sb.grid(row=3, column=1, sticky="nsw")
 
 		self.root.mainloop()
 	
@@ -414,12 +487,18 @@ class App:
 
 		self.msp = self.doc.modelspace()
 		
-
 		layers = [layer.dxf.name for layer in self.doc.layers]
+		sel = layers[0]
+		for layer in layers:
+			if (layer == default_input_layer):
+				sel = default_input_layer
+				break
+
 		self.opt.destroy()
-		self.var.set(layers[0])
-		self.opt = OptionMenu(self.root,self.var,*layers)
-		self.opt.grid(row=2, column=1)
+		self.var.set(sel)
+		self.opt = OptionMenu(self.ctl,self.var,*layers)
+		self.opt.config(width=26)
+		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
 		self.button1["state"] = "normal" 
 
 	def create_layers(self):
@@ -428,26 +507,81 @@ class App:
 		self.doc.layers.new(name=layer_croc, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
 		self.doc.layers.new(name=layer_omega, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
 
+	def print_report(self, txt):
+		txt(END, "Design Report ----------------\n\n")
+		
+		for room in self.rooms:
+
+			if (len(room.errorstr)>0):
+				continue
+
+			rep = room.report()
+			boxes, crocs, omegas = rep[0], rep[1], rep[2]
+
+			txt(END,"Zone"+str(room.index)+":\n")
+			txt(END,"   %3d boxes, "   % len(boxes))
+			txt(END," area=%8.2f m2 \n" % sum(boxes))
+			txt(END,"   %3d crocs, "   % len(crocs))
+			txt(END,"  tot=%8.2f m\n"   % sum(crocs))
+			txt(END,"   %3d omegas, "  % len(omegas))
+			txt(END," tot=%8.2f m\n"   % sum(omegas))
+			txt(END,"\n")
+
+	def save_xls(self):
+		wb = openpyxl.Workbook()
+		ws = wb.active
+		ws.title = "Bills of Materials"
+	
+		index = 0
+		for room in self.rooms:
+
+			curr_row = str(index+4)
+			curr_zone = str(index)
+			index = index + 1
+
+			pos_name = 'B' + curr_row
+			pos_box  = 'C' + curr_row
+			pos_croc = 'D' + curr_row
+			pos_omeg = 'E' + curr_row
+
+			ws[pos_name] = 'Zone' + curr_zone
+
+			if (len(room.errorstr)>0):
+				ws[pos_box] = "ERROR"
+				continue
+
+			rep = room.report()
+			boxes, crocs, omegas = rep[0], rep[1], rep[2]
+
+			A_tot = sum(boxes)
+			crocs_tot = sum(crocs)
+			omegs_tot = sum(omegas)
+
+			ws[pos_box] = A_tot
+			ws[pos_croc] = crocs_tot
+			ws[pos_omeg] = omegs_tot
+
+		out = self.filename[:-4] + "_mod.xlsx"	
+		wb.save(out)
+
 
 	def build_model(self):
+
 		self.create_layers()
-		print("num poly:", len(self.msp.query('LWPOLYLINE')))
-		pc = 0
-		po = 0
-		for poly in  self.msp.query('LWPOLYLINE'):
-			# print(poly.is_closed)
-			if (poly.is_closed):
-				pc = pc + 1
-			else:
-				po = po + 1
+		inputlayer = self.var.get()
+		searchstr = 'LWPOLYLINE[layer=="'+inputlayer+'"]'
+		for poly in  self.msp.query(searchstr):
 			room = Room(poly)
-			room.draw_room(self.msp)
-		print("open poly", po)
-		print("closed poly", pc)
+			self.rooms.append(room)
+			if (len(room.errorstr)>0):
+				self.textinfo.insert(END,room.errorstr)
+			else:
+				room.draw_room(self.msp)
+
+		self.print_report(self.textinfo.insert)
 		self.doc.saveas(self.outname)
+		self.save_xls()
 
-
-########################### GUI #####################
 
 	
 App()
