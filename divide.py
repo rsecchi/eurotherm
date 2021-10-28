@@ -173,6 +173,8 @@ class Zone:
 
 class Room:
 
+	index = 0
+
 	def __init__(self, poly):
 
 		self.errorstr = ""
@@ -405,7 +407,6 @@ class Room:
 		romegas = self.report_omegas()
 		return [rboxes, rcrocs, romegas]
 
-Room.index = 0
 
 
 class App:
