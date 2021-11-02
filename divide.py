@@ -49,6 +49,7 @@ alphabet = {
 	'T': [0,2,1,13],
 	'U': [0,9,13,11,2],
 	'V': [0,13,2],
+	'W': [0,13,2],
 	'X': [0,14,7,2,12],
 	'Y': [0,7,2,7,13],
 	'Z': [0,2,12,14],
@@ -101,6 +102,25 @@ def center(a,b,size):
 	return l
 
 
+class Split:
+	
+	def __init__(self, ax, bx, lu, ld, ru, rd):
+		self.ax = ax
+		self.bx = bx
+		self.lu = lu
+		self.ld = ld
+		self.ru = ru
+		self.rd = rd
+
+	def base(self):
+		return abs(self.bx - self.ax)
+
+	def area(self):
+		l1 = abs(self.lu[0] - self.ld[0])
+		l2 = abs(self.ru[0] - self.rd[0])
+		b = self.base()
+		return (l1+l2)*b/20000
+
 class Croc:
 	def __init__(self, x1, x2, y):
 		self.x1 = x1
@@ -119,7 +139,8 @@ class Croc:
 		return abs(self.x2-self.x1)/100
 
 class Zone:
-	def __init__(self, ax, ay, bx, by):
+
+	def __init__(self, ax, ay, bx, by, split):
 		self.ax = min(ax, bx)
 		self.bx = max(ax, bx)
 		self.ay = min(ay, by)
@@ -128,6 +149,7 @@ class Zone:
 		self.TL = (min(ax, bx), max(ay, by))
 		self.BR = (max(ax, bx), min(ay, by))
 		self.BL = (min(ax, bx), min(ay, by))
+		self.splits = [split]
 
 	def pline(self, orient):
 		ax = self.ax; bx = self.bx
@@ -157,9 +179,8 @@ class Zone:
 		pl.dxf.layer = layer_box
 
 	def draw_text(self, msp, ind, subind, orient):
-		
 		scale = (x_font_size/2, y_font_size/4)
-		text = 'ZONE' + str(ind) + chr(65+subind) 
+		text = 'ZONE' + str(ind) + chr(65+subind%26) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
 		else:
@@ -169,6 +190,16 @@ class Zone:
 
 	def area(self):
 		return (self.bx-self.ax)*(self.by-self.ay)/10000
+
+	def splitarea(self):
+		totsplit = 0
+		for split in self.splits:
+			totsplit = totsplit + split.area()
+		return totsplit
+
+	def slack(self):
+		return self.area() - self.splitarea()
+
 
 
 class Room:
@@ -212,7 +243,7 @@ class Room:
 				if (abs(p[i][1]-p[i-1][1]) < tol):
 					p[i] = (p[i][0], p[i-1][1])
 
-			if (p[0][0]==p[n][0] and p[0][1]==p[n][1]):
+			if (p[0] == p[n]):
 				finished = True
 			else:
 				p[0] = p[n]
@@ -221,8 +252,8 @@ class Room:
 		#	print(abs(p[i][0]-p[i-1][0]), abs(p[i][1]-p[i-1][1]))
 
 		# Projections of coordinates on x and y
-		self.xcoord = sorted(set([p[0] for p in poly.vertices()]))	
-		self.ycoord = sorted(set([p[1] for p in poly.vertices()]))	
+		self.xcoord = sorted(set([p[0] for p in self.points]))	
+		self.ycoord = sorted(set([p[1] for p in self.points]))	
 
 		# Mirror if polyline is green
 		if (poly.dxf.color==3):
@@ -268,22 +299,47 @@ class Room:
 					delta = x1 - x0
 					ay = (y0*(x1-ax) - y1*(x0-ax))/delta
 					by = (y0*(x1-bx) - y1*(x0-bx))/delta
-					ll.append(ay)
-					lr.append(by)
+					ll.append((ay,j))
+					lr.append((by,j))
 
 			ll.sort()
 			lr.sort()
 
 			for j in range(0,len(ll),2):
-				ay = min(ll[j], lr[j])
-				by = max(ll[j+1], lr[j+1])
-				flag = 0
-				for b in boxes:
-					if (b.BR==(ax,ay) and b.TR==(ax,by)):
-						b.extend_right(bx)
-						flag = 1
-				if (flag==0):
-					boxes.append(Zone(ax,ay,bx,by))
+				ay = min(ll[j][0], lr[j][0])
+				by = max(ll[j+1][0], lr[j+1][0])
+
+				split = Split(ax, bx, ll[j], ll[j+1], lr[j], lr[j+1])
+				boxes.append(Zone(ax,ay,bx,by, split))
+
+		# collate splits
+		while (self.collate_splits()): pass
+
+		# minimize slack
+		for box in self.boxes:
+			area = box.area()
+			slack = box.slack()
+			print("Box: %.3f" % area, "Slack: %.3f" % slack)
+
+	def collate_splits(self):
+		for b in self.boxes:
+			for q in self.boxes:
+				if (b.ax == q.bx and b.splits[0].lu[1] == q.splits[0].ru[1] and
+					                 b.splits[0].ld[1] == q.splits[0].rd[1]):
+					lu = q.splits[0].lu 
+					ld = q.splits[0].ld
+					ru = b.splits[0].ru
+					rd = b.splits[0].rd
+					split = Split(q.ax, b.bx, lu, ld, ru, rd)
+					top = max(q.by, b.by)
+					btm = min(q.ay, b.ay)
+					z = Zone(q.ax, btm, b.bx, top, split)
+					self.boxes.remove(b)
+					self.boxes.remove(q)
+					self.boxes.append(z)
+					return True
+
+		return False
 
 
 	def get_crocs(self):
@@ -374,11 +430,11 @@ class Room:
 		subindex = 0
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			box.draw_text(msp, self.index, subindex, self.orient)
+			# box.draw_text(msp, self.index, subindex, self.orient)
 			subindex = subindex + 1
 			
-		self.draw_crocs(msp, self.orient)
-		self.draw_omegas(msp, self.orient)
+		# self.draw_crocs(msp, self.orient)
+		# self.draw_omegas(msp, self.orient)
 
 	# Reporting Room
 
