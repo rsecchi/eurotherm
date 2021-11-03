@@ -2,7 +2,7 @@
 
 import ezdxf
 import openpyxl
-from math import ceil, floor
+from math import ceil, floor, sqrt
 from tkinter import *
 from tkinter import filedialog
 
@@ -14,6 +14,8 @@ croc_first   = 15
 croc_second  = 60
 croc_maxd    = 120
 croc_tol     = 10
+
+zone_cost    = 1     # equivalent cost of a zone in m2 material
 
 x_font_size  = 20
 y_font_size  = 30
@@ -315,11 +317,47 @@ class Room:
 		# collate splits
 		while (self.collate_splits()): pass
 
+
 		# minimize slack
-		for box in self.boxes:
+		to_add = []
+		for box in boxes:
 			area = box.area()
 			slack = box.slack()
-			print("Box: %.3f" % area, "Slack: %.3f" % slack)
+			m = sqrt(slack/zone_cost)
+			n = max(floor(m), 1)		
+			if ( n*zone_cost < slack/(n+1) ):
+				n = n + 1
+
+			if (n>1):
+				# instantiate new blocks
+				ax = box.ax
+				bx = box.bx
+				d = (bx - ax)/n
+				lu = box.splits[0].lu[0]
+				ld = box.splits[0].ld[0]
+				du = (box.splits[0].ru[0] - lu)/n
+				dd = (box.splits[0].rd[0] - ld)/n
+				
+				j = box.splits[0].lu[1]
+				k = box.splits[0].ld[1]
+
+				for i in range(0,n):
+					ru = lu + du
+					rd = ld + dd
+					split = Split(ax, ax+d, (lu,j), (ld,k), (ru,j), (rd,k))
+					ay = min(lu, ld, ru, rd)
+					by = max(lu, ld, ru, rd)
+					zs = Zone(ax, ay, ax + d, by, split)
+					to_add.append(zs)
+					ax = ax + d
+					lu = lu + du
+					ld = ld + dd 
+
+				boxes.remove(box)
+
+			print("Box: %.3f" % area, "Slack: %.3f" % slack, " partitions: %d" % n)
+		self.boxes = boxes + to_add
+
 
 	def collate_splits(self):
 		for b in self.boxes:
