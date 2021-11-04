@@ -15,7 +15,7 @@ croc_second  = 60
 croc_maxd    = 120
 croc_tol     = 10
 
-zone_cost    = 1     # equivalent cost of a zone in m2 material
+zone_cost    = 0.5     # equivalent cost of a zone in m2 material
 
 x_font_size  = 20
 y_font_size  = 30
@@ -123,6 +123,126 @@ class Split:
 		b = self.base()
 		return (l1+l2)*b/20000
 
+
+class Cluster:
+	def __init__(self, box, x):
+		self.x = x
+		self.ax = box.ax
+		self.bx = box.bx
+		self.ay = box.ay
+		self.by = box.by
+		if (box.bx == x):
+			self.boxesl = [box]
+			self.boxesr = []
+		else:
+			self.boxesl = []
+			self.boxesr = [box]
+
+	def print(self):
+
+		print("x=%8.4f [%d %d %d %d]:" % (self.x, self.ax, self.bx, self.ay, self.by))
+
+		print("LB:", end='')
+		for box in self.boxesl:
+			print("box(%d) [%d %d %d %d]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+		print("")
+
+		print("RB:", end='')
+		for box in self.boxesr:
+			print("box(%d) [%d %d %d %d]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+		print("\n")
+
+		
+	def bb_area(self):
+		ax = self.ax
+		ay = self.ay
+		bx = self.bx
+		by = self.by
+		return abs(bx-ax)*abs(by-ay)/10000
+
+	def area(self):
+		area_ls = 0
+		for box in self.boxesl:
+			area_ls += box.area()
+		area_rs = 0
+		for box in self.boxesr:
+			area_rs += box.area()
+
+		return area_ls + area_rs
+		
+	def scrap(self):
+		s =  self.bb_area() - self.area()
+		return s
+		
+
+	def append(self, box):
+
+		if (box.ax != self.x and box.bx != self.x):
+			return
+
+		if (box.ax < self.ax):
+			self.ax = box.ax
+
+		if (box.bx > self.bx):
+			self.bx = box.bx
+
+		if (box.ay < self.ay):
+			self.ay = box.ay
+
+		if (box.by > self.by):
+			self.by = box.by
+
+		if (box.ax == self.x):
+			self.boxesr.append(box)
+		
+		if (box.bx == self.x):
+			self.boxesl.append(box)
+
+
+	def check_append(self, box):
+		if (box.ax==self.x or box.bx==self.x):
+			if ((box.ay>self.ay and box.ay<self.by) or
+				(box.by>self.ay and box.by<self.by)):
+				self.append(box)
+				return True
+		return False
+
+	def can_merge(self, cluster):
+		if (self.x == cluster.x):
+			if (self.ay<self.by or self.by>self.ay):
+				return True
+		return False
+
+	@classmethod
+	def _get_one(cls, clusters):
+		flag = False
+		for cl1 in clusters:
+			for cl2 in clusters:
+				if (cl2==cl1):
+					continue
+				if (cl2.can_merge(cl1)):
+					return (cl1, cl2)
+
+	@classmethod
+	def merge(cls, clusters):
+		
+		while( (cc := cls._get_one(clusters)) != None):
+
+			cc[0].boxesr += cc[1].boxesr
+			cc[0].boxesl += cc[1].boxesl
+
+			if (cc[0].ay > cc[1].ay):
+				cc[0].ay = cc[1].ay
+			if (cc[0].by < cc[1].by):
+				cc[0].by = cc[1].by
+			if (cc[0].ax > cc[1].ax):
+				cc[0].ax = cc[1].ax
+			if (cc[0].bx < cc[1].bx):
+				cc[0].bx = cc[1].bx
+
+			clusters.remove(cc[1])
+
+
 class Croc:
 	def __init__(self, x1, x2, y):
 		self.x1 = x1
@@ -141,8 +261,12 @@ class Croc:
 		return abs(self.x2-self.x1)/100
 
 class Zone:
+	
+	ident = 0
 
 	def __init__(self, ax, ay, bx, by, split):
+		self.id = Zone.ident
+		Zone.ident += 1
 		self.ax = min(ax, bx)
 		self.bx = max(ax, bx)
 		self.ay = min(ay, by)
@@ -151,7 +275,10 @@ class Zone:
 		self.TL = (min(ax, bx), max(ay, by))
 		self.BR = (max(ax, bx), min(ay, by))
 		self.BL = (min(ax, bx), min(ay, by))
-		self.splits = [split]
+		if (type(split) == list):
+			self.splits = split
+		else:
+			self.splits = [split]
 
 	def pline(self, orient):
 		ax = self.ax; bx = self.bx
@@ -199,7 +326,7 @@ class Zone:
 			totsplit = totsplit + split.area()
 		return totsplit
 
-	def slack(self):
+	def scrap(self):
 		return self.area() - self.splitarea()
 
 
@@ -209,6 +336,7 @@ class Room:
 	index = 0
 
 	def __init__(self, poly):
+
 
 		self.errorstr = ""
 
@@ -317,15 +445,15 @@ class Room:
 		# collate splits
 		while (self.collate_splits()): pass
 
-
-		# minimize slack
+		# minimize scrap
 		to_add = []
+		to_del = []
 		for box in boxes:
 			area = box.area()
-			slack = box.slack()
-			m = sqrt(slack/zone_cost)
+			scrap = box.scrap()
+			m = sqrt(scrap/zone_cost)
 			n = max(floor(m), 1)		
-			if ( n*zone_cost < slack/(n+1) ):
+			if ( n*zone_cost < scrap/(n+1) ):
 				n = n + 1
 
 			if (n>1):
@@ -353,11 +481,101 @@ class Room:
 					lu = lu + du
 					ld = ld + dd 
 
-				boxes.remove(box)
+				to_del.append(box)
 
-			print("Box: %.3f" % area, "Slack: %.3f" % slack, " partitions: %d" % n)
 		self.boxes = boxes + to_add
+		for box in to_del:
+			self.boxes.remove(box)
 
+
+		# optimization 
+
+		# collapse clusters
+		# rounds = 0
+		done = False
+		while(not done):
+			self.get_clusters()
+			cost = 2*zone_cost
+			for c in self.clusters:
+				nl = len(c.boxesl)
+				nr = len(c.boxesr)
+				if (nl>0 and nr>0):
+					#print("func:", "R: %d L: %d" % (nl, nr), 
+					#		   "%.4f" % c.bb_area(), 
+					#		   "%.4f" % c.area(), 
+					#		   "%.4f" % c.scrap())
+					scrap = c.scrap()
+					if (scrap < cost):
+						cost = scrap
+						best = c
+
+			if (cost<zone_cost):
+
+				#print(  " >>>>>> found best", end='')
+				#print("(%d %d %d %d)" % (best.ax, best.bx, best.ay, best.by))
+				#print("left boxes: ", end='')
+				#for box in best.boxesl:
+				#	print("box(%d) " % box.id, end='')
+				#	print("[%d %d %d %d]" % (box.ax, box.bx, box.ay, box.by), end='')
+				#print("")
+				#print("right boxes: ", end='')
+				#for box in best.boxesr:
+				#	print("box(%d) " % box.id, end='')
+				#	print("[%d %d %d %d]" % (box.ax, box.bx, box.ay, box.by), end='')
+				#print("\n<<<<<")
+
+				splits = []
+				for box in best.boxesl:
+					splits += box.splits
+				for box in best.boxesr:
+					splits += box.splits
+
+				zone = Zone(best.ax, best.ay, best.bx, best.by, splits)
+				self.boxes.append(zone)
+
+				for box in best.boxesl:
+					self.boxes.remove(box)
+
+				for box in best.boxesr:
+					self.boxes.remove(box)
+
+			else:
+				done = True
+
+	def print_boxes(self):
+		print("LIST OF %d BOXES: " % len(self.boxes), end='')
+		for box in self.boxes:
+			print("[%d]" % box.id, end='')
+		print("")
+			
+
+	def print_clusters(self):		
+		print("START CLUSTERS -------------------------")
+		for cluster in self.clusters:
+			cluster.print()
+		print('END CLUSTERS   =========================')
+
+	def get_clusters(self):
+		clusters = self.clusters = []
+		for box in self.boxes:
+
+			fl = False
+			fr = False
+			for cluster in clusters:
+				if (cluster.check_append(box)):
+					if (box.ax == cluster.x):
+						fl = True
+					if (box.bx == cluster.x):
+						fr = True
+
+			if (fl == False):
+				clusters.append(Cluster(box, box.ax))
+
+			if (fr == False):
+				clusters.append(Cluster(box, box.bx))
+
+		Cluster.merge(clusters)
+				
 
 	def collate_splits(self):
 		for b in self.boxes:
