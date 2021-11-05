@@ -7,18 +7,19 @@ from tkinter import *
 from tkinter import filedialog
 
 # Parameter settings (values in cm)
-tolerance    = 1         # ignore too little variations
-width_doga   = 20
-space_omega  = 60
-croc_first   = 15
-croc_second  = 60
-croc_maxd    = 120
-croc_tol     = 10
+scale = 1                # multiplier to transform in cm (scale=100 if the drawing is in m)
+tolerance    = 1/scale         # ignore too little variations
+width_doga   = 20/scale
+space_omega  = 60/scale
+croc_first   = 15/scale
+croc_second  = 60/scale
+croc_maxd    = 120/scale
+croc_tol     = 10/scale
 
-zone_cost    = 0.5     # equivalent cost of a zone in m2 material
+zone_cost    = 1/(scale*scale)        # equivalent cost of a zone in m2 material
 
-x_font_size  = 20
-y_font_size  = 30
+x_font_size  = 20/scale
+y_font_size  = 30/scale
 
 default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
@@ -104,6 +105,32 @@ def center(a,b,size):
 	return l
 
 
+def intersects(p, x):
+		
+	ints = []
+	eps = 1e-6
+		
+	for i in range(0, len(p)-1):
+		vx, vy = p[i+1][0]-p[i][0], p[i+1][1]-p[i][1]
+
+		if (p[i+1][0]==x or p[i][0]==x):
+				x += eps
+
+		if (p[i][0] < p[i+1][0]):
+			x0, y0 = p[i][0], p[i][1]
+			x1, y1 = p[i+1][0], p[i+1][1]
+		else:
+			x0, y0 = p[i+1][0], p[i+1][1]
+			x1, y1 = p[i][0], p[i][1]
+					
+		if (x0<x and x<x1):
+			delta = x1 - x0
+			py = (y0*(x1-x) - y1*(x0-x))/delta
+			ints.append(py)
+	
+	return sorted(ints)
+
+
 class Split:
 	
 	def __init__(self, ax, bx, lu, ld, ru, rd):
@@ -140,16 +167,16 @@ class Cluster:
 
 	def print(self):
 
-		print("x=%8.4f [%d %d %d %d]:" % (self.x, self.ax, self.bx, self.ay, self.by))
+		print("x=%f [%.6f %.6f %.6f %.6f]:" % (self.x, self.ax, self.bx, self.ay, self.by))
 
 		print("LB:", end='')
 		for box in self.boxesl:
-			print("box(%d) [%d %d %d %d]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+			print("box(%d) [%.6f %.6f %.6f %.6f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
 		print("")
 
 		print("RB:", end='')
 		for box in self.boxesr:
-			print("box(%d) [%d %d %d %d]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+			print("box(%d) [%.6f %.6f %.6f %.6f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
 		print("\n")
 
 		
@@ -337,7 +364,6 @@ class Room:
 
 	def __init__(self, poly):
 
-
 		self.errorstr = ""
 
 		tol = tolerance
@@ -351,6 +377,9 @@ class Room:
 		Room.index = Room.index + 1
 
 		self.points = list(poly.vertices())
+
+		# Scale points to get cm
+		
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -378,9 +407,6 @@ class Room:
 			else:
 				p[0] = p[n]
 
-		#for i in range(1, len(p)):
-		#	print(abs(p[i][0]-p[i-1][0]), abs(p[i][1]-p[i-1][1]))
-
 		# Projections of coordinates on x and y
 		self.xcoord = sorted(set([p[0] for p in self.points]))	
 		self.ycoord = sorted(set([p[1] for p in self.points]))	
@@ -399,6 +425,8 @@ class Room:
 
 
 	# Building Room
+
+
 
 	# This function divides a polyline into boxes
 	# and returns the list of boxes
@@ -475,11 +503,16 @@ class Room:
 					split = Split(ax, ax+d, (lu,j), (ld,k), (ru,j), (rd,k))
 					ay = min(lu, ld, ru, rd)
 					by = max(lu, ld, ru, rd)
-					zs = Zone(ax, ay, ax + d, by, split)
+					ax_next = ax + d
+					if (i<n-1):
+						zs = Zone(ax, ay, ax_next, by, split)
+					else:
+						zs = Zone(ax, ay, bx, by, split)
 					to_add.append(zs)
-					ax = ax + d
+					ax = ax_next
 					lu = lu + du
 					ld = ld + dd 
+
 
 				to_del.append(box)
 
@@ -500,29 +533,12 @@ class Room:
 				nl = len(c.boxesl)
 				nr = len(c.boxesr)
 				if (nl>0 and nr>0):
-					#print("func:", "R: %d L: %d" % (nl, nr), 
-					#		   "%.4f" % c.bb_area(), 
-					#		   "%.4f" % c.area(), 
-					#		   "%.4f" % c.scrap())
 					scrap = c.scrap()
 					if (scrap < cost):
 						cost = scrap
 						best = c
 
 			if (cost<zone_cost):
-
-				#print(  " >>>>>> found best", end='')
-				#print("(%d %d %d %d)" % (best.ax, best.bx, best.ay, best.by))
-				#print("left boxes: ", end='')
-				#for box in best.boxesl:
-				#	print("box(%d) " % box.id, end='')
-				#	print("[%d %d %d %d]" % (box.ax, box.bx, box.ay, box.by), end='')
-				#print("")
-				#print("right boxes: ", end='')
-				#for box in best.boxesr:
-				#	print("box(%d) " % box.id, end='')
-				#	print("[%d %d %d %d]" % (box.ax, box.bx, box.ay, box.by), end='')
-				#print("\n<<<<<")
 
 				splits = []
 				for box in best.boxesl:
@@ -656,9 +672,15 @@ class Room:
 				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + 2*H))
 
 	def get_omegas(self):	
-		for box in self.boxes:			
-			for d in center(box.ax, box.bx, space_omega):
-				self.omegas.append((d,box.ay,box.by))
+
+		xc = self.xcoord
+		xo = center(xc[0], xc[-1], space_omega)
+		for x in xo:
+			ints = intersects(self.points, x)
+			ilen = len(ints)
+			if (ilen > 0 and (ilen%2)==0):
+				for i in range(0,ilen,2):
+					self.omegas.append((x,ints[i], ints[i+1]))
 
 	
 	# Drawing Room
@@ -682,15 +704,14 @@ class Room:
 		
 
 	def draw_room(self, msp):
-
 		subindex = 0
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			# box.draw_text(msp, self.index, subindex, self.orient)
+			box.draw_text(msp, self.index, subindex, self.orient)
 			subindex = subindex + 1
 			
-		# self.draw_crocs(msp, self.orient)
-		# self.draw_omegas(msp, self.orient)
+		self.draw_crocs(msp, self.orient)
+		self.draw_omegas(msp, self.orient)
 
 	# Reporting Room
 
@@ -722,8 +743,6 @@ class Room:
 
 
 class App:
-
-	rooms = list()
 
 	def __init__(self):
 		self.root = Tk()
@@ -880,6 +899,8 @@ class App:
 
 	def build_model(self):
 
+		self.rooms = []
+
 		self.create_layers()
 		inputlayer = self.var.get()
 		searchstr = 'LWPOLYLINE[layer=="'+inputlayer+'"]'
@@ -898,6 +919,5 @@ class App:
 
 	
 App()
-
 
 
