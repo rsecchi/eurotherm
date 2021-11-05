@@ -342,7 +342,7 @@ class Zone:
 
 	def draw_text(self, msp, ind, subind, orient):
 		scale = (x_font_size/2, y_font_size/4)
-		text = 'ZONE' + str(ind) + chr(64+subind%26) 
+		text = 'ZONE' + str(ind) + chr(65+(subind-1)%26) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
 		else:
@@ -965,7 +965,7 @@ class App:
 			self.textinfo(END, "File not loaded")
 			return
 
-		scale = int(self.entry1.get())
+		scale = float(self.entry1.get())
 		zone_cost = float(self.entry2.get())
 
 		tolerance    = default_tolerance/scale
