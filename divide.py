@@ -2,24 +2,26 @@
 
 import ezdxf
 import openpyxl
+import os.path
 from math import ceil, floor, sqrt
 from tkinter import *
 from tkinter import filedialog
+from tkinter.messagebox import askyesno
 
 # Parameter settings (values in cm)
-scale = 1                # multiplier to transform in cm (scale=100 if the drawing is in m)
-tolerance    = 1/scale         # ignore too little variations
-width_doga   = 20/scale
-space_omega  = 60/scale
-croc_first   = 15/scale
-croc_second  = 60/scale
-croc_maxd    = 120/scale
-croc_tol     = 10/scale
+default_scale = 1          # multiplier to transform in cm (scale=100 if the drawing is in m)
+default_tolerance    = 1   # ignore too little variations
+default_width_doga   = 2
+default_space_omega  = 60
+default_croc_first   = 15
+default_croc_second  = 60
+default_croc_maxd    = 120
+default_croc_tol     = 10
 
-zone_cost    = 1/(scale*scale)        # equivalent cost of a zone in m2 material
+default_zone_cost    = 1   # equivalent cost of a zone in m2 material
 
-x_font_size  = 20/scale
-y_font_size  = 30/scale
+default_x_font_size  = 20
+default_y_font_size  = 30
 
 default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
@@ -27,6 +29,10 @@ layer_box    = 'Eurotherm_box'
 layer_croc   = 'Eurotherm_crocodile'
 layer_omega   = 'Eurotherm_omega'
 
+text_color = 7
+box_color = 8
+croc_color = 9
+omega_color = 10
 
 alphabet = {
 	' ': [],
@@ -360,7 +366,7 @@ class Zone:
 
 class Room:
 
-	index = 0
+	index = 1
 
 	def __init__(self, poly):
 
@@ -424,9 +430,14 @@ class Room:
 		self.get_omegas()
 
 
+	def area(self):
+		a = 0
+		p = self.points
+		for i in range(0, len(p)-1):
+			a += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
+		return abs(a/10000)
+
 	# Building Room
-
-
 
 	# This function divides a polyline into boxes
 	# and returns the list of boxes
@@ -558,6 +569,12 @@ class Room:
 			else:
 				done = True
 
+		# number zones
+		number = 1
+		for box in self.boxes:
+			box.number = number
+			number += 1
+
 	def print_boxes(self):
 		print("LIST OF %d BOXES: " % len(self.boxes), end='')
 		for box in self.boxes:
@@ -668,8 +685,8 @@ class Room:
 
 			else:
 				H = (box.by - box.ay - 2*q)/3
-				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + H))
-				self.crocs.append(Croc(box.ax, box.bx, box.ay + p + 2*H))
+				self.crocs.append(Croc(box.ax, box.bx, box.ay + q + H))
+				self.crocs.append(Croc(box.ax, box.bx, box.ay + q + 2*H))
 
 	def get_omegas(self):	
 
@@ -704,11 +721,9 @@ class Room:
 		
 
 	def draw_room(self, msp):
-		subindex = 0
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			box.draw_text(msp, self.index, subindex, self.orient)
-			subindex = subindex + 1
+			box.draw_text(msp, self.index, box.number, self.orient)
 			
 		self.draw_crocs(msp, self.orient)
 		self.draw_omegas(msp, self.orient)
@@ -718,20 +733,20 @@ class Room:
 	def report_boxes(self):
 		l = []
 		for box in self.boxes:
-			l.append(box.area())
+			l.append(scale*scale*box.area())
 		return l
 
 	def report_crocs(self):
 		l = []
 		for croc in self.crocs:
-			l.append(croc.len())
+			l.append(scale*croc.len())
 		return l
 
 	def report_omegas(self):
 		l = []
 		for omega in self.omegas:
 			lomg = abs(omega[2]-omega[1])/100
-			l.append(lomg)
+			l.append(scale*lomg)
 		return l
 
 	def report(self):
@@ -741,10 +756,11 @@ class Room:
 		return [rboxes, rcrocs, romegas]
 
 
-
 class App:
 
 	def __init__(self):
+		self.loaded = False
+
 		self.root = Tk()
 		root = self.root
 		#root.geometry('500x300')
@@ -764,38 +780,49 @@ class App:
 		button.grid(row=1, column=1, sticky="e")
 
 		self.text = StringVar()
-		self.text.set("Select DXF File")
 		flabel = Label(ctl, textvariable=self.text, width=30, anchor="w")
 		flabel.config(borderwidth=1, relief='solid')
 		flabel.grid(row=1, column=0, padx=(10,30), pady=(20,10))
 
 		self.text1 = StringVar()
-		self.text1.set("Modified DXF File")
 		flabel = Label(ctl, textvariable=self.text1, width=30, anchor="w")
 		flabel.config(borderwidth=1, relief='solid')
 		flabel.grid(row=2, column=0, padx=(10,30), pady=(10,20))
 
-		self.var = StringVar()
-		self.var.set("Select layer")
-		self.opt = OptionMenu(ctl, self.var,['Select layer'])
-		self.opt.config(width=26)
-		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
+		self.var = StringVar() # variable for select layer menu
 
 		self.button1 = Button(ctl, text="Build", width=5, command=self.build_model, pady=5)
 		self.button1.grid(row=4, column=1, pady=(30,10))
-		self.button1["state"] = "disabled"
 
+		# Parameters section
+		parname = Label(root, text="Settings")
+		parname.grid(row=2, column=0, padx=(25,0), pady=(1,0), sticky="w")
+		self.params = params = Frame(root)
+		params.config(borderwidth=1, relief='ridge')
+		params.grid(row=3, column=0, sticky="ew", padx=(25,25), pady=(0,2))
+
+		Label(params, text="scale (100=1m)").grid(row=0, column=0, sticky="w")
+		self.entry1 = Entry(params, justify='right', width=10)
+		self.entry1.grid(row=0, column=1, sticky="w")
+		self.entry1.insert(END, str(default_scale))
+
+		Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
+		self.entry2 = Entry(params, justify='right', width=10)
+		self.entry2.grid(row=1, column=1)
+		self.entry2.insert(END, str(default_zone_cost))
 
 		# Info Section
 		ctlname = Label(root, text="Report")
-		ctlname.grid(row=2, column=0, padx=(25,0), pady=(10,0), sticky="w")
+		ctlname.grid(row=4, column=0, padx=(25,0), pady=(10,0), sticky="w")
 
 		self.textinfo = Text(root, height=10, width=58)
 		self.textinfo.config(borderwidth=1, relief='ridge')
-		self.textinfo.grid(row=3, column=0, pady=(0,15)) 
+		self.textinfo.grid(row=5, column=0, pady=(0,15)) 
 		#sb = Scrollbar(root, command=self.textinfo.yview)
 		#sb.grid(row=3, column=1, sticky="nsw")
 
+
+		self.reset()
 		self.root.mainloop()
 	
 
@@ -803,22 +830,35 @@ class App:
 		self.filename = filedialog.askopenfilename(filetypes=[("DXF files", "*.dxf")])
 		self.loadfile()
 
+	def reset(self):
+		self.text.set("Select DXF File")
+		self.text1.set("Modified DXF File")
+		self.button1["state"] = "disabled"
+		self.textinfo.delete('1.0', END)
+
+		if (hasattr(self,'opt')): self.opt.destroy()	
+		self.var.set("Select layer")
+		self.opt = OptionMenu(self.ctl, self.var,['Select layer'])
+		self.opt.config(width=26)
+		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
+
 	def loadfile(self):
 		try:
 			self.doc = ezdxf.readfile(self.filename)
 		except IOError:
-			self.text.set('Not a DXF file or a generic I/O error.')
+			self.reset()
 			return
 		except ezdxf.DXFStructureError:
-			self.text.set('Invalid or corrupted DXF file.')
+			self.textinfo.insert(END, 'Invalid or corrupted DXF file.')
+			self.reset()
 			return
+
+		self.loaded = True
 
 		self.text.set(self.filename)
 		self.outname = self.filename[:-4]+"_mod.dxf"
 		self.text1.set(self.outname)
 
-		self.msp = self.doc.modelspace()
-		
 		layers = [layer.dxf.name for layer in self.doc.layers]
 		sel = layers[0]
 		for layer in layers:
@@ -833,11 +873,17 @@ class App:
 		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
 		self.button1["state"] = "normal" 
 
+	def new_layer(self, layer_name, color):
+		attr = {'linetype': 'CONTINUOUS', 'color': color}
+		self.doc.layers.new(name=layer_name, dxfattribs=attr)
+		
+
 	def create_layers(self):
-		self.doc.layers.new(name=layer_text, dxfattribs={'linetype': 'CONTINUOUS', 'color': 7})
-		self.doc.layers.new(name=layer_box, dxfattribs={'linetype': 'CONTINUOUS', 'color': 8})
-		self.doc.layers.new(name=layer_croc, dxfattribs={'linetype': 'CONTINUOUS', 'color': 9})
-		self.doc.layers.new(name=layer_omega, dxfattribs={'linetype': 'CONTINUOUS', 'color': 10})
+		self.new_layer(layer_text, text_color)
+		self.new_layer(layer_box, box_color)
+		self.new_layer(layer_croc, croc_color)
+		self.new_layer(layer_omega, omega_color)
+
 
 	def print_report(self, txt):
 		txt(END, "Design Report ----------------\n\n")
@@ -849,8 +895,8 @@ class App:
 
 			rep = room.report()
 			boxes, crocs, omegas = rep[0], rep[1], rep[2]
-
-			txt(END,"Zone"+str(room.index)+":\n")
+			surf = room.surf * scale * scale
+			txt(END,"Zone%d  - surface %.3f m2\n" % (room.index, surf))
 			txt(END,"   %3d boxes, "   % len(boxes))
 			txt(END," area=%8.2f m2 \n" % sum(boxes))
 			txt(END,"   %3d crocs, "   % len(crocs))
@@ -898,24 +944,68 @@ class App:
 
 
 	def build_model(self):
+		global width_doga, space_omega  
+		global croc_first, croc_second, croc_maxd, croc_tol     
+		global zone_cost   
+		global x_font_size, y_font_size  
+		global scale, tolerance
 
+		self.textinfo.delete('1.0', END)
+
+		if (not self.loaded):
+			self.textinfo(END, "File not loaded")
+			return
+
+		scale = int(self.entry1.get())
+		zone_cost = float(self.entry2.get())
+
+		tolerance    = default_tolerance/scale
+		width_doga   = default_width_doga/scale
+		space_omega  = default_space_omega/scale
+		croc_first   = default_croc_first/scale
+		croc_second  = default_croc_second/scale
+		croc_maxd    = default_croc_maxd/scale
+		croc_tol     = default_croc_tol/scale
+		zone_cost    = default_zone_cost/(scale*scale)
+		x_font_size  = default_x_font_size/scale
+		y_font_size  = default_y_font_size/scale
+
+		# reload file
+		self.doc = ezdxf.readfile(self.filename)	
+		self.msp = self.doc.modelspace()
+		Room.index = 1
 		self.rooms = []
 
 		self.create_layers()
 		inputlayer = self.var.get()
+
+		for e in self.msp.query('*[layer=="%s"]' % inputlayer):
+			if (e.dxftype() != 'LWPOLYLINE'):
+				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
+				self.textinfo.insert(END, wstr)
+
 		searchstr = 'LWPOLYLINE[layer=="'+inputlayer+'"]'
 		for poly in  self.msp.query(searchstr):
 			room = Room(poly)
+			room.surf = 0
 			self.rooms.append(room)
 			if (len(room.errorstr)>0):
 				self.textinfo.insert(END,room.errorstr)
 			else:
+				room.surf = room.area()
+				if (room.area() < zone_cost):
+					wstr = "WARNING: area less than %d m2: " % zone_cost
+					wstr += "Consider changing scale!\n"
+					self.textinfo.insert(END, wstr)
 				room.draw_room(self.msp)
 
 		self.print_report(self.textinfo.insert)
-		self.doc.saveas(self.outname)
-		self.save_xls()
 
+		if (os.path.isfile(self.outname)):
+			if askyesno("Warning", 
+						"File 'mod' already exists: Overwrite?" ):
+				self.doc.saveas(self.outname)
+		self.save_xls()
 
 	
 App()
