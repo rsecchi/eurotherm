@@ -342,7 +342,7 @@ class Zone:
 
 	def draw_text(self, msp, ind, subind, orient):
 		scale = (x_font_size/2, y_font_size/4)
-		text = 'ZONE' + str(ind) + chr(65+subind%26) 
+		text = 'ZONE' + str(ind) + chr(64+subind%26) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
 		else:
@@ -792,7 +792,7 @@ class App:
 		self.var = StringVar() # variable for select layer menu
 
 		self.button1 = Button(ctl, text="Build", width=5, command=self.build_model, pady=5)
-		self.button1.grid(row=4, column=1, pady=(30,10))
+		self.button1.grid(row=3, column=1, pady=(30,10))
 
 		# Parameters section
 		parname = Label(root, text="Settings")
@@ -909,35 +909,44 @@ class App:
 		wb = openpyxl.Workbook()
 		ws = wb.active
 		ws.title = "Bills of Materials"
+
+		# print header
+		ws['B3']= "Zone name"
+		ws['C3']= "width (cm)"
+		ws['D3']= "length (cm)"
+		ws['E3']= "Area (m2)"
 	
 		index = 0
 		for room in self.rooms:
 
-			curr_row = str(index+4)
-			curr_zone = str(index)
-			index = index + 1
-
-			pos_name = 'B' + curr_row
-			pos_box  = 'C' + curr_row
-			pos_croc = 'D' + curr_row
-			pos_omeg = 'E' + curr_row
-
-			ws[pos_name] = 'Zone' + curr_zone
-
 			if (len(room.errorstr)>0):
-				ws[pos_box] = "ERROR"
+				curr_row = str(index+4)
+				index = index + 1
+				pos_name = 'B' + curr_row
+				pos_err = 'C' + curr_row
+				ws[pos_name] = 'Zone' + str(room.index)
+				ws[pos_err] = "ERROR"
 				continue
 
-			rep = room.report()
-			boxes, crocs, omegas = rep[0], rep[1], rep[2]
+			for box in room.boxes:
+				curr_row = str(index+4)
+				index = index + 1
 
-			A_tot = sum(boxes)
-			crocs_tot = sum(crocs)
-			omegs_tot = sum(omegas)
+				pos_name = 'B' + curr_row
+				pos_width  = 'C' + curr_row
+				pos_len = 'D' + curr_row
+				pos_area = 'E' + curr_row
 
-			ws[pos_box] = A_tot
-			ws[pos_croc] = crocs_tot
-			ws[pos_omeg] = omegs_tot
+				ws[pos_name] = "Zone%d-%d" % (room.index, box.number)
+
+				width = int((box.bx - box.ax)*scale)
+				length = int((box.by - box.ay)*scale)
+				area = width*length/10000
+
+				ws[pos_width] = width
+				ws[pos_len] = length
+				ws[pos_area] = area
+				ws[pos_area].number_format = "0.00"
 
 		out = self.filename[:-4] + "_mod.xlsx"	
 		wb.save(out)
