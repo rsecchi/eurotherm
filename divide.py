@@ -18,6 +18,8 @@ default_croc_second  = 60
 default_croc_maxd    = 120
 default_croc_tol     = 10
 
+extra_len    = 20
+
 default_zone_cost    = 1   # equivalent cost of a zone in m2 material
 
 default_x_font_size  = 20
@@ -33,6 +35,9 @@ text_color = 7
 box_color = 8
 croc_color = 9
 omega_color = 10
+
+xlsx_template = 'template.xlsx'
+sheet_template = 'BoM'
 
 alphabet = {
 	' ': [],
@@ -342,7 +347,10 @@ class Zone:
 
 	def draw_text(self, msp, ind, subind, orient):
 		scale = (x_font_size/2, y_font_size/4)
-		text = 'ZONE' + str(ind) + chr(65+(subind-1)%26) 
+		if (subind == -1):
+			text = 'ZONE ' + str(ind)
+		else:
+			text = 'ZONE ' + str(ind) + chr(65+(subind-1)%26) 
 		if (orient==0):
 			pos = ((self.ax+self.bx)/2, (self.ay+self.by)/2)
 		else:
@@ -436,6 +444,13 @@ class Room:
 		for i in range(0, len(p)-1):
 			a += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
 		return abs(a/10000)
+
+	def perimeter(self):
+		p = self.points
+		d = 0
+		for i in range(0, len(p)-1):
+			d += sqrt( pow(p[i+1][0]-p[i][0], 2) + pow(p[i+1][1]-p[i][1], 2))
+		return d
 
 	# Building Room
 
@@ -723,7 +738,10 @@ class Room:
 	def draw_room(self, msp):
 		for box in self.boxes:
 			box.draw_box(msp, self.orient)
-			box.draw_text(msp, self.index, box.number, self.orient)
+			if (len(self.boxes)>1):
+				box.draw_text(msp, self.index, box.number, self.orient)
+			else:
+				box.draw_text(msp, self.index, -1, self.orient)
 			
 		self.draw_crocs(msp, self.orient)
 		self.draw_omegas(msp, self.orient)
@@ -906,16 +924,9 @@ class App:
 			txt(END,"\n")
 
 	def save_xls(self):
-		wb = openpyxl.Workbook()
-		ws = wb.active
-		ws.title = "Bills of Materials"
+		wb = openpyxl.load_workbook(xlsx_template)
+		ws = wb[sheet_template]
 
-		# print header
-		ws['B3']= "Zone name"
-		ws['C3']= "width (cm)"
-		ws['D3']= "length (cm)"
-		ws['E3']= "Area (m2)"
-	
 		index = 0
 		for room in self.rooms:
 
@@ -925,28 +936,45 @@ class App:
 				pos_name = 'B' + curr_row
 				pos_err = 'C' + curr_row
 				ws[pos_name] = 'Zone' + str(room.index)
-				ws[pos_err] = "ERROR"
 				continue
 
 			for box in room.boxes:
-				curr_row = str(index+4)
+				curr_row = str(index+6)
 				index = index + 1
 
 				pos_name = 'B' + curr_row
-				pos_width  = 'C' + curr_row
-				pos_len = 'D' + curr_row
-				pos_area = 'E' + curr_row
+				pos_paneltype = 'C' + curr_row
+				pos_start_profile = 'D' + curr_row
+				pos_len = 'E' + curr_row
+				pos_end_profile = 'F' + curr_row
+				pos_width = 'G' + curr_row
+				pos_perimeter = 'H' + curr_row
+				pos_omega = 'I' + curr_row
 
-				ws[pos_name] = "Zone%d-%d" % (room.index, box.number)
+				if (len(room.boxes) == 1):
+					ws[pos_name] = "Zona %d" % (room.index) 
+				else:
+					ws[pos_name] = "Zona %d " % (room.index) + chr(64+box.number)
+					perimeter = 0.0
 
-				width = int((box.bx - box.ax)*scale)
-				length = int((box.by - box.ay)*scale)
-				area = width*length/10000
+				if (box.number == 1):
+					perimeter = room.perimeter()*scale/100
+				else:
+					perimenter = 0.0
 
-				ws[pos_width] = width
-				ws[pos_len] = length
-				ws[pos_area] = area
-				ws[pos_area].number_format = "0.00"
+				width = (box.bx - box.ax)*scale
+				length = (box.by - box.ay)*scale + extra_len
+
+				ws[pos_width] = ceil(width/5)*5/100
+				ws[pos_paneltype] = 'BLH'
+				ws[pos_start_profile] = 'NONE'
+				ws[pos_len] = round(length/5)*50
+				ws[pos_start_profile] = 'NONE'
+				ws[pos_end_profile] = 'NONE'
+				ws[pos_perimeter] = perimeter
+				ws[pos_omega] = '0.0'
+
+				#ws[pos_area].number_format = "0.00"
 
 		out = self.filename[:-4] + "_mod.xlsx"	
 		wb.save(out)
