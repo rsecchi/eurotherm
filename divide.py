@@ -889,7 +889,7 @@ class App:
 		self.loaded = True
 
 		self.text.set(self.filename)
-		self.outname = self.filename[:-4]+"_mod.dxf"
+		self.outname = self.filename[:-4]+"_sapp.dxf"
 		self.text1.set(self.outname)
 
 		layers = [layer.dxf.name for layer in self.doc.layers]
@@ -979,9 +979,9 @@ class App:
 			ws[ps[1]].value = tot = room.total_crocs()/100
 			total_len += tot
 			ws[ps[1]].number_format = "0.00"
-			ws[ps[2]].value = tot = profs = ceil(tot/5)
-			total_profs += tot
-			ws[ps[3]].value = tot = ceil(profs/10)
+			# ws[ps[2]].value = tot = profs = ceil(tot/5)
+			# total_profs += tot
+			# ws[ps[3]].value = tot = ceil(profs/10)
 			ws[ps[3]].border = Border(right=Side(style='thin')) 
 			total_packs += tot
 			index += 1
@@ -998,8 +998,8 @@ class App:
 		ws[ps[0]].value = "totals"
 		ws[ps[1]].value = total_len
 		ws[ps[1]].number_format = "0.00"
-		ws[ps[2]].value = total_profs
-		ws[ps[3]].value = total_packs
+		ws[ps[2]].value = tot = ceil(total_len/5)
+		ws[ps[3]].value = ceil(tot/10)
 
 	def save_omegas_xls(self, ws):
 		sc = 72
@@ -1041,9 +1041,9 @@ class App:
 			ws[ps[1]].value = tot = room.total_omegas()/100
 			total_len += tot
 			ws[ps[1]].number_format = "0.00"
-			ws[ps[2]].value = tot = profs = ceil(tot/5)
+			#ws[ps[2]].value = tot = profs = ceil(tot/5)
 			total_profs += tot
-			ws[ps[3]].value = tot = ceil(profs/10)
+			#ws[ps[3]].value = tot = ceil(profs/10)
 			ws[ps[3]].border = Border(right=Side(style='thin')) 
 			total_packs += tot
 			index += 1
@@ -1060,9 +1060,9 @@ class App:
 		ws[ps[0]].value = "totals"
 		ws[ps[1]].value = total_len
 		ws[ps[1]].number_format = "0.00"
-		ws[ps[2]].value = total_profs
-		ws[ps[3]].value = total_packs
-		pass
+		ws[ps[2]].value = tot = ceil(total_len/5)
+		ws[ps[3]].value = ceil(tot/10)
+		
 
 	def save_xls(self):
 		wb = openpyxl.load_workbook(xlsx_template)
@@ -1117,7 +1117,7 @@ class App:
 
 				#ws[pos_area].number_format = "0.00"
 
-		out = self.filename[:-4] + "_mod.xlsx"	
+		out = self.filename[:-4] + "_doghe.xlsx"	
 		wb.save(out)
 
 
