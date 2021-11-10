@@ -380,11 +380,17 @@ class Room:
 
 	def __init__(self, poly):
 
+		self.index = Room.index
+		Room.index = Room.index + 1
+		self.ignore = False
 		self.errorstr = ""
+
 		# Scale points to get cm
 		color = poly.dxf.color
 		if (color>3 or color<2):
-			self.errorstr = "WARNING: color=%d not supported\n" % color
+			self.ignore = True
+			self.errorstr = "WARNING: color=%d not supported, " % color
+			self.errorstr += "ignoring Zone %d\n" % self.index
 			return
 
 		tol = tolerance
@@ -394,12 +400,7 @@ class Room:
 		self.crocs = list()
 		self.omegas = list()
 
-		self.index = Room.index
-		Room.index = Room.index + 1
-
-		self.points = list(poly.vertices())
-
-	
+		self.points = list(poly.vertices())	
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -410,6 +411,7 @@ class Room:
 		n = len(p)-1
 		if (abs(p[0][0]-p[n][0])>tol or abs(p[0][1]-p[n][1])>tol):
 			self.errorstr = "Error: open polyline in Zone %d \n" % self.index 
+			self.ignore = True
 			return
 
 		# Straighten up walls
@@ -976,19 +978,19 @@ class App:
 
 		total_len = total_profs = total_packs = 0 
 		for room in self.rooms:
+
 			s = str(index)
 			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
 			ws[ps[0]].border = Border(left=Side(style='thin')) 
+			ws[ps[3]].border = Border(right=Side(style='thin')) 
 			ws[ps[0]].value = "Zone " + str(room.index)
+			index += 1
+			if (room.ignore):
+				continue
+
 			ws[ps[1]].value = tot = room.total_crocs()/100
 			total_len += tot
 			ws[ps[1]].number_format = "0.00"
-			# ws[ps[2]].value = tot = profs = ceil(tot/5)
-			# total_profs += tot
-			# ws[ps[3]].value = tot = ceil(profs/10)
-			ws[ps[3]].border = Border(right=Side(style='thin')) 
-			total_packs += tot
-			index += 1
 
 		s = str(index)
 		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
@@ -1036,21 +1038,22 @@ class App:
 								 right=Side(style='thin')) 
 		index += 1
 
-		total_len = total_profs = total_packs = 0 
+		total_len = 0 
 		for room in self.rooms:
+
 			s = str(index)
 			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-			ws[ps[0]].border = Border(left=Side(style='thin')) 
-			ws[ps[0]].value = "Zone " + str(room.index)
-			ws[ps[1]].value = tot = room.total_omegas()/100
-			total_len += tot
-			ws[ps[1]].number_format = "0.00"
-			#ws[ps[2]].value = tot = profs = ceil(tot/5)
-			total_profs += tot
-			#ws[ps[3]].value = tot = ceil(profs/10)
-			ws[ps[3]].border = Border(right=Side(style='thin')) 
-			total_packs += tot
 			index += 1
+			ws[ps[0]].border = Border(left=Side(style='thin')) 
+			ws[ps[3]].border = Border(right=Side(style='thin')) 
+			ws[ps[0]].value = "Zone " + str(room.index)
+
+			if (room.ignore):
+				continue
+
+			ws[ps[1]].value = tot = room.total_omegas()/100
+			ws[ps[1]].number_format = "0.00"
+			total_len += tot
 
 		s = str(index)
 		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
@@ -1076,7 +1079,7 @@ class App:
 		for room in self.rooms:
 
 			if (len(room.errorstr)>0):
-				curr_row = str(index+4)
+				curr_row = str(index+6)
 				index = index + 1
 				pos_name = 'B' + curr_row
 				pos_err = 'C' + curr_row
