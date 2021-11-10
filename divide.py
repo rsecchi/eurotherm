@@ -1180,8 +1180,9 @@ class App:
 		self.print_report(self.textinfo.insert)
 
 		if (os.path.isfile(self.outname)):
-			if askyesno("Warning", 
-						"File 'mod' already exists: Overwrite?" ):
+			if askyesno("Warning", "File 'mod' already exists: Overwrite?"):
+				self.doc.saveas(self.outname)
+		else:
 				self.doc.saveas(self.outname)
 
 		self.save_xls()
