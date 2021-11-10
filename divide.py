@@ -26,7 +26,7 @@ default_zone_cost    = 1   # equivalent cost of a zone in m2 material
 default_x_font_size  = 20
 default_y_font_size  = 30
 
-default_input_layer = 'aree sapp'
+default_input_layer = 'AREE_SAPP'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
 layer_croc   = 'Eurotherm_crocodile'
@@ -381,6 +381,11 @@ class Room:
 	def __init__(self, poly):
 
 		self.errorstr = ""
+		# Scale points to get cm
+		color = poly.dxf.color
+		if (color>3 or color<2):
+			self.errorstr = "WARNING: color=%d not supported\n" % color
+			return
 
 		tol = tolerance
 		self.orient = 0
@@ -394,8 +399,7 @@ class Room:
 
 		self.points = list(poly.vertices())
 
-		# Scale points to get cm
-		
+	
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -1189,8 +1193,9 @@ class App:
 		wb = openpyxl.Workbook()
 		ws = wb.active
 		ws.title = "Bill of Materials"
-		self.save_crocs_xls(ws)
-		self.save_omegas_xls(ws)
+		if (len(self.rooms)>0):
+			self.save_crocs_xls(ws)
+			self.save_omegas_xls(ws)
 		out = self.filename[:-4] + "_struct.xlsx"	
 		wb.save(out)
 
