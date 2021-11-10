@@ -2,6 +2,7 @@
 
 import ezdxf
 import openpyxl
+from openpyxl.styles.borders import Border, Side
 import os.path
 from math import ceil, floor, sqrt
 from tkinter import *
@@ -372,6 +373,7 @@ class Zone:
 
 
 
+
 class Room:
 
 	index = 1
@@ -703,6 +705,12 @@ class Room:
 				self.crocs.append(Croc(box.ax, box.bx, box.ay + q + H))
 				self.crocs.append(Croc(box.ax, box.bx, box.ay + q + 2*H))
 
+	def total_crocs(self):
+		total = 0
+		for croc in self.crocs:
+			total += abs(croc.x2 - croc.x1)
+		return total*scale
+
 	def get_omegas(self):	
 
 		xc = self.xcoord
@@ -713,6 +721,13 @@ class Room:
 			if (ilen > 0 and (ilen%2)==0):
 				for i in range(0,ilen,2):
 					self.omegas.append((x,ints[i], ints[i+1]))
+
+
+	def total_omegas(self):
+		total = 0
+		for omega in self.omegas:
+			total += abs(omega[2] - omega[1])
+		return total*scale
 
 	
 	# Drawing Room
@@ -923,6 +938,132 @@ class App:
 			txt(END," tot=%8.2f m\n"   % sum(omegas))
 			txt(END,"\n")
 
+	def save_crocs_xls(self, ws):
+
+		sc = 66
+		index = 3
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws.column_dimensions[chr(sc)].width = 15
+		ws.column_dimensions[chr(sc+1)].width = 15
+		ws.column_dimensions[chr(sc+2)].width = 15
+		ws.column_dimensions[chr(sc+3)].width = 15
+		
+		# header 
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[chr(sc)+s].value = 'Crocodiles'
+		index += 1
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[ps[0]].value = "Zone name"
+		ws[ps[0]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
+								 left=Side(style='thin')) 
+		ws[ps[1]].value = "total length (m)"
+		ws[ps[1]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
+		ws[ps[2]].value = "No. profiles"
+		ws[ps[2]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
+		ws[ps[3]].value = "No. packages"
+		ws[ps[3]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
+								 right=Side(style='thin')) 
+		index += 1
+
+		total_len = total_profs = total_packs = 0 
+		for room in self.rooms:
+			s = str(index)
+			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+			ws[ps[0]].border = Border(left=Side(style='thin')) 
+			ws[ps[0]].value = "Zone " + str(room.index)
+			ws[ps[1]].value = tot = room.total_crocs()/100
+			total_len += tot
+			ws[ps[1]].number_format = "0.00"
+			ws[ps[2]].value = tot = profs = ceil(tot/5)
+			total_profs += tot
+			ws[ps[3]].value = tot = ceil(profs/10)
+			ws[ps[3]].border = Border(right=Side(style='thin')) 
+			total_packs += tot
+			index += 1
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[ps[0]].border = Border(bottom=Side(style='thin'), top=Side(style='double'), 
+									left=Side(style='thin')) 
+		ws[ps[1]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
+		ws[ps[2]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
+		ws[ps[3]].border = Border(bottom=Side(style='thin'), top=Side(style='double'),
+								 right=Side(style='thin')) 
+
+		ws[ps[0]].value = "totals"
+		ws[ps[1]].value = total_len
+		ws[ps[1]].number_format = "0.00"
+		ws[ps[2]].value = total_profs
+		ws[ps[3]].value = total_packs
+
+	def save_omegas_xls(self, ws):
+		sc = 72
+		index = 3
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws.column_dimensions[chr(sc)].width = 15
+		ws.column_dimensions[chr(sc+1)].width = 15
+		ws.column_dimensions[chr(sc+2)].width = 15
+		ws.column_dimensions[chr(sc+3)].width = 15
+		
+		# header 
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[chr(sc)+s].value = 'Omegas'
+		index += 1
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[ps[0]].value = "Zone name"
+		ws[ps[0]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
+								 left=Side(style='thin')) 
+		ws[ps[1]].value = "total length (m)"
+		ws[ps[1]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
+		ws[ps[2]].value = "No. profiles"
+		ws[ps[2]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
+		ws[ps[3]].value = "No. packages"
+		ws[ps[3]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
+								 right=Side(style='thin')) 
+		index += 1
+
+		total_len = total_profs = total_packs = 0 
+		for room in self.rooms:
+			s = str(index)
+			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+			ws[ps[0]].border = Border(left=Side(style='thin')) 
+			ws[ps[0]].value = "Zone " + str(room.index)
+			ws[ps[1]].value = tot = room.total_omegas()/100
+			total_len += tot
+			ws[ps[1]].number_format = "0.00"
+			ws[ps[2]].value = tot = profs = ceil(tot/5)
+			total_profs += tot
+			ws[ps[3]].value = tot = ceil(profs/10)
+			ws[ps[3]].border = Border(right=Side(style='thin')) 
+			total_packs += tot
+			index += 1
+
+		s = str(index)
+		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
+		ws[ps[0]].border = Border(bottom=Side(style='thin'), top=Side(style='double'), 
+									left=Side(style='thin')) 
+		ws[ps[1]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
+		ws[ps[2]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
+		ws[ps[3]].border = Border(bottom=Side(style='thin'), top=Side(style='double'),
+								 right=Side(style='thin')) 
+
+		ws[ps[0]].value = "totals"
+		ws[ps[1]].value = total_len
+		ws[ps[1]].number_format = "0.00"
+		ws[ps[2]].value = total_profs
+		ws[ps[3]].value = total_packs
+		pass
+
 	def save_xls(self):
 		wb = openpyxl.load_workbook(xlsx_template)
 		ws = wb[sheet_template]
@@ -935,7 +1076,7 @@ class App:
 				index = index + 1
 				pos_name = 'B' + curr_row
 				pos_err = 'C' + curr_row
-				ws[pos_name] = 'Zone' + str(room.index)
+				ws[pos_name] = 'Zone ' + str(room.index)
 				continue
 
 			for box in room.boxes:
@@ -952,9 +1093,9 @@ class App:
 				pos_omega = 'I' + curr_row
 
 				if (len(room.boxes) == 1):
-					ws[pos_name] = "Zona %d" % (room.index) 
+					ws[pos_name] = "Zone %d" % (room.index) 
 				else:
-					ws[pos_name] = "Zona %d " % (room.index) + chr(64+box.number)
+					ws[pos_name] = "Zone %d " % (room.index) + chr(64+box.number)
 					perimeter = 0.0
 
 				if (box.number == 1):
@@ -1042,7 +1183,15 @@ class App:
 			if askyesno("Warning", 
 						"File 'mod' already exists: Overwrite?" ):
 				self.doc.saveas(self.outname)
+
 		self.save_xls()
+		wb = openpyxl.Workbook()
+		ws = wb.active
+		ws.title = "Bill of Materials"
+		self.save_crocs_xls(ws)
+		self.save_omegas_xls(ws)
+		out = self.filename[:-4] + "_struct.xlsx"	
+		wb.save(out)
 
 	
 App()
