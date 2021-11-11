@@ -464,8 +464,8 @@ class Room:
 
 	# This function divides a polyline into boxes
 	# and returns the list of boxes
-	def get_boxes(self):
-		
+	def get_boxes(self):	
+
 		tol = tolerance
 		boxes = self.boxes
 		p = self.points
@@ -1151,7 +1151,7 @@ class App:
 		croc_second  = default_croc_second/scale
 		croc_maxd    = default_croc_maxd/scale
 		croc_tol     = default_croc_tol/scale
-		zone_cost    = default_zone_cost/(scale*scale)
+		zone_cost    = zone_cost/(scale*scale)
 		x_font_size  = default_x_font_size/scale
 		y_font_size  = default_y_font_size/scale
 
