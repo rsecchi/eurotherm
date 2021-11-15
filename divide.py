@@ -179,16 +179,16 @@ class Cluster:
 
 	def print(self):
 
-		print("x=%f [%.6f %.6f %.6f %.6f]:" % (self.x, self.ax, self.bx, self.ay, self.by))
+		print("x=%.2f [%.2f %.2f %.2f %.2f]:" % (self.x, self.ax, self.bx, self.ay, self.by))
 
 		print("LB:", end='')
 		for box in self.boxesl:
-			print("box(%d) [%.6f %.6f %.6f %.6f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+			print("box(%d) [%.2f %.2f %.2f %.2f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
 		print("")
 
 		print("RB:", end='')
 		for box in self.boxesr:
-			print("box(%d) [%.6f %.6f %.6f %.6f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
+			print("box(%d) [%.2f %.2f %.2f %.2f]   " % (box.id, box.ax, box.bx, box.ay, box.by), end='')
 		print("\n")
 
 		
@@ -239,9 +239,9 @@ class Cluster:
 
 
 	def check_append(self, box):
+
 		if (box.ax==self.x or box.bx==self.x):
-			if ((box.ay>self.ay and box.ay<self.by) or
-				(box.by>self.ay and box.by<self.by)):
+			if (not (box.ay>self.by or box.by<self.ay)):
 				self.append(box)
 				return True
 		return False
@@ -555,6 +555,12 @@ class Room:
 			self.boxes.remove(box)
 
 
+		# renumber zones
+		number = 1
+		for box in self.boxes:
+			box.number = number
+			number += 1
+
 		# optimization 
 
 		# collapse clusters
@@ -562,41 +568,92 @@ class Room:
 		done = False
 		while(not done):
 			self.get_clusters()
-			cost = 2*zone_cost
+			mincost = 0
 			for c in self.clusters:
-				nl = len(c.boxesl)
-				nr = len(c.boxesr)
-				if (nl>0 and nr>0):
-					scrap = c.scrap()
-					if (scrap < cost):
-						cost = scrap
-						best = c
+				ay = c.ay
+				by = c.by
 
-			if (cost<zone_cost):
+				c.boxesr.sort(key=lambda a: a.bx)
+				c.boxesl.sort(key=lambda a: a.ax, reverse=True)
 
+				L = len(c.boxesl)
+				R = len(c.boxesr)
+
+				for i in range(0,R+1):
+					for j in range(0,L+1):
+
+						if (i+j<2):
+							continue
+
+						w = (R-i) + (L-j) + 1
+						boxes = c.boxesr[0:i] + c.boxesl[0:j]
+
+						# bounding boxes
+						ax = boxes[0].ax
+						bx = boxes[0].bx
+
+						ta = 0
+						for b in boxes:
+							ta += b.area()
+							if (b.ax<ax): ax=b.ax
+							if (b.bx>bx): bx=b.bx
+
+						scrap = (bx-ax)*(by-ay)/10000 - ta
+						cost = scrap - zone_cost * w
+
+						if (cost < mincost):
+							mincost = cost
+							axb = ax
+							bxb = bx
+							ayb = ay
+							byb = by
+							bestr = c.boxesr[0:i]
+							bestl = c.boxesl[0:j]
+							otherbr = c.boxesr[i:R]
+							otherbl = c.boxesl[j:L]
+							bestc = c
+
+			#self.print_clusters()
+			#bestc.print()
+
+			if (mincost<0):
+			# if (False):
+				# update zone partitioning
+				
 				splits = []
-				for box in best.boxesl:
+				for box in bestl:
 					splits += box.splits
-				for box in best.boxesr:
+				for box in bestr:
 					splits += box.splits
 
-				zone = Zone(best.ax, best.ay, best.bx, best.by, splits)
+				for box in otherbl:
+					zone = Zone(box.ax, box.ay, axb, box.by, box.splits)
+					self.boxes.append(zone)
+
+				for box in otherbr:
+					zone = Zone(bxb, box.ay, box.bx, box.by, box.splits)
+					self.boxes.append(zone)
+
+				zone = Zone(axb, ayb, bxb, byb, splits)
 				self.boxes.append(zone)
 
-				for box in best.boxesl:
+				for box in bestc.boxesr:
+					print(box.id)
 					self.boxes.remove(box)
 
-				for box in best.boxesr:
+				for box in bestc.boxesl:
+					print(box.id)
 					self.boxes.remove(box)
 
 			else:
 				done = True
 
-		# number zones
+		# renumber zones
 		number = 1
 		for box in self.boxes:
 			box.number = number
 			number += 1
+
 
 	def print_boxes(self):
 		print("LIST OF %d BOXES: " % len(self.boxes), end='')
@@ -615,22 +672,28 @@ class Room:
 		clusters = self.clusters = []
 		for box in self.boxes:
 
-			fl = False
-			fr = False
+			lhs = False
+			rhs = False
+
 			for cluster in clusters:
-				if (cluster.check_append(box)):
-					if (box.ax == cluster.x):
-						fl = True
-					if (box.bx == cluster.x):
-						fr = True
+				if (box.ax == cluster.x and rhs == False):
+					if (cluster.check_append(box)):
+						rhs = True
 
-			if (fl == False):
-				clusters.append(Cluster(box, box.ax))
+				if (box.bx == cluster.x and lhs == False):
+					if (cluster.check_append(box)):
+						lhs = True
 
-			if (fr == False):
+			if (lhs == False):
 				clusters.append(Cluster(box, box.bx))
 
+			if (rhs == False):
+				clusters.append(Cluster(box, box.ax))
+
+
+		self.print_clusters()
 		Cluster.merge(clusters)
+		self.print_clusters()
 				
 
 	def collate_splits(self):
