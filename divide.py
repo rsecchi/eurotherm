@@ -372,7 +372,42 @@ class Zone:
 		return self.area() - self.splitarea()
 
 
+	def overlap(self, box):
+		c1 = self.ax >= box.bx
+		c2 = self.bx <=  box.ax
+		c3 = self.ay >= box.by
+		c4 = self.by <= box.ay
 
+		return not(c1 or c2 or c3 or c4)
+
+	def overlap_top(self, box):
+		c1 = self.ax >= box.ax
+		c2 = self.bx <= box.bx
+		c3 = self.ay > box.ay and self.ay < box.by
+		c4 = self.by > box.by
+		return c1 and c2 and c3 and c4
+
+	def overlap_bottom(self, box):
+		c1 = self.ax >= box.ax
+		c2 = self.bx <= box.bx
+		c3 = self.ay < box.ay
+		c4 = self.by > box.ay and self.by < box.by
+		return c1 and c2 and c3 and c4
+
+	def overlap_left(self, box):
+		c1 = self.ay >= box.ay
+		c2 = self.by <= box.by
+		c3 = self.ax < box.ax 
+		c4 = self.bx > box.ax and self.bx < box.bx
+		return c1 and c2 and c3 and c4
+
+	def overlap_right(self, box):
+		c1 = self.ay >= box.ay
+		c2 = self.by <= box.by
+		c3 = self.ax > box.ax and self.ax < box.bx
+		c4 = self.bx > box.bx
+		return c1 and c2 and c3 and c4
+		 
 
 class Room:
 
@@ -555,18 +590,11 @@ class Room:
 			self.boxes.remove(box)
 
 
-		# renumber zones
-		number = 1
-		for box in self.boxes:
-			box.number = number
-			number += 1
 
-		# optimization 
-
-		# collapse clusters
-		# rounds = 0
+		# optimize
 		done = False
 		while(not done):
+
 			self.get_clusters()
 			mincost = 0
 			for c in self.clusters:
@@ -617,7 +645,6 @@ class Room:
 			#bestc.print()
 
 			if (mincost<0):
-			# if (False):
 				# update zone partitioning
 				
 				splits = []
@@ -638,12 +665,25 @@ class Room:
 				self.boxes.append(zone)
 
 				for box in bestc.boxesr:
-					print(box.id)
 					self.boxes.remove(box)
 
 				for box in bestc.boxesl:
-					print(box.id)
 					self.boxes.remove(box)
+
+				# eliminate lateral overlaps
+				for box in self.boxes:
+					if (box != zone and box.overlap(zone)):
+						if (box.overlap_top(zone)):
+							box.ay = zone.by
+
+						if (box.overlap_bottom(zone)):
+							box.by = zone.ay
+
+						if (box.overlap_left(zone)):
+							box.bx = zone.ax
+
+						if (box.overlap_right(zone)):
+							box.ax = zone.bx
 
 			else:
 				done = True
@@ -654,6 +694,7 @@ class Room:
 			box.number = number
 			number += 1
 
+			
 
 	def print_boxes(self):
 		print("LIST OF %d BOXES: " % len(self.boxes), end='')
@@ -691,9 +732,7 @@ class Room:
 				clusters.append(Cluster(box, box.ax))
 
 
-		self.print_clusters()
 		Cluster.merge(clusters)
-		self.print_clusters()
 				
 
 	def collate_splits(self):
@@ -1233,7 +1272,12 @@ class App:
 				self.textinfo.insert(END, wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+inputlayer+'"]'
-		for poly in  self.msp.query(searchstr):
+		query = self.msp.query(searchstr)
+		if (len(query) == 0):
+			wstr = "WARNING: layer %s does not contain polylines\n" % inputlayer
+			self.textinfo.insert(END, wstr)
+
+		for poly in query:
 			room = Room(poly)
 			room.surf = 0
 			self.rooms.append(room)
