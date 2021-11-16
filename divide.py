@@ -18,6 +18,7 @@ default_croc_first   = 15
 default_croc_second  = 60
 default_croc_maxd    = 120
 default_croc_tol     = 10
+default_cut_size     = 800
 
 extra_len    = 20
 
@@ -688,13 +689,30 @@ class Room:
 			else:
 				done = True
 
+		if (tcuts == 1):
+			self.transversal_cuts()
+
 		# renumber zones
 		number = 1
 		for box in self.boxes:
 			box.number = number
 			number += 1
+	
+	def transversal_cuts(self):
 
-			
+		to_remove = []
+		for box in self.boxes:
+			if (box.by-box.ay > cut_size):
+				y0 = box.ay
+				for y1 in spread(box.ay, box.by, cut_size):
+					self.boxes.append(Zone(box.ax,y0,box.bx,y1, box.splits))
+					y0 = y1
+
+				self.boxes.append(Zone(box.ax,y0,box.bx,box.by, box.splits))
+				to_remove.append(box)
+
+		for box in to_remove:
+			self.boxes.remove(box)
 
 	def print_boxes(self):
 		print("LIST OF %d BOXES: " % len(self.boxes), end='')
@@ -951,6 +969,11 @@ class App:
 		self.entry2 = Entry(params, justify='right', width=10)
 		self.entry2.grid(row=1, column=1)
 		self.entry2.insert(END, str(default_zone_cost))
+
+		Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
+		self.tcuts = IntVar()
+		self.entry3 = Checkbutton(params, variable=self.tcuts)
+		self.entry3.grid(row=2, column=1)
 
 		# Info Section
 		ctlname = Label(root, text="Report")
@@ -1233,9 +1256,10 @@ class App:
 	def build_model(self):
 		global width_doga, space_omega  
 		global croc_first, croc_second, croc_maxd, croc_tol     
-		global zone_cost   
+		global cut_size, zone_cost   
 		global x_font_size, y_font_size  
 		global scale, tolerance
+		global tcuts
 
 		self.textinfo.delete('1.0', END)
 
@@ -1253,6 +1277,7 @@ class App:
 		croc_second  = default_croc_second/scale
 		croc_maxd    = default_croc_maxd/scale
 		croc_tol     = default_croc_tol/scale
+		cut_size     = default_cut_size/scale
 		zone_cost    = zone_cost/(scale*scale)
 		x_font_size  = default_x_font_size/scale
 		y_font_size  = default_y_font_size/scale
@@ -1276,6 +1301,8 @@ class App:
 		if (len(query) == 0):
 			wstr = "WARNING: layer %s does not contain polylines\n" % inputlayer
 			self.textinfo.insert(END, wstr)
+
+		tcuts = self.tcuts.get()
 
 		for poly in query:
 			room = Room(poly)
