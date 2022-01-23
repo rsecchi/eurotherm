@@ -13,6 +13,7 @@
 
 import ezdxf
 import openpyxl
+import numpy as np
 from openpyxl.styles.borders import Border, Side
 import os.path
 from math import ceil, floor, sqrt
@@ -25,8 +26,7 @@ default_scale = 1          # multiplier to transform in cm (scale=100 if the dra
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
-
-default_zone_cost    = 1   # equivalent cost of a zone in m2 material
+zone_cost = 1
 
 default_x_font_size  = 20
 default_y_font_size  = 30
@@ -38,13 +38,10 @@ search_tol = 5
 default_input_layer = 'AREE_SAPP'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
-layer_croc   = 'Eurotherm_crocodile'
-layer_omega   = 'Eurotherm_omega'
+layer_panel  = 'Eurotherm_panel'
 
 text_color = 7
 box_color = 8
-croc_color = 9
-omega_color = 10
 
 xlsx_template = 'template.xlsx'
 sheet_template = 'BoM'
@@ -172,26 +169,24 @@ def cross(box, line):
 	if (p0x == p1x or p0y == p1y):
 		return True
 
-
-	cx1 = p0x + (ay-p0y)*(p1x-p0x)/(p1y-p0y)
-	cx2 = p0x + (by-p0y)*(p1x-p0x)/(p1y-p0y)
-	cy1 = p0y + (ax-p0x)*(p1y-p0y)/(p1x-p0x)
-	cy2 = p0y + (bx-p0x)*(p1y-p0y)/(p1x-p0x)
-
-	if ((ax<=cx1 and cx1<=bx) or 
-		(ax<=cx2 and cx2<=bx) or
-		(ay<=cy1 and cy1<=by) or
-		(ay<=cy2 and cy2<=by)):
-		return True
-	
-
-	return False
-
 	# lateral crossing 
 	A1 = (ay - p0y) * (p1x - p0x)
 	A2 = (ax - p0x) * (p1y - p0y)
-	A3 = (by - p0y) * (p1y - p0y)
-	A4 = (bx - p0x) * (p1x - p0x)
+	A3 = (by - p0y) * (p1x - p0x)
+	A4 = (bx - p0x) * (p1y - p0y)
+
+	#cx1 = p0x + A1/(p1y-p0y)
+	#cx2 = p0x + A3/(p1y-p0y)
+	#cy1 = p0y + A2/(p1x-p0x)
+	#cy2 = p0y + A4/(p1x-p0x)
+
+	#if ((ax<=cx1 and cx1<=bx) or 
+	#	(ax<=cx2 and cx2<=bx) or
+	#	(ay<=cy1 and cy1<=by) or
+	#	(ay<=cy2 and cy2<=by)):
+	#	return True
+	#
+	#return False
 
 	if (p1x>p0x):
 		if (p1y>p0y):
@@ -199,25 +194,163 @@ def cross(box, line):
 				     (A2<=A1 and A1<=A4) or
 				     (A1<=A4 and A4<=A3) or
 				     (A2<=A3 and A3<=A4))
-#		else:
-#			return  ((A1<=A2 and A2<=A3) or
-#				     (A2>=A1 and A1>=A4) or
-#				     (A1<=A4 and A4<=A3) or
-#				     (A2>=A3 and A3>=A4))
-#	else:
-#		if (p1y>p0y):
-#			return  ((A1>=A2 and A2>=A3) or
-#				     (A2<=A1 and A1<=A4) or
-#				     (A1>=A4 and A4>=A3) or
-#				     (A2<=A3 and A3<=A4))
-#			
-#		else:
-#			return  ((A1>=A2 and A2>=A3) or
-#				     (A2>=A1 and A1>=A4) or
-#				     (A1>=A4 and A4>=A3) or
-#				     (A2>=A3 and A3>=A4))
+		else:
+			return  ((A1<=A2 and A2<=A3) or
+				     (A2>=A1 and A1>=A4) or
+				     (A1<=A4 and A4<=A3) or
+				     (A2>=A3 and A3>=A4))
+	else:
+		if (p1y>p0y):
+			return  ((A1>=A2 and A2>=A3) or
+				     (A2<=A1 and A1<=A4) or
+				     (A1>=A4 and A4>=A3) or
+				     (A2<=A3 and A3<=A4))
+			
+		else:
+			return  ((A1>=A2 and A2>=A3) or
+				     (A2>=A1 and A1>=A4) or
+				     (A1>=A4 and A4>=A3) or
+				     (A2>=A3 and A3>=A4))
 	return False
 
+
+# This class represents the radiating panel
+# with its characteristics
+class Panel:
+	def __init__(self, cell, size):
+		self.cell = cell
+		self.xcoord = self.cell.box[0]
+		self.ycoord = self.cell.box[2]
+		self.width  = (self.cell.box[1] - self.xcoord) * size[0]
+		self.height = (self.cell.box[3] - self.ycoord) * size[1]
+		self.size = size
+
+
+# Cell of the grid over which panels are lai ouut
+class Cell:
+	def __init__(self, pos, box):
+		self.pos = pos
+		self.box = box
+
+
+# This class represents the grid over which the panels
+# are laid out.
+class Grid():
+
+	def __init__(self):
+		self.cells = list()
+		self.panels = list()
+
+	def len(self):
+		return len(self.cells)
+
+	def addcell(self, pos, box):
+		self.cells.append(Cell(pos, box))
+
+	def make_matrix(self):
+
+		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 3
+		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 3
+
+		m = self.matrix = np.full((maxr, maxc), None)
+		for cell in self.cells:
+			m[(cell.pos[0]+1, cell.pos[1]+1)] = cell
+
+	def alloc_strip(self, row, start):
+
+		m = self.matrix.copy()
+		panels = list()
+
+		cost = 0
+		j = row
+		i = start
+		while(i<self.rows-1):
+			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]):
+				panels.append(Panel(m[i,j],(2,2)))
+				i += 2
+				continue
+		
+			if (m[i,j] and m[i+1,j] and
+				(not m[i,j+1]) and (not m[i+1,j+1])):
+				panels.append(Panel(m[i,j], (2,1)))
+				i += 2
+				cost += 1
+				continue
+
+			if ((not m[i,j]) and (not m[i+1,j]) and
+				m[i,j+1] and m[i+1,j+1]):
+				panels.append(Panel(m[i,j+1], (2,1)))
+				i += 2
+				cost += 1
+				continue
+
+			if (m[i,j] and m[i,j+1]):
+				panels.append(Panel(m[i,j], (1,2)))
+				cost += 1
+				m[i,j] = m[i,j+1] = None
+
+			if (m[i+1,j] and m[i+1,j+1]):
+				panels.append(Panel(m[i+1,j], (1,2)))
+				cost += 1
+				m[i+1,j] = m[i+1,j+1] = None
+
+			if m[i,j]:
+				panels.append(Panel(m[i,j],(1,1)))
+				cost += 2
+			
+			if m[i+1,j]:
+				panels.append(Panel(m[i+1,j],(1,1)))
+				cost += 2
+
+			if m[i,j+1]:
+				panels.append(Panel(m[i,j+1],(1,1)))
+				cost += 2
+				
+			if m[i+1,j+1]:
+				panels.append(Panel(m[i+1,j+1],(1,1)))
+				cost += 2
+
+			i += 2
+
+		return panels, cost 
+
+	def panels_alloc(self, start):
+		
+		panels = list()
+
+		j = start
+		cost = 0
+		while(j<self.cols-1):
+			local0, cost0 = self.alloc_strip(j, 0)
+			local1, cost1 = self.alloc_strip(j, 1)
+			if (cost0<cost1):
+				panels += local0
+				cost += cost0
+			else:
+				panels += local1
+				cost += cost1
+				
+			j += 2
+		
+		return panels, cost
+	
+	def alloc_panels(self):
+	
+		self.make_matrix()
+
+		# single dorsal
+		panels0, cost0 = self.panels_alloc(0)
+		panels1, cost1 = self.panels_alloc(1)
+
+		if (cost0<cost1):
+			self.panels = panels0
+		else:
+			self.panels = panels1
+				
+
+
+# This class represents the rrom described by a 
+# polyline
 class Room:
 
 	index = 1
@@ -298,7 +431,7 @@ class Room:
 		return d
 
 	# Building Room
-	def get_panels(self):
+	def make_grid(self):
 				
 		# get bounding box
 		self.ax = min(self.xcoord)
@@ -307,31 +440,37 @@ class Room:
 		self.by = max(self.ycoord)
 
 		# grid for panels
-		self.grid = list()
+		self.grid = Grid()
 
 		# search within panel range
 		for sx in range(0, panel_width, search_tol):
 			for sy in range(0, panel_height, search_tol):
 				local = self.grid_list(sx+self.ax, sy+self.ay)
-				if (len(local) > len(self.grid)):
+				if (local.len() > self.grid.len()):
 					self.grid = local
+		
 
 	# return a list of valid boxex from sx, sy
 	def grid_list(self, sx, sy):
 
-		boxes = list()		
+		boxes = Grid()		
 
 		# Horizontal panels
+		row = 0
 		sax = sx
 		while(sax+panel_width <= self.bx):
 			say = sy
+			col = 0
 			while(say+panel_height <= self.by):
+				pos = (row, col)
 				box = (sax, sax+panel_width, say, say+panel_height)
 				if self.is_box_inside(box):
-					boxes.append(box)
+					boxes.addcell(pos, box)
 				say += panel_height
+				col += 1
 
 			sax += panel_width
+			row += 1
 
 		# Vertical panels
 		# TBD
@@ -375,10 +514,6 @@ class Room:
 		return (ints % 2 == 1)
 
 
-	def is_line_inside(self, line1, line2):
-		pass
-
-
 	def is_box_inside(self, box):
 
 		# Check if the center is inside
@@ -408,11 +543,21 @@ class Room:
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_box
 
+	def draw_panel(self, msp, panel):
+		ax = panel.xcoord; bx = ax + panel.width
+		ay = panel.ycoord; by = ay + panel.height
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		pl = msp.add_lwpolyline(pline)
+		pl.dxf.layer = layer_panel
+		
+
 	def draw_room(self, msp):
 		
-		for box in self.grid:
-			self.draw_box(msp, box)
+		for cell in self.grid.cells:
+			self.draw_box(msp, cell.box)
 
+		for panel in self.grid.panels:
+			self.draw_panel(msp, panel)
 
 
 class App:
@@ -465,15 +610,15 @@ class App:
 		self.entry1.grid(row=0, column=1, sticky="w")
 		self.entry1.insert(END, str(default_scale))
 
-		Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
-		self.entry2 = Entry(params, justify='right', width=10)
-		self.entry2.grid(row=1, column=1)
-		self.entry2.insert(END, str(default_zone_cost))
+		#Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
+		#self.entry2 = Entry(params, justify='right', width=10)
+		#self.entry2.grid(row=1, column=1)
+		#self.entry2.insert(END, str(default_zone_cost))
 
-		Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
-		self.tcuts = IntVar()
-		self.entry3 = Checkbutton(params, variable=self.tcuts)
-		self.entry3.grid(row=2, column=1)
+		#Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
+		#self.tcuts = IntVar()
+		#self.entry3 = Checkbutton(params, variable=self.tcuts)
+		#self.entry3.grid(row=2, column=1)
 
 		# Info Section
 		ctlname = Label(root, text="Report")
@@ -545,9 +690,7 @@ class App:
 	def create_layers(self):
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_box, box_color)
-		self.new_layer(layer_croc, croc_color)
-		self.new_layer(layer_omega, omega_color)
-
+		self.new_layer(layer_panel, 0)
 
 	def print_report(self, txt):
 		txt(END, "Design Report ----------------\n\n")
@@ -561,131 +704,6 @@ class App:
 			txt(END,"Zone%d  - surface %.3f m2\n" % (room.index, room.area()))
 			txt(END,"\n")
 
-	def save_crocs_xls(self, ws):
-
-		sc = 66
-		index = 3
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws.column_dimensions[chr(sc)].width = 15
-		ws.column_dimensions[chr(sc+1)].width = 15
-		ws.column_dimensions[chr(sc+2)].width = 15
-		ws.column_dimensions[chr(sc+3)].width = 15
-		
-		# header 
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[chr(sc)+s].value = 'Crocodiles'
-		index += 1
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[ps[0]].value = "Zone name"
-		ws[ps[0]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
-								 left=Side(style='thin')) 
-		ws[ps[1]].value = "total length (m)"
-		ws[ps[1]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
-		ws[ps[2]].value = "No. profiles"
-		ws[ps[2]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
-		ws[ps[3]].value = "No. packages"
-		ws[ps[3]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
-								 right=Side(style='thin')) 
-		index += 1
-
-		total_len = total_profs = total_packs = 0 
-		for room in self.rooms:
-
-			s = str(index)
-			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-			ws[ps[0]].border = Border(left=Side(style='thin')) 
-			ws[ps[3]].border = Border(right=Side(style='thin')) 
-			ws[ps[0]].value = "Zone " + str(room.index)
-			index += 1
-			if (room.ignore):
-				continue
-
-			ws[ps[1]].value = tot = room.total_crocs()/100
-			total_len += tot
-			ws[ps[1]].number_format = "0.00"
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[ps[0]].border = Border(bottom=Side(style='thin'), top=Side(style='double'), 
-									left=Side(style='thin')) 
-		ws[ps[1]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
-		ws[ps[2]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
-		ws[ps[3]].border = Border(bottom=Side(style='thin'), top=Side(style='double'),
-								 right=Side(style='thin')) 
-
-		ws[ps[0]].value = "totals"
-		ws[ps[1]].value = total_len
-		ws[ps[1]].number_format = "0.00"
-		ws[ps[2]].value = tot = ceil(total_len/5)
-		ws[ps[3]].value = ceil(tot/10)
-
-	def save_omegas_xls(self, ws):
-		sc = 72
-		index = 3
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws.column_dimensions[chr(sc)].width = 15
-		ws.column_dimensions[chr(sc+1)].width = 15
-		ws.column_dimensions[chr(sc+2)].width = 15
-		ws.column_dimensions[chr(sc+3)].width = 15
-		
-		# header 
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[chr(sc)+s].value = 'Omegas'
-		index += 1
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[ps[0]].value = "Zone name"
-		ws[ps[0]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
-								 left=Side(style='thin')) 
-		ws[ps[1]].value = "total length (m)"
-		ws[ps[1]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
-		ws[ps[2]].value = "No. profiles"
-		ws[ps[2]].border = Border(top=Side(style='thin'), bottom=Side(style='double')) 
-		ws[ps[3]].value = "No. packages"
-		ws[ps[3]].border = Border(top=Side(style='thin'), bottom=Side(style='double'),
-								 right=Side(style='thin')) 
-		index += 1
-
-		total_len = 0 
-		for room in self.rooms:
-
-			s = str(index)
-			ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-			index += 1
-			ws[ps[0]].border = Border(left=Side(style='thin')) 
-			ws[ps[3]].border = Border(right=Side(style='thin')) 
-			ws[ps[0]].value = "Zone " + str(room.index)
-
-			if (room.ignore):
-				continue
-
-			ws[ps[1]].value = tot = room.total_omegas()/100
-			ws[ps[1]].number_format = "0.00"
-			total_len += tot
-
-		s = str(index)
-		ps = [chr(sc)+s, chr(sc+1)+s, chr(sc+2)+s, chr(sc+3)+s]
-		ws[ps[0]].border = Border(bottom=Side(style='thin'), top=Side(style='double'), 
-									left=Side(style='thin')) 
-		ws[ps[1]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
-		ws[ps[2]].border = Border(bottom=Side(style='thin'), top=Side(style='double')) 
-		ws[ps[3]].border = Border(bottom=Side(style='thin'), top=Side(style='double'),
-								 right=Side(style='thin')) 
-
-		ws[ps[0]].value = "totals"
-		ws[ps[1]].value = total_len
-		ws[ps[1]].number_format = "0.00"
-		ws[ps[2]].value = tot = ceil(total_len/5)
-		ws[ps[3]].value = ceil(tot/10)
 		
 
 	def save_xls(self):
@@ -746,10 +764,8 @@ class App:
 
 
 	def build_model(self):
-		global cut_size, zone_cost   
 		global x_font_size, y_font_size  
 		global scale, tolerance
-		global tcuts
 
 		self.textinfo.delete('1.0', END)
 
@@ -758,10 +774,8 @@ class App:
 			return
 
 		scale = float(self.entry1.get())
-		zone_cost = float(self.entry2.get())
 
 		tolerance    = default_tolerance/scale
-		zone_cost    = zone_cost/(scale*scale)
 		x_font_size  = default_x_font_size/scale
 		y_font_size  = default_y_font_size/scale
 
@@ -785,8 +799,6 @@ class App:
 			wstr = "WARNING: layer %s does not contain polylines\n" % inputlayer
 			self.textinfo.insert(END, wstr)
 
-		tcuts = self.tcuts.get()
-
 		for poly in query:
 			room = Room(poly)
 			room.surf = 0
@@ -794,7 +806,8 @@ class App:
 			if (len(room.errorstr)>0):
 				self.textinfo.insert(END,room.errorstr)
 			else:
-				room.get_panels()
+				room.make_grid()
+				room.grid.alloc_panels()
 				if (room.area() < zone_cost):
 					wstr = "WARNING: area less than %d m2: " % zone_cost
 					wstr += "Consider changing scale!\n"
