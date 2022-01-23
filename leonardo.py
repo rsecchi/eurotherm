@@ -432,7 +432,8 @@ class Room:
 
 	# Building Room
 	def make_grid(self):
-				
+		global panel_height, panel_width, search_tol		
+	
 		# get bounding box
 		self.ax = min(self.xcoord)
 		self.bx = max(self.xcoord)
@@ -443,11 +444,15 @@ class Room:
 		self.grid = Grid()
 
 		# search within panel range
-		for sx in range(0, panel_width, search_tol):
-			for sy in range(0, panel_height, search_tol):
+		sx = 0
+		while sx<panel_width:
+			sy = 0
+			while sy<panel_height:
 				local = self.grid_list(sx+self.ax, sy+self.ay)
 				if (local.len() > self.grid.len()):
 					self.grid = local
+				sy += search_tol
+			sx += search_tol
 		
 
 	# return a list of valid boxex from sx, sy
@@ -605,7 +610,7 @@ class App:
 		params.config(borderwidth=1, relief='ridge')
 		params.grid(row=3, column=0, sticky="ew", padx=(25,25), pady=(0,2))
 
-		Label(params, text="scale (100=1m)").grid(row=0, column=0, sticky="w")
+		Label(params, text="A drawing unit in cm").grid(row=0, column=0, sticky="w")
 		self.entry1 = Entry(params, justify='right', width=10)
 		self.entry1.grid(row=0, column=1, sticky="w")
 		self.entry1.insert(END, str(default_scale))
@@ -693,6 +698,7 @@ class App:
 		self.new_layer(layer_panel, 0)
 
 	def print_report(self, txt):
+		global scale
 		txt(END, "Design Report ----------------\n\n")
 		
 		for room in self.rooms:
@@ -701,7 +707,8 @@ class App:
 				continue
 
 			rep = room.report()
-			txt(END,"Zone%d  - surface %.3f m2\n" % (room.index, room.area()))
+			area = room.area() * (scale * scale)
+			txt(END,"Zone%d  - surface %.3f m2\n" % (room.index, area))
 			txt(END,"\n")
 
 		
@@ -766,6 +773,7 @@ class App:
 	def build_model(self):
 		global x_font_size, y_font_size  
 		global scale, tolerance
+		global panel_width, panel_height, search_tol
 
 		self.textinfo.delete('1.0', END)
 
@@ -778,6 +786,10 @@ class App:
 		tolerance    = default_tolerance/scale
 		x_font_size  = default_x_font_size/scale
 		y_font_size  = default_y_font_size/scale
+
+		panel_width = panel_width/scale
+		panel_height = panel_height/scale
+		search_tol = search_tol/scale
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
