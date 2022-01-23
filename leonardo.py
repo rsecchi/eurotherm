@@ -31,9 +31,10 @@ zone_cost = 1
 default_x_font_size  = 20
 default_y_font_size  = 30
 
-panel_width = 100
-panel_height = 60
-search_tol = 5
+# Half panels default dimensions in cm
+default_panel_width = 100
+default_panel_height = 60
+default_search_tol = 5
 
 default_input_layer = 'AREE_SAPP'
 layer_text   = 'Eurotherm_text'
@@ -408,6 +409,8 @@ class Room:
 		self.xcoord = sorted(set([p[0] for p in self.points]))	
 		self.ycoord = sorted(set([p[1] for p in self.points]))	
 
+		self.color = poly.dxf.color
+
 		# Mirror if polyline is green
 		#if (poly.dxf.color==3):
 		#	self.orient = 1
@@ -538,7 +541,36 @@ class Room:
 
 	# Reporting Room
 	def report(self):
-		pass
+		txt = ""
+		p2x2 = 0
+		p2x1 = 0
+		p1x2 = 0
+		p1x1 = 0
+		w = default_panel_width
+		h = default_panel_height
+
+		for panel in self.grid.panels:
+			if (panel.size == (2,2)):
+				p2x2 += 1
+			if (panel.size == (2,1)):
+				p2x1 += 1
+			if (panel.size == (1,2)):
+				p1x2 += 1
+			if (panel.size == (1,1)):
+				p1x1 += 1
+
+		area = self.area() * scale * scale	
+		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
+		active_ratio = 100*active_area/area
+
+		txt += "Room area: %.4g m2 \n" % area
+		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
+		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
+		txt += "  %5d panels %dx%d cm\n" % (p2x1, w, 2*h) 
+		txt += "  %5d panels %dx%d cm\n" % (p1x2, 2*w, h) 
+		txt += "  %5d panels %dx%d cm\n" % (p1x1, w, h) 
+
+		return txt
 
 	# Drawing Room
 	def draw_box(self, msp, box):
@@ -554,6 +586,7 @@ class Room:
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_panel
+		pl.dxf.color = self.color
 		
 
 	def draw_room(self, msp):
@@ -670,7 +703,7 @@ class App:
 		self.loaded = True
 
 		self.text.set(self.filename)
-		self.outname = self.filename[:-4]+"_sapp.dxf"
+		self.outname = self.filename[:-4]+"_leo.dxf"
 		self.text1.set(self.outname)
 
 		layers = [layer.dxf.name for layer in self.doc.layers]
@@ -698,7 +731,6 @@ class App:
 		self.new_layer(layer_panel, 0)
 
 	def print_report(self, txt):
-		global scale
 		txt(END, "Design Report ----------------\n\n")
 		
 		for room in self.rooms:
@@ -706,11 +738,9 @@ class App:
 			if (len(room.errorstr)>0):
 				continue
 
-			rep = room.report()
-			area = room.area() * (scale * scale)
-			txt(END,"Zone%d  - surface %.3f m2\n" % (room.index, area))
-			txt(END,"\n")
-
+			txt(END, "Zone%d  --------- \n" % room.index)
+			txt(END, room.report())
+			txt(END, "\n")
 		
 
 	def save_xls(self):
@@ -773,7 +803,12 @@ class App:
 	def build_model(self):
 		global x_font_size, y_font_size  
 		global scale, tolerance
-		global panel_width, panel_height, search_tol
+		global default_panel_width
+		global default_panel_height
+		global default_search_tol
+		global panel_width 
+		global panel_height 
+		global search_tol
 
 		self.textinfo.delete('1.0', END)
 
@@ -787,9 +822,9 @@ class App:
 		x_font_size  = default_x_font_size/scale
 		y_font_size  = default_y_font_size/scale
 
-		panel_width = panel_width/scale
-		panel_height = panel_height/scale
-		search_tol = search_tol/scale
+		panel_width = default_panel_width/scale
+		panel_height = default_panel_height/scale
+		search_tol = default_search_tol/scale
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
@@ -829,7 +864,7 @@ class App:
 		self.print_report(self.textinfo.insert)
 
 		if (os.path.isfile(self.outname)):
-			if askyesno("Warning", "File 'sapp' already exists: Overwrite?"):
+			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
 				self.doc.saveas(self.outname)
 		else:
 				self.doc.saveas(self.outname)
