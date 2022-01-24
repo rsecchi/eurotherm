@@ -34,6 +34,9 @@ default_y_font_size  = 30
 # Half panels default dimensions in cm
 default_panel_width = 100
 default_panel_height = 60
+default_hatch_width = 15
+default_hatch_height = 10
+
 default_search_tol = 5
 
 default_input_layer = 'AREE_SAPP'
@@ -217,8 +220,13 @@ def cross(box, line):
 
 # This class represents the radiating panel
 # with its characteristics
+# side=00  -->  water feed over top edge, left panel
+# side=01  -->  water feed over bottom edge, left panel
+# side=10  -->  water feed over top edge, right panel
+# side=11  -->  water feed over bottom edge, right panel
 class Panel:
-	def __init__(self, cell, size):
+	def __init__(self, cell, size, side):
+		self.side = side
 		self.cell = cell
 		self.xcoord = self.cell.box[0]
 		self.ycoord = self.cell.box[2]
@@ -257,7 +265,8 @@ class Grid():
 		for cell in self.cells:
 			m[(cell.pos[0]+1, cell.pos[1]+1)] = cell
 
-	def alloc_strip(self, row, start):
+	# (row, start)  is the position of the top-left element
+	def alloc_strip(self, row, start, side):
 
 		m = self.matrix.copy()
 		panels = list()
@@ -265,55 +274,68 @@ class Grid():
 		cost = 0
 		j = row
 		i = start
+		lost = 0
+
 		while(i<self.rows-1):
 			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]):
-				panels.append(Panel(m[i,j],(2,2)))
+				panels.append(Panel(m[i,j],(2,2),side))
 				i += 2
 				continue
 		
-			if (m[i,j] and m[i+1,j] and
+			if (side==1 and m[i,j] and m[i+1,j] and
 				(not m[i,j+1]) and (not m[i+1,j+1])):
-				panels.append(Panel(m[i,j], (2,1)))
+				panels.append(Panel(m[i,j],(2,1),side))
 				i += 2
 				cost += 1
 				continue
 
-			if ((not m[i,j]) and (not m[i+1,j]) and
+			if (side==0 and (not m[i,j]) and (not m[i+1,j]) and
 				m[i,j+1] and m[i+1,j+1]):
-				panels.append(Panel(m[i,j+1], (2,1)))
+				panels.append(Panel(m[i,j+1],(2,1),side))
 				i += 2
 				cost += 1
 				continue
 
 			if (m[i,j] and m[i,j+1]):
-				panels.append(Panel(m[i,j], (1,2)))
+				panels.append(Panel(m[i,j],(1,2),side))
 				cost += 1
 				m[i,j] = m[i,j+1] = None
 
 			if (m[i+1,j] and m[i+1,j+1]):
-				panels.append(Panel(m[i+1,j], (1,2)))
+				panels.append(Panel(m[i+1,j],(1,2),side+2))
 				cost += 1
 				m[i+1,j] = m[i+1,j+1] = None
 
-			if m[i,j]:
-				panels.append(Panel(m[i,j],(1,1)))
+			if (side==1 and m[i,j]):
+				panels.append(Panel(m[i,j],(1,1),side))
+				m[i,j] = None
 				cost += 2
 			
-			if m[i+1,j]:
-				panels.append(Panel(m[i+1,j],(1,1)))
+			if (side==1 and m[i+1,j]):
+				panels.append(Panel(m[i+1,j],(1,1),side+2))
+				m[i+1,j] = None
 				cost += 2
 
-			if m[i,j+1]:
-				panels.append(Panel(m[i,j+1],(1,1)))
+			if (side==0 and m[i,j+1]):
+				panels.append(Panel(m[i,j+1],(1,1),side))
+				m[i,j+1] = None
 				cost += 2
 				
-			if m[i+1,j+1]:
-				panels.append(Panel(m[i+1,j+1],(1,1)))
+			if (side==0 and m[i+1,j+1]):
+				panels.append(Panel(m[i+1,j+1],(1,1),side+2))
+				m[i+1,j+1] = None
 				cost += 2
+
+			if m[i,j]: lost += 1
+			if m[i,j+1]: lost += 1
+			if m[i+1,j]: lost += 1
+			if m[i+1,j+1]: lost += 1
 
 			i += 2
 
-		return panels, cost 
+		return panels, cost + 2*lost
+
+
 
 	def panels_alloc(self, start):
 		
@@ -322,8 +344,8 @@ class Grid():
 		j = start
 		cost = 0
 		while(j<self.cols-1):
-			local0, cost0 = self.alloc_strip(j, 0)
-			local1, cost1 = self.alloc_strip(j, 1)
+			local0, cost0 = self.alloc_strip(j, 0, 0)
+			local1, cost1 = self.alloc_strip(j, 1, 0)
 			if (cost0<cost1):
 				panels += local0
 				cost += cost0
@@ -334,14 +356,44 @@ class Grid():
 			j += 2
 		
 		return panels, cost
+
+
+	def panels_alloc2(self, start):
+
+		panels = list()
+
+		j = start
+		cost = 0
+		while(j<self.cols-3):
+			fst_row, fst_cost = self.alloc_strip(j, 0, 0)
+			snd_row, snd_cost = self.alloc_strip(j+2, 0, 1)		
+			cost0 = fst_cost + snd_cost
+			local0 = fst_row + snd_row
+
+			fst_row, fst_cost = self.alloc_strip(j, 1, 0)
+			snd_row, snd_cost = self.alloc_strip(j+2, 1, 1)		
+			cost1 = fst_cost + snd_cost
+			local1 = fst_row + snd_row
+
+			if (cost0<cost1):
+				panels += local0
+				cost += cost0
+			else:
+				panels += local1
+				cost += cost1
+				
+			j += 4
+		
+		return panels, cost
+
 	
 	def alloc_panels(self):
 	
 		self.make_matrix()
 
 		# single dorsal
-		panels0, cost0 = self.panels_alloc(0)
-		panels1, cost1 = self.panels_alloc(1)
+		panels0, cost0 = self.panels_alloc2(0)
+		panels1, cost1 = self.panels_alloc2(1)
 
 		if (cost0<cost1):
 			self.panels = panels0
@@ -435,7 +487,7 @@ class Room:
 
 	# Building Room
 	def make_grid(self):
-		global panel_height, panel_width, search_tol		
+		global panel_height, panel_width, search_tol
 	
 		# get bounding box
 		self.ax = min(self.xcoord)
@@ -583,7 +635,33 @@ class Room:
 	def draw_panel(self, msp, panel):
 		ax = panel.xcoord; bx = ax + panel.width
 		ay = panel.ycoord; by = ay + panel.height
+		dx = hatch_width; dy = hatch_height
+
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		
+		if (panel.size==(2,2) or panel.size==(2,1)):
+			if (panel.side==1):
+				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay+dy),
+					(bx-dx,ay+dy),(bx-dx,ay),(ax+dx,ay),(ax+dx,ay+dy),(ax,ay+dy)]
+
+			if (panel.side==0):
+				pline = [(ax,ay),(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx-dx,by),
+					(bx-dx,by-dy),(bx,by-dy),(bx,ay),(ax,ay)]
+
+		if (panel.size==(1,1) or panel.size==(1,2)):
+			if (panel.side==1):
+				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay),(ax+dx,ay),
+						 (ax+dx,ay+dy),(ax,ay+dy)]
+			if (panel.side==0):
+				pline = [(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx,by),
+						 (bx,ay),(ax,ay),(ax,by-dy)]
+			if (panel.side==3):
+				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay+dy),
+						 (bx-dx,ay+dy),(bx-dx,ay),(ax,ay)]
+			if (panel.side==2):
+				pline = [(ax,ay),(ax,by),(bx-dx,by),(bx-dx,by-dy),
+						 (bx,by-dy),(bx,ay),(ax,ay)]
+
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_panel
 		pl.dxf.color = self.color
@@ -806,10 +884,14 @@ class App:
 		global default_panel_width
 		global default_panel_height
 		global default_search_tol
+		global default_hatch_width
+		global default_hatch_height
 		global panel_width 
 		global panel_height 
-		global search_tol
-
+		global search_tol 
+		global hatch_width
+		global hatch_height
+ 
 		self.textinfo.delete('1.0', END)
 
 		if (not self.loaded):
@@ -825,6 +907,8 @@ class App:
 		panel_width = default_panel_width/scale
 		panel_height = default_panel_height/scale
 		search_tol = default_search_tol/scale
+		hatch_width = default_hatch_width/scale
+		hatch_height = default_hatch_height/scale
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
