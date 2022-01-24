@@ -27,6 +27,8 @@ default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
 zone_cost = 1
+min_room_area = 1
+max_room_area = 250
 
 default_x_font_size  = 20
 default_y_font_size  = 30
@@ -258,8 +260,8 @@ class Grid():
 
 	def make_matrix(self):
 
-		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 3
-		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 3
+		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 5
+		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 5
 
 		m = self.matrix = np.full((maxr, maxc), None)
 		for cell in self.cells:
@@ -333,7 +335,7 @@ class Grid():
 
 			i += 2
 
-		return panels, cost + 2*lost
+		return panels, lost
 
 
 
@@ -937,12 +939,23 @@ class App:
 			if (len(room.errorstr)>0):
 				self.textinfo.insert(END,room.errorstr)
 			else:
-				room.make_grid()
-				room.grid.alloc_panels()
-				if (room.area() < zone_cost):
-					wstr = "WARNING: area less than %d m2: " % zone_cost
+				area = scale * scale * room.area()
+				if (area < min_room_area):
+					wstr = "WARNING: area less than %d m2: " % min_room_area
 					wstr += "Consider changing scale!\n"
 					self.textinfo.insert(END, wstr)
+					room.errorstr = wstr
+					continue
+				if (area > max_room_area):
+					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
+						max_room_area)
+					wstr += "Consider splitting area \n\n"
+					self.textinfo.insert(END, wstr)
+					room.errorstr = wstr
+					continue
+				
+				room.make_grid()
+				room.grid.alloc_panels()
 				room.draw_room(self.msp)
 
 		self.print_report(self.textinfo.insert)
