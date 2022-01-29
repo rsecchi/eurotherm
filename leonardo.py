@@ -522,6 +522,9 @@ class PanelArrangement:
 			sax += panel_width
 			col += 1
 
+		if (len(self.cells)==0):
+			return False
+
 		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 7
 		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 3
 
@@ -530,6 +533,7 @@ class PanelArrangement:
 		for cell in self.cells:
 			m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
 
+		return True
 
 	def build_dorsals(self, pos):
 
@@ -556,7 +560,8 @@ class PanelArrangement:
 	
 	def alloc_panels(self, origin):
 
-		self.make_grid(origin)
+		if (not self.make_grid(origin)):
+			return
 
 		for j in range(0,2):
 			for i in range(0,4):
@@ -786,7 +791,7 @@ class Room:
 		txt += "  %5d panels %dx%d cm\n" % (p1x2, 2*w, h) 
 		txt += "  %5d panels %dx%d cm\n" % (p1x1, w, h) 
 
-		return txt
+		return (txt, area, active_area, (p2x2,p2x1,p1x2,p1x1))
 
 
 	def draw(self, msp):
@@ -929,17 +934,43 @@ class App:
 		self.new_layer(layer_box, box_color)
 		self.new_layer(layer_panel, 0)
 
-	def print_report(self, txt):
-		txt(END, "Design Report ----------------\n\n")
+	def print_report(self):
 		
+		txt = "\n ------- Zone Report ----------\n\n"
+
+		area = 0 
+		active_area = 0 
+		p2x2 = 0
+		p2x1 = 0
+		p1x2 = 0
+		p1x1 = 0
+		w = default_panel_width
+		h = default_panel_height
 		for room in self.rooms:
 
 			if (len(room.errorstr)>0):
 				continue
 
-			txt(END, "Zone%d  --------- \n" % room.index)
-			txt(END, room.report())
-			txt(END, "\n")
+			txt += "Zone%d  --------- \n" % room.index
+			roomtxt, rarea, ractive, panel_count = room.report()
+			area += rarea
+			active_area += ractive
+			txt += roomtxt + "\n"
+			p2x2 += panel_count[0]
+			p2x1 += panel_count[1]
+			p1x2 += panel_count[2]
+			p1x1 += panel_count[3]
+
+		# Summary of all areas
+		smtxt  = "Total area %.5g m2\n" % area
+		smtxt += "Active area %.5g m2" % active_area
+		smtxt += " (%.4g %%)\n" % (100*active_area/area)
+		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
+		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, w, 2*h) 
+		smtxt += "  %5d panels %dx%d cm\n" % (p1x2, 2*w, h) 
+		smtxt += "  %5d panels %dx%d cm\n" % (p1x1, w, h) 
+
+		return smtxt + txt
 		
 
 	def save_xls(self):
@@ -1082,7 +1113,8 @@ class App:
 				room.alloc_panels()
 				room.draw(self.msp)
 
-		self.print_report(self.textinfo.insert)
+		summary = self.print_report()
+		self.textinfo.insert(END, summary)
 
 		if (os.path.isfile(self.outname)):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
