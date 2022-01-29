@@ -22,7 +22,7 @@ from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
 # Parameter settings (values in cm)
-default_scale = 1          # multiplier to transform in cm (scale=100 if the drawing is in m)
+default_scale = 0.1          # multiplier to transform in cm (scale=100 if the drawing is in m)
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -40,8 +40,9 @@ default_hatch_width = 15
 default_hatch_height = 10
 
 default_search_tol = 5
+default_min_dist2 = 20*20
 
-default_input_layer = 'AREE_SAPP'
+default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
 layer_panel  = 'Eurotherm_panel'
@@ -49,8 +50,14 @@ layer_panel  = 'Eurotherm_panel'
 text_color = 7
 box_color = 8
 
+MAX_COST = 1000000
+MAX_DIST = 1e20
+
+
 xlsx_template = 'template.xlsx'
 sheet_template = 'BoM'
+
+
 
 alphabet = {
 	' ': [],
@@ -220,6 +227,29 @@ def cross(box, line):
 	return False
 
 
+#  v_par = <v,p> / <v,v>
+
+def dist2(line, point):
+	(xp,yp) = point
+	(x0,y0),(x1,y1) = line
+	
+	(ux, uy) = (x1-x0, y1-y0)
+	(px, py) = (xp-x0, yp-y0)
+	
+	u2 = ux*ux + uy*uy
+	p2 = px*px + py*py
+	up = ux*px + uy*py
+
+	if (up>u2):
+		return u2+p2-2*up
+
+	if (up<=0 or u2==0):
+		return p2
+
+	return p2-up*up/u2
+
+
+
 # This class represents the radiating panel
 # with its characteristics
 # side=00  -->  water feed over top edge, left panel
@@ -236,6 +266,189 @@ class Panel:
 		self.height = (self.cell.box[3] - self.ycoord) * size[1]
 		self.size = size
 
+	def draw(self, msp):
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
+		dx = hatch_width; dy = hatch_height
+
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		
+		if (self.size==(2,2) or self.size==(2,1)):
+			if (self.side==1):
+				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay+dy),
+					(bx-dx,ay+dy),(bx-dx,ay),(ax+dx,ay),(ax+dx,ay+dy),(ax,ay+dy)]
+
+			if (self.side==0):
+				pline = [(ax,ay),(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx-dx,by),
+					(bx-dx,by-dy),(bx,by-dy),(bx,ay),(ax,ay)]
+
+		if (self.size==(1,1) or self.size==(1,2)):
+			if (self.side==1):
+				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay),(ax+dx,ay),
+						 (ax+dx,ay+dy),(ax,ay+dy)]
+			if (self.side==0):
+				pline = [(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx,by),
+						 (bx,ay),(ax,ay),(ax,by-dy)]
+			if (self.side==3):
+				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay+dy),
+						 (bx-dx,ay+dy),(bx-dx,ay),(ax,ay)]
+			if (self.side==2):
+				pline = [(ax,ay),(ax,by),(bx-dx,by),(bx-dx,by-dy),
+						 (bx,by-dy),(bx,ay),(ax,ay)]
+
+		pl = msp.add_lwpolyline(pline)
+		pl.dxf.layer = layer_panel
+		#pl.dxf.color = self.color
+		pl.dxf.color = 0
+
+	# Check if the distance from the wall is smaller 
+	# than the minimum allowed and updates gapl and gapr
+	def dist_from_wall(self, room):
+
+		ax = panel.xcoord; bx = ax + panel.width
+		ay = panel.ycoord; by = ay + panel.height
+
+		if (self.side==0):
+			point = (ax, by)
+			d2 = room.dist2_from_poly(point)
+			if (d2<self.gapl):
+				self.gapl = d2
+
+		if (self.side==1):
+			point = (ax, ay)
+			d2 = room.dist2_from_poly(point)
+			if (d2<self.gapl):
+				self.gapl = d2
+
+		if (self.side==2 or (self.side==0 and self.size[0]==2)):
+			point = (bx, by)
+			d2 = room.dist2_from_poly(point)
+			if (d2<self.gapr):
+				self.gapr = d2
+
+		if (panel.side==3 or (panel.side==1 and panel.size[0]==2)):
+			point = (bx, ay)
+			d2 = room.dist2_from_poly(point)
+			if (d2<self.gapr):
+				self.gapr = d2
+
+		if (self.gapl < min_dist2 and self.gapr < min_dist2):
+			return True 
+
+		return False
+
+
+
+
+class Dorsal:
+	def __init__(self, grid, pos, side):
+		self.panels = list()
+		self.pos = pos
+		self.grid = grid
+		self.side = side
+		self.elems = 0
+		self.gap = 0
+
+	# (row, start)  is the position of the top-left element
+	def alloc_panels(self):
+
+		m = self.grid
+		self.cost = 0
+		self.lost = 0
+		j = self.pos[1] - 2
+		i = self.pos[0]
+
+		self.failed = False
+		side = self.side
+
+		while(j<m.shape[1]-3 and not self.failed):
+
+			j += 2
+
+			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]):
+				self.new_panel(m[i,j],(2,2),side)
+				continue
+		
+			if side==1:
+
+				if (m[i,j] and m[i,j+1] and
+					(not m[i+1,j]) and (not m[i+1,j+1])):
+					self.new_panel(m[i,j],(2,1))
+					continue
+
+				if m[i,j] and m[i+1,j]:
+					self.new_panel(m[i,j], (1,2))
+					if m[i,j+1]:
+						self.new_panel(m[i,j], (1,1))
+						self.cost += 1
+
+					if m[i+1,j+1]:
+						self.lost += 1
+						self.cost + 4
+
+				if m[i,j+1] and m[i+1,j+1]:
+					self.new_panel(m[i,j+1], (1,2))
+					if m[i,j+1]:
+						self.new_panel(m[i,j+1], (1,1))
+						self.cost += 1
+
+					if m[i+1,j]:
+						self.lost += 1
+						self.cost + 4
+			else:
+
+				if (m[i+1,j] and m[i+1,j+1] and
+					(not m[i,j]) and (not m[i,j+1])):
+					self.new_panel(m[i+1,j],(2,1))
+					continue
+
+				if m[i,j] and m[i+1,j]:
+					self.new_panel(m[i,j], (1,2))
+					if m[i+1,j+1]:
+						self.new_panel(m[i+1,j+1], (1,1))
+						self.cost += 1
+
+					if m[i,j+1]:
+						self.lost += 1
+						self.cost + 4
+
+				if m[i,j+1] and m[i+1,j+1]:
+					self.new_panel(m[i,j+1], (1,2))
+					if m[i+1,j]:
+						self.new_panel(m[i,j+1], (1,1))
+						self.cost += 1
+
+					if m[i,j]:
+						self.lost += 1
+						self.cost += 4
+
+
+
+	# handside 0=left, 1=right
+	def new_panel(self, cell, size, handside=0):
+
+		panel = Panel(cell,size,self.side+handside)
+		self.panels.append(panel)
+		self.elems += size[0]*size[1]
+
+		print("# of panels >>> ", len(self.panels))
+		#self.failed = self.dist_from_wall(panel)
+
+
+class Dorsals(list):
+	def __init__(self):
+		self.cost = 0 
+		self.gap = 0
+		self.elems = 0
+		self.panels = list()
+	
+	def add(self, dorsal):	
+		self.cost += dorsal.cost
+		self.elems += dorsal.elems
+		self.panels += dorsal.panels
+		if (self.gap < dorsal.gap):
+			self.gap = dorsal.gap
+		print("Total elems in dorsals: ", self.elems)
 
 # Cell of the grid over which panels are lai ouut
 class Cell:
@@ -243,166 +456,112 @@ class Cell:
 		self.pos = pos
 		self.box = box
 
+	def draw(self, msp):
+		box = self.box
+		ax = box[0]; bx = box[1]
+		ay = box[2]; by = box[3]
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		pl = msp.add_lwpolyline(pline)
+		pl.dxf.layer = layer_box
+
 
 # This class represents the grid over which the panels
 # are laid out.
-class Grid():
+class PanelArrangement:
 
-	def __init__(self):
+	def __init__(self, room):
 		self.cells = list()
-		self.panels = list()
+		self.dorsals = Dorsals()
+		self.dorsals.cost = MAX_COST
+		self.room = room
+		self.elems = 0
 
 	def len(self):
 		return len(self.cells)
 
-	def addcell(self, pos, box):
-		self.cells.append(Cell(pos, box))
+	def make_grid(self, origin):
 
-	def make_matrix(self):
+		(sx, sy) = origin
+	
+		col = 0
+		sax = sx
+		while(sax+panel_width <= self.room.bx):
+			say = sy
+			row = 0
+			while(say+panel_height <= self.room.by):
+				pos = (row, col)
+				box = (sax, sax+panel_width, say, say+panel_height)
+				if self.room.is_box_inside(box):
+					self.cells.append(Cell(pos, box))
+				say += panel_height
+				row += 1
 
-		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 5
-		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 5
+			sax += panel_width
+			col += 1
 
-		m = self.matrix = np.full((maxr, maxc), None)
+
+		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 7
+		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 3
+
+		m = self.grid = np.full((maxr, maxc), None)
+
 		for cell in self.cells:
-			m[(cell.pos[0]+1, cell.pos[1]+1)] = cell
+			m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
 
-	# (row, start)  is the position of the top-left element
-	def alloc_strip(self, row, start, side):
 
-		m = self.matrix.copy()
-		panels = list()
+	def build_dorsals(self, pos):
 
-		cost = 0
-		j = row
-		i = start
-		lost = 0
+		dorsals = Dorsals()
 
-		while(i<self.rows-1):
-			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]):
-				panels.append(Panel(m[i,j],(2,2),side))
-				i += 2
-				continue
-		
-			if (side==1 and m[i,j] and m[i+1,j] and
-				(not m[i,j+1]) and (not m[i+1,j+1])):
-				panels.append(Panel(m[i,j],(2,1),side))
-				i += 2
-				cost += 1
-				continue
+		i = pos[0]
+		while(i<self.rows-3):
+			init_pos = (i, pos[1]) 
 
-			if (side==0 and (not m[i,j]) and (not m[i+1,j]) and
-				m[i,j+1] and m[i+1,j+1]):
-				panels.append(Panel(m[i,j+1],(2,1),side))
-				i += 2
-				cost += 1
-				continue
+			topdorsal = Dorsal(self.grid, init_pos, 0)
+			if (topdorsal.alloc_panels()):
+				return None
 
-			if (m[i,j] and m[i,j+1]):
-				panels.append(Panel(m[i,j],(1,2),side))
-				cost += 1
-				m[i,j] = m[i,j+1] = None
+			bottomdorsal = Dorsal(self.grid, init_pos, 1)
+			if (bottomdorsal.alloc_panels()):
+				return None
 
-			if (m[i+1,j] and m[i+1,j+1]):
-				panels.append(Panel(m[i+1,j],(1,2),side+2))
-				cost += 1
-				m[i+1,j] = m[i+1,j+1] = None
-
-			if (side==1 and m[i,j]):
-				panels.append(Panel(m[i,j],(1,1),side))
-				m[i,j] = None
-				cost += 2
-			
-			if (side==1 and m[i+1,j]):
-				panels.append(Panel(m[i+1,j],(1,1),side+2))
-				m[i+1,j] = None
-				cost += 2
-
-			if (side==0 and m[i,j+1]):
-				panels.append(Panel(m[i,j+1],(1,1),side))
-				m[i,j+1] = None
-				cost += 2
+			dorsals.add(topdorsal)
+			dorsals.add(bottomdorsal)
 				
-			if (side==0 and m[i+1,j+1]):
-				panels.append(Panel(m[i+1,j+1],(1,1),side+2))
-				m[i+1,j+1] = None
-				cost += 2
+			i += 4
 
-			if m[i,j]: lost += 1
-			if m[i,j+1]: lost += 1
-			if m[i+1,j]: lost += 1
-			if m[i+1,j+1]: lost += 1
-
-			i += 2
-
-		return panels, lost
-
-
-
-	def panels_alloc(self, start):
-		
-		panels = list()
-
-		j = start
-		cost = 0
-		while(j<self.cols-1):
-			local0, cost0 = self.alloc_strip(j, 0, 0)
-			local1, cost1 = self.alloc_strip(j, 1, 0)
-			if (cost0<cost1):
-				panels += local0
-				cost += cost0
-			else:
-				panels += local1
-				cost += cost1
-				
-			j += 2
-		
-		return panels, cost
-
-
-	def panels_alloc2(self, start):
-
-		panels = list()
-
-		j = start
-		cost = 0
-		while(j<self.cols-3):
-			fst_row, fst_cost = self.alloc_strip(j, 0, 0)
-			snd_row, snd_cost = self.alloc_strip(j+2, 0, 1)		
-			cost0 = fst_cost + snd_cost
-			local0 = fst_row + snd_row
-
-			fst_row, fst_cost = self.alloc_strip(j, 1, 0)
-			snd_row, snd_cost = self.alloc_strip(j+2, 1, 1)		
-			cost1 = fst_cost + snd_cost
-			local1 = fst_row + snd_row
-
-			if (cost0<cost1):
-				panels += local0
-				cost += cost0
-			else:
-				panels += local1
-				cost += cost1
-				
-			j += 4
-		
-		return panels, cost
-
+		return dorsals
 	
-	def alloc_panels(self):
-	
-		self.make_matrix()
+	def alloc_panels(self, origin):
 
-		# single dorsal
-		panels0, cost0 = self.panels_alloc2(0)
-		panels1, cost1 = self.panels_alloc2(1)
+		self.make_grid(origin)
 
-		if (cost0<cost1):
-			self.panels = panels0
-		else:
-			self.panels = panels1
-				
+		# origing of dorsals
+		for j in range(0,2):
+			for i in range(0,4):
+				pos = (i, j)
+				trial_dorsals = self.build_dorsals(pos)
+				print("After trial: ", trial_dorsals.elems)
+				print("   trial_dorsals cost", trial_dorsals.cost)
+				print("   trial_dorsals elems", trial_dorsals.elems)
+				print("   trial_dorsals gap", trial_dorsals.gap)
+				print("   self dorsals cost", self.dorsals.cost)
+				print("   self dorsals elems", self.dorsals.elems)
+				print("   self dorsals gap", self.dorsals.gap)
+				if ((not trial_dorsals == None ) and
+					((trial_dorsals.elems > self.dorsals.elems) or
+					(trial_dorsals.elems == self.dorsals.elems and
+					 trial_dorsals.cost < self.dorsals.cost) or
+					(trial_dorsals.elems == self.dorsals.elems and
+					 trial_dorsals.cost == self.dorsals.cost and
+					 trial_dorsals.gap > self.dorsals.gap))):
+						self.dorsals = trial_dorsals
+				print("After test best:", len(self.dorsals.panels))
+				return
 
+	def draw_grid(self, msp):	
+		for cell in self.cells:
+			cell.draw(msp)
 
 # This class represents the rrom described by a 
 # polyline
@@ -416,14 +575,6 @@ class Room:
 		Room.index = Room.index + 1
 		self.ignore = False
 		self.errorstr = ""
-
-		# Scale points to get cm
-		#color = poly.dxf.color
-		#if (color>3 or color<2):
-		#	self.ignore = True
-		#	self.errorstr = "WARNING: color=%d not supported, " % color
-		#	self.errorst += "ignoring Zone %d\n" % self.index
-		#	return
 
 		tol = tolerance
 		self.orient = 0
@@ -462,15 +613,11 @@ class Room:
 		# Projections of coordinates on x and y
 		self.xcoord = sorted(set([p[0] for p in self.points]))	
 		self.ycoord = sorted(set([p[1] for p in self.points]))	
+		self.bounding_box()
 
 		self.color = poly.dxf.color
-
-		# Mirror if polyline is green
-		#if (poly.dxf.color==3):
-		#	self.orient = 1
-		#	for i in range(0,len(self.points)):
-		#		self.points[i] = (self.points[i][1], self.points[i][0])
-		#	self.xcoord, self.ycoord = self.ycoord, self.xcoord
+		self.arrangement = PanelArrangement(self)
+		self.panels = list()
 
 
 	def area(self):
@@ -484,61 +631,33 @@ class Room:
 		p = self.points
 		d = 0
 		for i in range(0, len(p)-1):
-			d += sqrt( pow(p[i+1][0]-p[i][0], 2) + pow(p[i+1][1]-p[i][1], 2))
+			d += sqrt(pow(p[i+1][0]-p[i][0],2)+pow(p[i+1][1]-p[i][1],2))
 		return d
 
-	# Building Room
-	def make_grid(self):
-		global panel_height, panel_width, search_tol
-	
-		# get bounding box
+	def bounding_box(self):
 		self.ax = min(self.xcoord)
 		self.bx = max(self.xcoord)
 		self.ay = min(self.ycoord)
 		self.by = max(self.ycoord)
+		
 
-		# grid for panels
-		self.grid = Grid()
-
-		# search within panel range
+	# Building Room
+	def alloc_panels(self):
+		global panel_height, panel_width, search_tol
+	
+		# search within a small panel range
 		sx = 0
 		while sx<panel_width:
 			sy = 0
 			while sy<panel_height:
-				local = self.grid_list(sx+self.ax, sy+self.ay)
-				if (local.len() > self.grid.len()):
-					self.grid = local
+				origin = (sx + self.ax, sy + self.ay)
+				self.arrangement.alloc_panels(origin)
+				self.panels = self.arrangement.dorsals.panels
+				return
+
 				sy += search_tol
 			sx += search_tol
 		
-
-	# return a list of valid boxex from sx, sy
-	def grid_list(self, sx, sy):
-
-		boxes = Grid()		
-
-		# Horizontal panels
-		row = 0
-		sax = sx
-		while(sax+panel_width <= self.bx):
-			say = sy
-			col = 0
-			while(say+panel_height <= self.by):
-				pos = (row, col)
-				box = (sax, sax+panel_width, say, say+panel_height)
-				if self.is_box_inside(box):
-					boxes.addcell(pos, box)
-				say += panel_height
-				col += 1
-
-			sax += panel_width
-			row += 1
-
-		# Vertical panels
-		# TBD
-
-		return boxes
-
 
 	def is_point_inside(self, point):
 
@@ -592,6 +711,16 @@ class Room:
 
 		return True
 
+	def dist2_from_poly(self, point):
+
+		cd = MAX_DIST
+		p = self.points
+		for i in range(0, len(p)-1):
+			line = (p[i], p[i+1]) 
+			d2 = dist2(line, point)
+			if (d2<cd):
+				cd = d2
+		return cd
 
 	# Reporting Room
 	def report(self):
@@ -603,7 +732,7 @@ class Room:
 		w = default_panel_width
 		h = default_panel_height
 
-		for panel in self.grid.panels:
+		for panel in self.panels:
 			if (panel.size == (2,2)):
 				p2x2 += 1
 			if (panel.size == (2,1)):
@@ -626,56 +755,13 @@ class Room:
 
 		return txt
 
-	# Drawing Room
-	def draw_box(self, msp, box):
-		ax = box[0]; bx = box[1]
-		ay = box[2]; by = box[3]
-		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
-		pl = msp.add_lwpolyline(pline)
-		pl.dxf.layer = layer_box
 
-	def draw_panel(self, msp, panel):
-		ax = panel.xcoord; bx = ax + panel.width
-		ay = panel.ycoord; by = ay + panel.height
-		dx = hatch_width; dy = hatch_height
-
-		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+	def draw(self, msp):
 		
-		if (panel.size==(2,2) or panel.size==(2,1)):
-			if (panel.side==1):
-				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay+dy),
-					(bx-dx,ay+dy),(bx-dx,ay),(ax+dx,ay),(ax+dx,ay+dy),(ax,ay+dy)]
+		self.arrangement.draw_grid(msp)
 
-			if (panel.side==0):
-				pline = [(ax,ay),(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx-dx,by),
-					(bx-dx,by-dy),(bx,by-dy),(bx,ay),(ax,ay)]
-
-		if (panel.size==(1,1) or panel.size==(1,2)):
-			if (panel.side==1):
-				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay),(ax+dx,ay),
-						 (ax+dx,ay+dy),(ax,ay+dy)]
-			if (panel.side==0):
-				pline = [(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx,by),
-						 (bx,ay),(ax,ay),(ax,by-dy)]
-			if (panel.side==3):
-				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay+dy),
-						 (bx-dx,ay+dy),(bx-dx,ay),(ax,ay)]
-			if (panel.side==2):
-				pline = [(ax,ay),(ax,by),(bx-dx,by),(bx-dx,by-dy),
-						 (bx,by-dy),(bx,ay),(ax,ay)]
-
-		pl = msp.add_lwpolyline(pline)
-		pl.dxf.layer = layer_panel
-		pl.dxf.color = self.color
-		
-
-	def draw_room(self, msp):
-		
-		for cell in self.grid.cells:
-			self.draw_box(msp, cell.box)
-
-		for panel in self.grid.panels:
-			self.draw_panel(msp, panel)
+		for panel in self.panels:
+			panel.draw(msp)
 
 
 class App:
@@ -758,14 +844,14 @@ class App:
 		self.loadfile()
 
 	def reset(self):
-		self.text.set("Select DXF File")
-		self.text1.set("Modified DXF File")
+		self.text.set("Select DXF")
+		self.text1.set("Modified DXF")
 		self.button1["state"] = "disabled"
 		self.textinfo.delete('1.0', END)
 
 		if (hasattr(self,'opt')): self.opt.destroy()	
 		self.var.set("Select layer")
-		self.opt = OptionMenu(self.ctl, self.var,['Select layer'])
+		self.opt = OptionMenu(self.ctl, self.var,['0'])
 		self.opt.config(width=26)
 		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
 
@@ -888,11 +974,13 @@ class App:
 		global default_search_tol
 		global default_hatch_width
 		global default_hatch_height
+		global default_min_dist2
 		global panel_width 
 		global panel_height 
 		global search_tol 
 		global hatch_width
 		global hatch_height
+		global min_dist2
  
 		self.textinfo.delete('1.0', END)
 
@@ -911,6 +999,7 @@ class App:
 		search_tol = default_search_tol/scale
 		hatch_width = default_hatch_width/scale
 		hatch_height = default_hatch_height/scale
+		min_dist2 = default_min_dist2/scale
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
@@ -954,9 +1043,8 @@ class App:
 					room.errorstr = wstr
 					continue
 				
-				room.make_grid()
-				room.grid.alloc_panels()
-				room.draw_room(self.msp)
+				room.alloc_panels()
+				room.draw(self.msp)
 
 		self.print_report(self.textinfo.insert)
 
