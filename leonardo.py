@@ -281,6 +281,8 @@ class Panel:
 		self.width  = (self.cell.box[1] - self.xcoord) * size[0]
 		self.height = (self.cell.box[3] - self.ycoord) * size[1]
 		self.size = size
+		self.color = cell.color
+		self.mode = cell.mode
 
 	def draw(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -312,14 +314,15 @@ class Panel:
 				pline = [(ax,ay),(ax,by),(bx-dx,by),(bx-dx,by-dy),
 						 (bx,by-dy),(bx,ay),(ax,ay)]
 
+
 		if (self.mode==1):
 			for i in range(0,len(pline)):
 				pline[i] = (pline[i][1], pline[i][0])
 
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_panel
-		#pl.dxf.color = self.color
-		pl.dxf.color = 0
+		pl.dxf.color = self.color
+
 
 	# Check if the distance from the wall is smaller 
 	# than the minimum allowed and updates gapl and gapr
@@ -464,17 +467,19 @@ class Dorsals(list):
 
 # Cell of the grid over which panels are laid out
 class Cell:
-	def __init__(self, pos, box, room):
+	def __init__(self, pos, box, room, mode):
 		self.pos = pos
 		self.box = box
 		self.room = room
+		self.color = room.color
+		self.mode = mode
 
-	def draw(self, msp, mode):
+	def draw(self, msp):
 		box = self.box
 		ax = box[0]; bx = box[1]
 		ay = box[2]; by = box[3]
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
-		if (mode==1):
+		if (self.mode==1):
 			for i in range(0,len(pline)):
 				pline[i] = (pline[i][1], pline[i][0])
 		pl = msp.add_lwpolyline(pline)
@@ -510,7 +515,7 @@ class PanelArrangement:
 				pos = (row, col)
 				box = (sax, sax+panel_width, say, say+panel_height)
 				if self.room.is_box_inside(box):
-					self.cells.append(Cell(pos, box, self.room))
+					self.cells.append(Cell(pos, box, self.room, self.mode))
 				say += panel_height
 				row += 1
 
@@ -566,13 +571,11 @@ class PanelArrangement:
 					 trial_dorsals.cost == self.dorsals.cost and
 					 trial_dorsals.gap > self.dorsals.gap))):
 						self.dorsals = trial_dorsals
-						self.dorsals.mode = self.mode
 						self.best_grid = self.cells
-						self.best_mode = self.mode
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
-			cell.draw(msp, self.best_mode)
+			cell.draw(msp)
 
 # This class represents the rrom described by a 
 # polyline
@@ -667,8 +670,6 @@ class Room:
 					origin = (sx + self.ax, sy + self.ay)
 					self.arrangement.alloc_panels(origin)
 					self.panels = self.arrangement.dorsals.panels
-					for panel in self.panels:
-						panel.mode = self.arrangement.mode
 				
 					sy += search_tol
 					sx += search_tol
