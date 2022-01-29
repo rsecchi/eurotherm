@@ -312,6 +312,10 @@ class Panel:
 				pline = [(ax,ay),(ax,by),(bx-dx,by),(bx-dx,by-dy),
 						 (bx,by-dy),(bx,ay),(ax,ay)]
 
+		if (self.mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
+
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_panel
 		#pl.dxf.color = self.color
@@ -465,11 +469,14 @@ class Cell:
 		self.box = box
 		self.room = room
 
-	def draw(self, msp):
+	def draw(self, msp, mode):
 		box = self.box
 		ax = box[0]; bx = box[1]
 		ay = box[2]; by = box[3]
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		if (mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_box
 
@@ -510,7 +517,6 @@ class PanelArrangement:
 			sax += panel_width
 			col += 1
 
-
 		maxr = self.rows = max([c.pos[0] for c in self.cells]) + 7
 		maxc = self.cols = max([c.pos[1] for c in self.cells]) + 3
 
@@ -547,9 +553,9 @@ class PanelArrangement:
 
 		self.make_grid(origin)
 
-		# origing of dorsals
 		for j in range(0,2):
 			for i in range(0,4):
+				# set origin of dorsals
 				pos = (i, j)
 				trial_dorsals = self.build_dorsals(pos)
 				if ((not trial_dorsals == None ) and
@@ -560,11 +566,13 @@ class PanelArrangement:
 					 trial_dorsals.cost == self.dorsals.cost and
 					 trial_dorsals.gap > self.dorsals.gap))):
 						self.dorsals = trial_dorsals
+						self.dorsals.mode = self.mode
 						self.best_grid = self.cells
+						self.best_mode = self.mode
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
-			cell.draw(msp)
+			cell.draw(msp, self.best_mode)
 
 # This class represents the rrom described by a 
 # polyline
@@ -616,7 +624,6 @@ class Room:
 		# Projections of coordinates on x and y
 		self.xcoord = sorted(set([p[0] for p in self.points]))	
 		self.ycoord = sorted(set([p[1] for p in self.points]))	
-		self.bounding_box()
 
 		self.color = poly.dxf.color
 		self.arrangement = PanelArrangement(self)
@@ -647,19 +654,31 @@ class Room:
 	# Building Room
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
-	
-		# search within a small panel range
-		sx = 0
-		while sx<panel_width:
-			sy = 0
-			while sy<panel_height:
-				origin = (sx + self.ax, sy + self.ay)
-				self.arrangement.alloc_panels(origin)
-				self.panels = self.arrangement.dorsals.panels
 
-				sy += search_tol
-			sx += search_tol
-		
+	
+		self.arrangement.mode = 0   ;# horizontal
+		while self.arrangement.mode < 2:
+			self.bounding_box()
+			# search within a small panel range
+			sx = 0
+			while sx<panel_width:
+				sy = 0
+				while sy<panel_height:
+					origin = (sx + self.ax, sy + self.ay)
+					self.arrangement.alloc_panels(origin)
+					self.panels = self.arrangement.dorsals.panels
+					for panel in self.panels:
+						panel.mode = self.arrangement.mode
+				
+					sy += search_tol
+					sx += search_tol
+
+			for i in range(0,len(self.points)):
+				self.points[i] = (self.points[i][1], self.points[i][0])
+			(self.xcoord, self.ycoord) = (self.ycoord, self.xcoord)
+			self.arrangement.mode += 1  
+
+
 
 	def is_point_inside(self, point):
 
