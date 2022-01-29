@@ -40,7 +40,8 @@ default_hatch_width = 15
 default_hatch_height = 10
 
 default_search_tol = 5
-default_min_dist2 = 20*20
+default_min_dist = 20
+default_min_dist2 = default_min_dist*default_min_dist
 
 default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
@@ -249,6 +250,21 @@ def dist2(line, point):
 	return p2-up*up/u2
 
 
+def hdist(line, point):
+	(xp,yp) = point
+	(x0,y0),(x1,y1) = line
+	
+	(x0,y0) = (x0-xp,y0-yp)
+	(x1,y1) = (x1-xp,y1-yp)
+
+	if ((y0>0 and y1>0) or (y0<0 and y1<0)):
+		return MAX_DIST
+
+	if (y0==y1):
+		return min(x1,x0)
+
+	return abs((x0*y1-x1*y0)/(y1-y0))
+
 
 # This class represents the radiating panel
 # with its characteristics
@@ -274,11 +290,11 @@ class Panel:
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 		
 		if (self.size==(2,2) or self.size==(2,1)):
-			if (self.side==1):
+			if (self.side==1 or self.side==3):
 				pline = [(ax,ay+dy),(ax,by),(bx,by),(bx,ay+dy),
 					(bx-dx,ay+dy),(bx-dx,ay),(ax+dx,ay),(ax+dx,ay+dy),(ax,ay+dy)]
 
-			if (self.side==0):
+			if (self.side==0 or self.side==2):
 				pline = [(ax,ay),(ax,by-dy),(ax+dx,by-dy),(ax+dx,by),(bx-dx,by),
 					(bx-dx,by-dy),(bx,by-dy),(bx,ay),(ax,ay)]
 
@@ -303,40 +319,20 @@ class Panel:
 
 	# Check if the distance from the wall is smaller 
 	# than the minimum allowed and updates gapl and gapr
-	def dist_from_wall(self, room):
+	def dist_from_walls(self):
 
-		ax = panel.xcoord; bx = ax + panel.width
-		ay = panel.ycoord; by = ay + panel.height
+		room = self.cell.room
 
-		if (self.side==0):
-			point = (ax, by)
-			d2 = room.dist2_from_poly(point)
-			if (d2<self.gapl):
-				self.gapl = d2
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
 
-		if (self.side==1):
-			point = (ax, ay)
-			d2 = room.dist2_from_poly(point)
-			if (d2<self.gapl):
-				self.gapl = d2
+		if (self.side==0 or self.side==2):
+			self.gapl = room.hdist_from_poly((ax,by))
+			self.gapr = room.hdist_from_poly((bx,by))
 
-		if (self.side==2 or (self.side==0 and self.size[0]==2)):
-			point = (bx, by)
-			d2 = room.dist2_from_poly(point)
-			if (d2<self.gapr):
-				self.gapr = d2
-
-		if (panel.side==3 or (panel.side==1 and panel.size[0]==2)):
-			point = (bx, ay)
-			d2 = room.dist2_from_poly(point)
-			if (d2<self.gapr):
-				self.gapr = d2
-
-		if (self.gapl < min_dist2 and self.gapr < min_dist2):
-			return True 
-
-		return False
-
+		else:
+			self.gapl = room.hdist_from_poly((ax,ay))
+			self.gapr = room.hdist_from_poly((bx,ay))
 
 
 
@@ -347,6 +343,8 @@ class Dorsal:
 		self.grid = grid
 		self.side = side
 		self.elems = 0
+		self.gapl = MAX_DIST
+		self.gapr = MAX_DIST
 		self.gap = 0
 
 	# (row, start)  is the position of the top-left element
@@ -358,10 +356,9 @@ class Dorsal:
 		j = self.pos[1] - 2
 		i = self.pos[0]
 
-		self.failed = False
 		side = self.side
 
-		while(j<m.shape[1]-3 and not self.failed):
+		while(j<m.shape[1]-3):
 
 			j += 2
 
@@ -377,24 +374,24 @@ class Dorsal:
 					continue
 
 				if m[i,j] and m[i+1,j]:
-					self.new_panel(m[i,j], (1,2))
+					self.new_panel(m[i,j], (1,2), 0)
 					if m[i,j+1]:
-						self.new_panel(m[i,j], (1,1))
+						self.new_panel(m[i,j], (1,1), 1)
 						self.cost += 1
 
 					if m[i+1,j+1]:
 						self.lost += 1
-						self.cost + 4
+						self.cost += 4
 
 				if m[i,j+1] and m[i+1,j+1]:
-					self.new_panel(m[i,j+1], (1,2))
-					if m[i,j+1]:
-						self.new_panel(m[i,j+1], (1,1))
+					self.new_panel(m[i,j+1], (1,2), 1)
+					if m[i,j]:
+						self.new_panel(m[i,j], (1,1), 0)
 						self.cost += 1
 
 					if m[i+1,j]:
 						self.lost += 1
-						self.cost + 4
+						self.cost += 4
 			else:
 
 				if (m[i+1,j] and m[i+1,j+1] and
@@ -403,19 +400,19 @@ class Dorsal:
 					continue
 
 				if m[i,j] and m[i+1,j]:
-					self.new_panel(m[i,j], (1,2))
+					self.new_panel(m[i,j], (1,2), 0)
 					if m[i+1,j+1]:
-						self.new_panel(m[i+1,j+1], (1,1))
+						self.new_panel(m[i+1,j+1], (1,1), 1)
 						self.cost += 1
 
 					if m[i,j+1]:
 						self.lost += 1
-						self.cost + 4
+						self.cost += 4
 
 				if m[i,j+1] and m[i+1,j+1]:
-					self.new_panel(m[i,j+1], (1,2))
+					self.new_panel(m[i,j+1], (1,2), 1)
 					if m[i+1,j]:
-						self.new_panel(m[i,j+1], (1,1))
+						self.new_panel(m[i,j+1], (1,1), 0)
 						self.cost += 1
 
 					if m[i,j]:
@@ -427,34 +424,46 @@ class Dorsal:
 	# handside 0=left, 1=right
 	def new_panel(self, cell, size, handside=0):
 
-		panel = Panel(cell,size,self.side+handside)
+		panel = Panel(cell,size,self.side+handside*2)
 		self.panels.append(panel)
 		self.elems += size[0]*size[1]
 
-		print("# of panels >>> ", len(self.panels))
-		#self.failed = self.dist_from_wall(panel)
+		panel.dist_from_walls()
+		if (panel.gapl < self.gapl):
+			self.gapl = panel.gapl
+
+		if (panel.gapr < self.gapr):
+			self.gapr = panel.gapr
 
 
 class Dorsals(list):
 	def __init__(self):
 		self.cost = 0 
+		self.gapl = MAX_DIST
+		self.gapr = MAX_DIST
 		self.gap = 0
 		self.elems = 0
 		self.panels = list()
 	
 	def add(self, dorsal):	
+		global min_dist
 		self.cost += dorsal.cost
 		self.elems += dorsal.elems
 		self.panels += dorsal.panels
-		if (self.gap < dorsal.gap):
-			self.gap = dorsal.gap
-		print("Total elems in dorsals: ", self.elems)
+		
+		self.gapr = min(self.gapr, dorsal.gapr)
+		self.gapl = min(self.gapl, dorsal.gapl)
+		if (self.gapl < min_dist and self.gapr < min_dist):
+			return False
+		self.gap = max(self.gapr, self.gapl)
+		return True
 
-# Cell of the grid over which panels are lai ouut
+# Cell of the grid over which panels are laid out
 class Cell:
-	def __init__(self, pos, box):
+	def __init__(self, pos, box, room):
 		self.pos = pos
 		self.box = box
+		self.room = room
 
 	def draw(self, msp):
 		box = self.box
@@ -481,6 +490,8 @@ class PanelArrangement:
 
 	def make_grid(self, origin):
 
+		self.cells = list()
+
 		(sx, sy) = origin
 	
 		col = 0
@@ -492,7 +503,7 @@ class PanelArrangement:
 				pos = (row, col)
 				box = (sax, sax+panel_width, say, say+panel_height)
 				if self.room.is_box_inside(box):
-					self.cells.append(Cell(pos, box))
+					self.cells.append(Cell(pos, box, self.room))
 				say += panel_height
 				row += 1
 
@@ -517,16 +528,16 @@ class PanelArrangement:
 		while(i<self.rows-3):
 			init_pos = (i, pos[1]) 
 
-			topdorsal = Dorsal(self.grid, init_pos, 0)
-			if (topdorsal.alloc_panels()):
-				return None
+			bottomdorsal = Dorsal(self.grid, init_pos, 0)
+			bottomdorsal.alloc_panels()
 
-			bottomdorsal = Dorsal(self.grid, init_pos, 1)
-			if (bottomdorsal.alloc_panels()):
-				return None
+			init_pos = (i+2, pos[1]) 
+			topdorsal = Dorsal(self.grid, init_pos, 1)
+			topdorsal.alloc_panels()
 
-			dorsals.add(topdorsal)
-			dorsals.add(bottomdorsal)
+			if (not dorsals.add(topdorsal) or
+			    not dorsals.add(bottomdorsal)):
+				return None
 				
 			i += 4
 
@@ -541,13 +552,6 @@ class PanelArrangement:
 			for i in range(0,4):
 				pos = (i, j)
 				trial_dorsals = self.build_dorsals(pos)
-				print("After trial: ", trial_dorsals.elems)
-				print("   trial_dorsals cost", trial_dorsals.cost)
-				print("   trial_dorsals elems", trial_dorsals.elems)
-				print("   trial_dorsals gap", trial_dorsals.gap)
-				print("   self dorsals cost", self.dorsals.cost)
-				print("   self dorsals elems", self.dorsals.elems)
-				print("   self dorsals gap", self.dorsals.gap)
 				if ((not trial_dorsals == None ) and
 					((trial_dorsals.elems > self.dorsals.elems) or
 					(trial_dorsals.elems == self.dorsals.elems and
@@ -556,11 +560,10 @@ class PanelArrangement:
 					 trial_dorsals.cost == self.dorsals.cost and
 					 trial_dorsals.gap > self.dorsals.gap))):
 						self.dorsals = trial_dorsals
-				print("After test best:", len(self.dorsals.panels))
-				return
+						self.best_grid = self.cells
 
 	def draw_grid(self, msp):	
-		for cell in self.cells:
+		for cell in self.best_grid:
 			cell.draw(msp)
 
 # This class represents the rrom described by a 
@@ -653,7 +656,6 @@ class Room:
 				origin = (sx + self.ax, sy + self.ay)
 				self.arrangement.alloc_panels(origin)
 				self.panels = self.arrangement.dorsals.panels
-				return
 
 				sy += search_tol
 			sx += search_tol
@@ -718,6 +720,17 @@ class Room:
 		for i in range(0, len(p)-1):
 			line = (p[i], p[i+1]) 
 			d2 = dist2(line, point)
+			if (d2<cd):
+				cd = d2
+		return cd
+
+	def hdist_from_poly(self, point):
+
+		cd = MAX_DIST
+		p = self.points
+		for i in range(0, len(p)-1):
+			line = (p[i], p[i+1]) 
+			d2 = hdist(line, point)
 			if (d2<cd):
 				cd = d2
 		return cd
@@ -974,12 +987,14 @@ class App:
 		global default_search_tol
 		global default_hatch_width
 		global default_hatch_height
+		global default_min_dist
 		global default_min_dist2
 		global panel_width 
 		global panel_height 
 		global search_tol 
 		global hatch_width
 		global hatch_height
+		global min_dist
 		global min_dist2
  
 		self.textinfo.delete('1.0', END)
@@ -999,6 +1014,7 @@ class App:
 		search_tol = default_search_tol/scale
 		hatch_width = default_hatch_width/scale
 		hatch_height = default_hatch_height/scale
+		min_dist = default_min_dist/scale
 		min_dist2 = default_min_dist2/scale
 
 		# reload file
