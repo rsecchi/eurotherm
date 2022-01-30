@@ -684,7 +684,6 @@ class Room:
 			self.arrangement.mode += 1  
 
 
-
 	def is_point_inside(self, point):
 
 		p = self.points
@@ -766,6 +765,12 @@ class Room:
 		p2x1 = 0
 		p1x2 = 0
 		p1x1 = 0
+
+		p1x1_r = 0
+		p1x1_l = 0
+		p1x2_r = 0
+		p1x2_l = 0
+
 		w = default_panel_width
 		h = default_panel_height
 
@@ -776,8 +781,17 @@ class Room:
 				p2x1 += 1
 			if (panel.size == (1,2)):
 				p1x2 += 1
+				if (panel.side == 0 or panel.side == 2):
+					p1x2_r += 1
+				else:
+					p1x2_l += 1
+
 			if (panel.size == (1,1)):
 				p1x1 += 1
+				if (panel.side == 0 or panel.side == 2):
+					p1x1_r += 1
+				else:
+					p1x1_l += 1
 
 		area = self.area() * scale * scale	
 		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
@@ -786,11 +800,14 @@ class Room:
 		txt += "Room area: %.4g m2 \n" % area
 		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
 		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		txt += "  %5d panels %dx%d cm\n" % (p2x1, w, 2*h) 
-		txt += "  %5d panels %dx%d cm\n" % (p1x2, 2*w, h) 
-		txt += "  %5d panels %dx%d cm\n" % (p1x1, w, h) 
+		txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
+		txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
+		txt += " %d left, %d right\n" % (p1x2_r, p1x2_l)
+		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
+		txt += " %d left, %d right\n" % (p1x1_r, p1x1_l)
 
-		return (txt, area, active_area, (p2x2,p2x1,p1x2,p1x1))
+		return (txt, area, active_area, 
+			(p2x2,p2x1,p1x2,p1x1,p1x1_l,p1x1_r,p1x2_l,p1x2_r))
 
 
 	def draw(self, msp):
@@ -942,12 +959,18 @@ class App:
 		p2x2 = 0
 		p2x1 = 0
 		p1x2 = 0
+		p1x2_l = 0
+		p1x2_r = 0
 		p1x1 = 0
+		p1x1_l = 0
+		p1x1_r = 0
 		w = default_panel_width
 		h = default_panel_height
+		failed_rooms = 0
 		for room in self.rooms:
 
 			if (len(room.errorstr)>0):
+				faild_rooms += 1
 				continue
 
 			txt += "Zone%d  --------- \n" % room.index
@@ -959,15 +982,34 @@ class App:
 			p2x1 += panel_count[1]
 			p1x2 += panel_count[2]
 			p1x1 += panel_count[3]
-
+			p1x1_l += panel_count[4]
+			p1x1_r += panel_count[5]
+			p1x2_l += panel_count[6]
+			p1x2_r += panel_count[7]
+			
+			
 		# Summary of all areas
-		smtxt  = "Total area %.5g m2\n" % area
-		smtxt += "Active area %.5g m2" % active_area
+		smtxt =  "Total rooms %d  (%d failed)\n" % (Room.index-1, failed_rooms)
+		smtxt += "Total area %.5g m2\n" % area
+		smtxt += "Total active area %.5g m2" % active_area
 		smtxt += " (%.4g %%)\n" % (100*active_area/area)
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, w, 2*h) 
-		smtxt += "  %5d panels %dx%d cm\n" % (p1x2, 2*w, h) 
-		smtxt += "  %5d panels %dx%d cm\n" % (p1x1, w, h) 
+		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
+		smtxt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h)
+		smtxt += "  %d left, %d right\n" % (p1x2_l, p1x2_r)
+		smtxt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
+		smtxt += "  %d left, %d right\n" % (p1x1_l, p1x1_r)
+		smtxt += "\n> requirements:\n"
+		p2x2_cut = min(p1x2_r,p1x2_l) + abs(p1x2_r-p1x2_l)
+		p2x2_tot = p2x2 + p2x2_cut 
+		p2x2_spr = abs(p1x2_r-p1x2_l)
+		smtxt += "  %d panels %dx%d, \n" % (p2x2_tot, 2*w, 2*h)
+		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_cut, p2x2_spr)
+		p1x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
+		p1x1_tot = p1x1 + p1x1_cut 
+		p1x1_spr = abs(p1x1_r-p1x1_l)
+		smtxt += "  %d panels %dx%d, \n" % (p1x1_tot, 2*w, 2*h)
+		smtxt += "    of which %d to cut and %d halves spares\n" % (p1x1_cut, p1x1_spr) 
 
 		return smtxt + txt
 		
