@@ -374,59 +374,58 @@ class Dorsal:
 				continue
 		
 			if side==1:
-
 				if (m[i,j] and m[i,j+1] and
 					(not m[i+1,j]) and (not m[i+1,j+1])):
 					self.new_panel(m[i,j],(2,1))
 					continue
 
-				if m[i,j] and m[i+1,j]:
-					self.new_panel(m[i,j], (1,2), 0)
-					if m[i,j+1]:
-						self.new_panel(m[i,j], (1,1), 1)
-						self.cost += 1
-
-					if m[i+1,j+1]:
-						self.lost += 1
-						self.cost += 4
-
-				if m[i,j+1] and m[i+1,j+1]:
-					self.new_panel(m[i,j+1], (1,2), 1)
+				# half panels vertical
+				if m[i+1,j]:
 					if m[i,j]:
-						self.new_panel(m[i,j], (1,1), 0)
-						self.cost += 1
-
-					if m[i+1,j]:
-						self.lost += 1
+						self.new_panel(m[i,j],(1,2),0)
+					else:
 						self.cost += 4
-			else:
+						self.lost += 1	
+				else:
+					if m[i,j]:
+						self.new_panel(m[i,j],(1,1),0)
 
+				if m[i+1,j+1]:
+					if m[i,j+1]:
+						self.new_panel(m[i,j+1],(1,2),1)
+					else:
+						self.cost += 4
+						self.lost += 1	
+				else:
+					if m[i,j+1]:
+						self.new_panel(m[i,j+1],(1,1),1)
+
+			else:
 				if (m[i+1,j] and m[i+1,j+1] and
 					(not m[i,j]) and (not m[i,j+1])):
 					self.new_panel(m[i+1,j],(2,1))
 					continue
 
-				if m[i,j] and m[i+1,j]:
-					self.new_panel(m[i,j], (1,2), 0)
-					if m[i+1,j+1]:
-						self.new_panel(m[i+1,j+1], (1,1), 1)
-						self.cost += 1
-
-					if m[i,j+1]:
-						self.lost += 1
-						self.cost += 4
-
-				if m[i,j+1] and m[i+1,j+1]:
-					self.new_panel(m[i,j+1], (1,2), 1)
+				# half panels vertical
+				if m[i,j]:
 					if m[i+1,j]:
-						self.new_panel(m[i,j+1], (1,1), 0)
-						self.cost += 1
-
-					if m[i,j]:
-						self.lost += 1
+						self.new_panel(m[i,j],(1,2),0)
+					else:
 						self.cost += 4
+						self.lost += 1	
+				else:
+					if m[i+1,j]:
+						self.new_panel(m[i+1,j],(1,1),0)
 
-
+				if m[i,j+1]:
+					if m[i+1,j+1]:
+						self.new_panel(m[i,j+1],(1,2),1)
+					else:
+						self.cost += 4
+						self.lost += 1	
+				else:
+					if m[i+1,j+1]:
+						self.new_panel(m[i+1,j+1],(1,1),1)
 
 	# handside 0=left, 1=right
 	def new_panel(self, cell, size, handside=0):
