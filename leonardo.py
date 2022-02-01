@@ -355,7 +355,7 @@ class Dorsal:
 		self.gap = 0
 
 	# (row, start)  is the position of the top-left element
-	def alloc_panels(self):
+	def make_dorsal(self):
 
 		m = self.grid
 		self.cost = 0
@@ -383,22 +383,26 @@ class Dorsal:
 				if m[i+1,j]:
 					if m[i,j]:
 						self.new_panel(m[i,j],(1,2),0)
+						self.cost += 1
 					else:
 						self.cost += 4
 						self.lost += 1	
 				else:
 					if m[i,j]:
 						self.new_panel(m[i,j],(1,1),0)
+						self.cost += 1
 
 				if m[i+1,j+1]:
 					if m[i,j+1]:
 						self.new_panel(m[i,j+1],(1,2),1)
+						self.cost += 1
 					else:
 						self.cost += 4
 						self.lost += 1	
 				else:
 					if m[i,j+1]:
 						self.new_panel(m[i,j+1],(1,1),1)
+						self.cost += 1
 
 			else:
 				if (m[i+1,j] and m[i+1,j+1] and
@@ -410,22 +414,26 @@ class Dorsal:
 				if m[i,j]:
 					if m[i+1,j]:
 						self.new_panel(m[i,j],(1,2),0)
+						self.cost += 1
 					else:
 						self.cost += 4
 						self.lost += 1	
 				else:
 					if m[i+1,j]:
 						self.new_panel(m[i+1,j],(1,1),0)
+						self.cost += 1
 
 				if m[i,j+1]:
 					if m[i+1,j+1]:
 						self.new_panel(m[i,j+1],(1,2),1)
+						self.cost += 1
 					else:
 						self.cost += 4
 						self.lost += 1	
 				else:
 					if m[i+1,j+1]:
 						self.new_panel(m[i+1,j+1],(1,1),1)
+						self.cost += 1
 
 	# handside 0=left, 1=right
 	def new_panel(self, cell, size, handside=0):
@@ -543,11 +551,11 @@ class PanelArrangement:
 			init_pos = (i, pos[1]) 
 
 			bottomdorsal = Dorsal(self.grid, init_pos, 0)
-			bottomdorsal.alloc_panels()
+			bottomdorsal.make_dorsal()
 
 			init_pos = (i+2, pos[1]) 
 			topdorsal = Dorsal(self.grid, init_pos, 1)
-			topdorsal.alloc_panels()
+			topdorsal.make_dorsal()
 
 			if (not dorsals.add(topdorsal) or
 			    not dorsals.add(bottomdorsal)):
@@ -558,6 +566,7 @@ class PanelArrangement:
 		return dorsals
 	
 	def alloc_panels(self, origin):
+
 
 		if (not self.make_grid(origin)):
 			return
@@ -686,10 +695,11 @@ class Room:
 
 	def is_point_inside(self, point):
 
+
 		p = self.points
 		x = point[0]; y = point[1]
 		ints = 0
-			
+
 		for i in range(0, len(p)-1):
 	
 			if (p[i][0]==x and p[i+1][0]==x):
@@ -708,7 +718,7 @@ class Room:
 				x1, y1 = p[i][0], p[i][1]
 
 			
-			if (x0<=x and x<=x1):
+			if (x0<=x and x<x1):
 				if (y0==y1 and y0==y):
 					return True
 
