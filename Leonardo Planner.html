@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<!---------------------------------- Titolo Pagina e Style Sheet ---------------------------------------->
+
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>Eurotherm Leonardo planner</title>
+<link type="text/css" rel="stylesheet" 
+href="stylesheet.Leonardo.css">
+</head>
+
+
+<!------------------------------------- Header --------------------------------------------->
+
+<body>
+
+<div class="header">
+        <div class="container">
+            <nav>
+                <img src="logo.png" alt="">
+                <h1>LEONARDO PLANNER</h1>
+            </nav>
+        </div>
+    </div>
+
+
+<!------------------------------------- Titolo --------------------------------------------->
+
+</br>
+</br></br></br></br></br></br>
+<h2> CALCOLA IL COSTO DEL TUO SOFFITTO RADIANTE </h2>
+<h3> Compila i campi sottostanti e scegli le opzioni per il soffitto radiante Leonardo. </h3>
+<h5> -file formato .dxf</br>
+	-polilinea blu: pannelli idro</br>
+	-polilinea verde: pannelli normali</br>
+	-rettangolo 60x60 rosso: collettore</br>
+	-forme grigie: ingombri </h5>
+
+
+</br>
+
+<!-------------------------------------- Caricare file ------------------------------------------>
+		<fieldset>
+<div class="container">
+	<h4> 1. Caricare file .dxf </h4>
+	
+
+
+
+           <br><br>
+
+	<action="/action_page.php">
+	<label for="myfile">Select a DXF File*:</label>
+	<input type="file" id="myfile" name="myfile"><br><br>
+  
+  
+  
+  
+	<p> Select Layer* </p>
+
+
+	<select>
+
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+
+	</select>
+  
+		</br> </br>
+    
+
+	</fieldset>
+</br> </br>
+<!-------------------------------------- Opzioni impianto ------------------------------------------>
+	<fieldset>
+	<h4> 2. Opzioni impianto </h4>
+	
+
+<p> Seleziona passo pannelli* </p>
+
+
+	<select>
+
+	<option value="0">Leonardo 5,5</option>
+	<option value="1">Leonardo 3,5</option>
+	<option value="2">Leonardo 3,5 </option>
+
+	</select>
+</br></br></br></br>
+	<label class="container">Riscaldamento
+		<input type="checkbox" checked="checked">
+		<span class="checkmark"></span>
+	</label>
+		</br>
+	<label class="container">Riscaldamento + Raffrescamento
+	<input type="checkbox">
+	<span class="checkmark"></span>
+	</label>
+
+	</fieldset>
+<!----------------------------------------------- Settings ------------------------------------------>
+</br> </br>
+
+	<fieldset>	 
+	<h4> 3. Settings </h4>
+	</br>
+	<label for="scale">A drawing unit in cm:</label>
+		<input type="text" id="scale" name="">
+	</fieldset>
+
+
+<!-------------------------------------- Avanti ------------------------------------------>
+
+		</br></br></br>
+		<input type="checkbox"> Dichiaro di aver letto e compreso l´ <a href="#"> informativa sulla privacy. </a>*
+			</br>
+			<input type="checkbox" checked="checked"> Accettazione newsletter
+			</br>
+			</br>
+			
+	<p> * campi obbligatori </p>
+			
+	<button class="avanti-btn" type="submit" >BUILD</button>
+
+</div>
+<!--------------------------------------- Report ------------------------------------------->
+
+</br> </br></br> 
+
+<h4> Report </h4>
+
+
+<textarea rows="10" cols="200"></textarea></br>
+
+
+<!--------------------------------------- Footer ------------------------------------------->
+
+<div id="footer">
+               
+<div class="footer">
+        <div class="container"> &copy; Eurotherm spaCF-P.I.: 01124390210Cap. soc. i.v. Euro 120.000,00</div> 
+        </div>
+    </div>   
+
+</body>
+
+</html>
