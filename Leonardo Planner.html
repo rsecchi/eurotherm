@@ -7,6 +7,7 @@
 <head>
 <meta charset="utf-8">
 <title>Eurotherm Leonardo planner</title>
+<link rel="icon" href="tab_logo.png">
 <link type="text/css" rel="stylesheet" 
 href="stylesheet.Leonardo.css">
 </head>
@@ -17,7 +18,7 @@ href="stylesheet.Leonardo.css">
 <body>
 
 <div class="header">
-        <div class="container">
+        <div class="container"> 
             <nav>
                 <img src="logo.png" alt="">
                 <h1>LEONARDO PLANNER</h1>
@@ -32,35 +33,36 @@ href="stylesheet.Leonardo.css">
 </br></br></br></br></br></br>
 <h2> CALCOLA IL COSTO DEL TUO SOFFITTO RADIANTE </h2>
 <h3> Compila i campi sottostanti e scegli le opzioni per il soffitto radiante Leonardo. </h3>
-<h5> -file formato .dxf</br>
-	-polilinea blu: pannelli idro</br>
-	-polilinea verde: pannelli normali</br>
-	-rettangolo 60x60 rosso: collettore</br>
-	-forme grigie: ingombri </h5>
+</br>
+
+<h5> Serve aiuto per l´inserimento dei dati? Clicca <a href="https://www.youtube.com/user/EurothermItalia" target="_blank"> qui! </a> </h5>
 
 
 </br>
 
 <!-------------------------------------- Caricare file ------------------------------------------>
 		<fieldset>
+
 <div class="container">
-	<h4> 1. Caricare file .dxf </h4>
 	
+	<h4> 1. Caricare file .dxf </h4>
 
 
 
-           <br><br>
+   <br>
 
-	<action="/action_page.php">
-	<label for="myfile">Select a DXF File*:</label>
-	<input type="file" id="myfile" name="myfile"><br><br>
+	<label>Select a DXF File*:</label>
+	<input type="file" id="myfile" name="myfile" required>
+	
+	
+  
+  <br><br>
+  <br>
   
   
-  
-  
-	<p> Select Layer* </p>
+	<label> Select Layer* </label>
 
-
+<br>
 	<select>
 
 	<option value="0">0</option>
@@ -84,38 +86,48 @@ href="stylesheet.Leonardo.css">
 
 	<select>
 
-	<option value="0">Leonardo 5,5</option>
-	<option value="1">Leonardo 3,5</option>
-	<option value="2">Leonardo 3,5 </option>
+	<option value="Leonardo 5,5">Leonardo 5,5</option>
+	<option value="Leonardo 3,5">Leonardo 3,5</option>
+	<option value="Leonardo 3,5 plus">Leonardo 3,5 plus </option>
 
 	</select>
+	
 </br></br></br></br>
-	<label class="container">Riscaldamento
-		<input type="checkbox" checked="checked">
-		<span class="checkmark"></span>
-	</label>
-		</br>
-	<label class="container">Riscaldamento + Raffrescamento
-	<input type="checkbox">
-	<span class="checkmark"></span>
-	</label>
+
+<label> Tipo di funzionamento:* </label>
+</br></br>
+	<input type="radio" checked="yes" name="riscaldamento" value="Riscaldamento" /> Riscaldamento
+</br>	
+	<input type="radio" name="riscaldamento" value="Riscaldamento + Raffrescamento" /> Riscaldamento + Raffrescamento
 
 	</fieldset>
 <!----------------------------------------------- Settings ------------------------------------------>
 </br> </br>
 
 	<fieldset>	 
-	<h4> 3. Settings </h4>
+	
+	<h4> 3. Opzioni disegno </h4>
 	</br>
-	<label for="scale">A drawing unit in cm:</label>
-		<input type="text" id="scale" name="">
+	<label for="scale">A che misura corrisponde un unità nel tuo disegno?</label>
+	</br> 
+	</br> 
+	<label for="scale">1 unità = 1</label>
+		
+		<select>
+
+	<option value="metri">m</option>
+	<option value="centimetri">cm</option>
+	<option value="millimetri">mm </option>
+
+		</select>
+		
 	</fieldset>
 
 
 <!-------------------------------------- Avanti ------------------------------------------>
 
 		</br></br></br>
-		<input type="checkbox"> Dichiaro di aver letto e compreso l´ <a href="#"> informativa sulla privacy. </a>*
+		<input type="checkbox" required> Dichiaro di aver letto e compreso l´ <a href="https://www.eurotherm.info/it/informativa-sulla-privacy" target="_blank"> informativa sulla privacy. </a> </input>*
 			</br>
 			<input type="checkbox" checked="checked"> Accettazione newsletter
 			</br>
@@ -123,8 +135,8 @@ href="stylesheet.Leonardo.css">
 			
 	<p> * campi obbligatori </p>
 			
-	<button class="avanti-btn" type="submit" >BUILD</button>
-
+	<button class="avanti-btn" onclick="location.href="{% url "script" %} "" >BUILD</button>
+	
 </div>
 <!--------------------------------------- Report ------------------------------------------->
 
@@ -135,7 +147,7 @@ href="stylesheet.Leonardo.css">
 
 <textarea rows="10" cols="200"></textarea></br>
 
-
+</br></br>
 <!--------------------------------------- Footer ------------------------------------------->
 
 <div id="footer">
@@ -144,6 +156,8 @@ href="stylesheet.Leonardo.css">
         <div class="container"> &copy; Eurotherm spaCF-P.I.: 01124390210Cap. soc. i.v. Euro 120.000,00</div> 
         </div>
     </div>   
+
+ 
 
 </body>
 
