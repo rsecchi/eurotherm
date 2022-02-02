@@ -1,16 +1,5 @@
 #!/usr/local/bin/python3
 
-# Cose da fare:
-
-# Dislocazione moduli semplici 60x100
-# Raggruppamento moduli semplici in moduli 
-# Orientamento dei connettori
-# Stanze oblique
-# Colorazione dei moduli in base alla tipologia
-# Impedimenti interni alla stanza: colonne e lucernari
-# Salvataggio Aree e Rapporti in Excel
-
-
 import ezdxf
 import openpyxl
 import numpy as np
@@ -22,7 +11,7 @@ from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
 # Parameter settings (values in cm)
-default_scale = 2          # multiplier to transform in cm (scale=100 if the drawing is in m)
+default_scale = 0.1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -50,10 +39,15 @@ layer_panel  = 'Eurotherm_panel'
 
 text_color = 7
 box_color = 8
+collector_color = 1
 
 MAX_COST = 1000000
 MAX_DIST = 1e20
 
+RIGHT = 1
+LEFT = 0
+TOP = 1
+BOTTOM = 0
 
 xlsx_template = 'template.xlsx'
 sheet_template = 'BoM'
@@ -136,6 +130,11 @@ def center(a,b,size):
 		l.append(a+L+i*size)	
 	return l
 
+def dist(point1, point2):
+	dx = point1[0] - point2[0]
+	dy = point1[1] - point2[1]
+	return sqrt(dx*dx+dy*dy)
+	
 
 def intersects(p, x):
 		
@@ -457,13 +456,14 @@ class Dorsal:
 
 
 class Dorsals(list):
-	def __init__(self):
+	def __init__(self, room):
 		self.cost = 0 
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
 		self.gap = MAX_DIST
 		self.elems = 0
 		self.panels = list()
+		self.room = room
 	
 	def add(self, dorsal):	
 		global min_dist
@@ -473,8 +473,12 @@ class Dorsals(list):
 		
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
-		if (self.gapl < min_dist and self.gapr < min_dist):
+		if (self.gapl<min_dist and self.room.clt_xside==LEFT):
 			return False
+
+		if (self.gapr<min_dist and self.room.clt_xside==RIGHT):
+			return False
+
 		self.gap = abs(self.gapr - self.gapl)
 		return True
 
@@ -505,7 +509,7 @@ class PanelArrangement:
 
 	def __init__(self, room):
 		self.best_grid = self.cells = list()
-		self.dorsals = Dorsals()
+		self.dorsals = Dorsals(room)
 		self.dorsals.cost = MAX_COST
 		self.room = room
 		self.elems = 0
@@ -559,7 +563,7 @@ class PanelArrangement:
 
 	def build_dorsals(self, pos):
 
-		dorsals = Dorsals()
+		dorsals = Dorsals(self.room)
 
 		i = pos[0]
 		while(i<self.rows-3):
@@ -662,6 +666,8 @@ class Room:
 		self.panels = list()
 		self.bounding_box()
 		self.area = self._area()
+		self.centre = self._centre()
+		self.perimeter = self._perimeter()
 
 	def _area(self):
 		a = 0
@@ -670,7 +676,17 @@ class Room:
 			a += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
 		return abs(a/10000)
 
-	def perimeter(self):
+	def _centre(self):
+		(cx, cy) = (0, 0)
+		p = self.points
+		n = len(p) - 1
+		for p in self.points:
+			(cx, cy) = (cx+p[0], cy+p[1])
+
+		return (cx/n, cy/n)
+		
+
+	def _perimeter(self):
 		p = self.points
 		d = 0
 		for i in range(0, len(p)-1):
@@ -711,7 +727,9 @@ class Room:
 				for i in range(0,len(obs.points)):
 					obs.points[i] = (obs.points[i][1], obs.points[i][0])
 				(obsxcoord, obs.ycoord) = (obs.ycoord, obs.xcoord)
-		
+	
+			(self.clt_xside,self.clt_yside) = (self.clt_yside,self.clt_xside) 
+	
 			self.arrangement.mode += 1  
 
 
@@ -1104,7 +1122,7 @@ class App:
 					perimeter = 0.0
 
 				if (box.number == 1):
-					perimeter = room.perimeter()*scale/100
+					perimeter = room.perimeter*scale/100
 				else:
 					perimenter = 0.0
 
@@ -1168,7 +1186,8 @@ class App:
 		self.doc = ezdxf.readfile(self.filename)	
 		self.msp = self.doc.modelspace()
 		Room.index = 1
-		self.rooms = []
+		self.rooms = list()
+		self.collectors = list()
 
 		self.create_layers()
 		inputlayer = self.var.get()
@@ -1187,7 +1206,6 @@ class App:
 		# Create list of rooms
 		for poly in query:
 			room = Room(poly)
-			room.surf = 0
 			self.rooms.append(room)
 			room.error = False
 			if (len(room.errorstr)>0):
@@ -1208,6 +1226,20 @@ class App:
 		for room in self.rooms:
 			if (not room.error):
 				self.valid_rooms.append(room)
+			if (room.color == collector_color):
+				self.collectors.append(room)
+				room.is_collector = True
+			else:
+				room.is_collector = False
+					
+		# check if collectors exist
+		if (not self.collectors):
+			wstr = "ABORT: No collectors found"
+			self.textinfo.insert(END, wstr)
+			return
+
+		for room in self.rooms:
+			print(room.index, room.is_collector)
 
 		# check if a room is contained in some other room
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -1216,15 +1248,14 @@ class App:
 			j=i+1
 			while (j<len(room) and room[j].ax < room[i].bx):
 				if room[i].contains(room[j]):
-					print("Room %d is contained in room %d" % (j,i))
+					print("Room %d is contained in room %d" % (room[j].index,room[i].index))
 					room[i].obstacles.append(room[j])
 					room[j].contained_in = room[j]
 				if room[j].contains(room[i]):
-					print("Room %d is contained in room %d" % (i,j))
+					print("Room %d is contained in room %d" % (room[i].index,room[j].index))
 					room[j].obstacles.append(room[i])
 					room[i].contained_in = room[j]
 				j += 1
-
 		
 		# check if the room is too small to be processed
 		self.processed = list()
@@ -1238,7 +1269,30 @@ class App:
 					room.errorstr = wstr
 					room.error = True
 				else:
-					self.processed.append(room)
+					if (not room.is_collector):
+						self.processed.append(room)
+
+		# Assign collectors to room
+		for room in self.processed:
+			dist_cltr = MAX_DIST
+			for cltr in self.collectors:
+				(vx, vy) = (cltr.centre[0]-room.centre[0], 
+								cltr.centre[1]-room.centre[1])
+				d = sqrt(vx*vx+vy*vy)
+				if (d<dist_cltr):
+					dist_ctlr = d
+					print(room.index, d)
+					room.collector = cltr
+					if (vx>=0):
+						room.clt_xside = RIGHT
+					else:
+						room.clt_xside = LEFT
+
+					if (vy>=0):
+						room.clt_yside = TOP
+					else:
+						room.clt_yside = BOTTOM
+			
 
 		# allocating panels in room
 		for room in self.processed:
