@@ -22,13 +22,13 @@ from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
 # Parameter settings (values in cm)
-default_scale = 0.1          # multiplier to transform in cm (scale=100 if the drawing is in m)
+default_scale = 2          # multiplier to transform in cm (scale=100 if the drawing is in m)
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
 zone_cost = 1
 min_room_area = 1
-max_room_area = 250
+max_room_area = 500
 
 default_x_font_size  = 20
 default_y_font_size  = 30
@@ -334,14 +334,20 @@ class Panel:
 		ay = self.ycoord; by = ay + self.height
 
 		if (self.side==0 or self.side==2):
-			self.gapl = room.hdist_from_poly((ax,by))
-			self.gapr = room.hdist_from_poly((bx,by))
-
+			lft = (ax,by)
+			rgt = (bx,by)
+			self.gapl = room.hdist_from_poly(lft)
+			self.gapr = room.hdist_from_poly(rgt)
 		else:
-			self.gapl = room.hdist_from_poly((ax,ay))
-			self.gapr = room.hdist_from_poly((bx,ay))
+			lft = (ax,ay)
+			rgt = (bx,ay)
+			self.gapl = room.hdist_from_poly(lft)
+			self.gapr = room.hdist_from_poly(rgt)
 
-
+		# dist from internal walls
+		for obs in room.obstacles:
+			self.gapl = min(obs.hdist_from_poly(lft), self.gapl)
+			self.gapr = min(obs.hdist_from_poly(rgt), self.gapr)
 
 class Dorsal:
 	def __init__(self, grid, pos, side):
@@ -498,7 +504,7 @@ class Cell:
 class PanelArrangement:
 
 	def __init__(self, room):
-		self.cells = list()
+		self.best_grid = self.cells = list()
 		self.dorsals = Dorsals()
 		self.dorsals.cost = MAX_COST
 		self.room = room
@@ -521,7 +527,16 @@ class PanelArrangement:
 			while(say+panel_height <= self.room.by):
 				pos = (row, col)
 				box = (sax, sax+panel_width, say, say+panel_height)
+				flag = True
 				if self.room.is_box_inside(box):
+					for obstacle in self.room.obstacles:
+						if not obstacle.is_box_outside(box):
+							flag = False
+							break
+				else:
+					flag = False
+
+				if (flag):
 					self.cells.append(Cell(pos, box, self.room, self.mode))
 				say += panel_height
 				row += 1
@@ -567,7 +582,6 @@ class PanelArrangement:
 	
 	def alloc_panels(self, origin):
 
-
 		if (not self.make_grid(origin)):
 			return
 
@@ -602,6 +616,8 @@ class Room:
 		Room.index = Room.index + 1
 		self.ignore = False
 		self.errorstr = ""
+		self.contained_in = None
+		self.obstacles = list()
 
 		tol = tolerance
 		self.orient = 0
@@ -644,9 +660,10 @@ class Room:
 		self.color = poly.dxf.color
 		self.arrangement = PanelArrangement(self)
 		self.panels = list()
+		self.bounding_box()
+		self.area = self._area()
 
-
-	def area(self):
+	def _area(self):
 		a = 0
 		p = self.points
 		for i in range(0, len(p)-1):
@@ -670,7 +687,6 @@ class Room:
 	# Building Room
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
-
 	
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -690,6 +706,12 @@ class Room:
 			for i in range(0,len(self.points)):
 				self.points[i] = (self.points[i][1], self.points[i][0])
 			(self.xcoord, self.ycoord) = (self.ycoord, self.xcoord)
+
+			for obs in self.obstacles:
+				for i in range(0,len(obs.points)):
+					obs.points[i] = (obs.points[i][1], obs.points[i][0])
+				(obsxcoord, obs.ycoord) = (obs.ycoord, obs.xcoord)
+		
 			self.arrangement.mode += 1  
 
 
@@ -746,6 +768,22 @@ class Room:
 
 		return True
 
+	def is_box_outside(self, box):
+
+		# Check if the center is inside
+		center = ((box[0]+box[1])/2, (box[2]+box[3])/2)
+		if (self.is_point_inside(center)):
+			return False
+
+		# Does polyline cross box?
+		p = self.points
+		for i in range(0, len(p)-1):
+			line = (p[i], p[i+1]) 
+			if (cross(box, line)):
+				return False
+
+		return True
+
 	def dist2_from_poly(self, point):
 
 		cd = MAX_DIST
@@ -767,6 +805,13 @@ class Room:
 			if (d2<cd):
 				cd = d2
 		return cd
+
+	def contains(self, room):
+		for point in room.points:
+			if (self.is_point_inside(point)):
+				return True
+
+		return False
 
 	# Reporting Room
 	def report(self):
@@ -803,7 +848,7 @@ class Room:
 				else:
 					p1x1_l += 1
 
-		area = self.area() * scale * scale	
+		area = self.area * scale * scale	
 		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
 		active_ratio = 100*active_area/area
 
@@ -980,7 +1025,7 @@ class App:
 		for room in self.rooms:
 
 			if (len(room.errorstr)>0):
-				faild_rooms += 1
+				failed_rooms += 1
 				continue
 
 			txt += "Zone%d  --------- \n" % room.index
@@ -1139,30 +1184,66 @@ class App:
 			wstr = "WARNING: layer %s does not contain polylines\n" % inputlayer
 			self.textinfo.insert(END, wstr)
 
+		# Create list of rooms
 		for poly in query:
 			room = Room(poly)
 			room.surf = 0
 			self.rooms.append(room)
+			room.error = False
 			if (len(room.errorstr)>0):
 				self.textinfo.insert(END,room.errorstr)
+				room.error = True
 			else:
-				area = scale * scale * room.area()
-				if (area < min_room_area):
-					wstr = "WARNING: area less than %d m2: " % min_room_area
-					wstr += "Consider changing scale!\n"
-					self.textinfo.insert(END, wstr)
-					room.errorstr = wstr
-					continue
+				area = scale * scale * room.area
 				if (area > max_room_area):
 					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
 						max_room_area)
 					wstr += "Consider splitting area \n\n"
 					self.textinfo.insert(END, wstr)
 					room.errorstr = wstr
-					continue
-				
-				room.alloc_panels()
-				room.draw(self.msp)
+					room.error = True
+	
+		# get valid rooms
+		self.valid_rooms = list()
+		for room in self.rooms:
+			if (not room.error):
+				self.valid_rooms.append(room)
+
+		# check if a room is contained in some other room
+		self.valid_rooms.sort(key=lambda room: room.ax)	
+		room = self.valid_rooms
+		for i in range(0,len(room)):
+			j=i+1
+			while (j<len(room) and room[j].ax < room[i].bx):
+				if room[i].contains(room[j]):
+					print("Room %d is contained in room %d" % (j,i))
+					room[i].obstacles.append(room[j])
+					room[j].contained_in = room[j]
+				if room[j].contains(room[i]):
+					print("Room %d is contained in room %d" % (i,j))
+					room[j].obstacles.append(room[i])
+					room[i].contained_in = room[j]
+				j += 1
+
+		
+		# check if the room is too small to be processed
+		self.processed = list()
+		for room in self.valid_rooms:
+			area = scale * scale * room.area
+			if (room.contained_in == None):
+				if  (area < min_room_area):
+					wstr = "WARNING: area less than %d m2: " % min_room_area
+					wstr += "Consider changing scale!\n"
+					self.textinfo.insert(END, wstr)
+					room.errorstr = wstr
+					room.error = True
+				else:
+					self.processed.append(room)
+
+		# allocating panels in room
+		for room in self.processed:
+			room.alloc_panels()
+			room.draw(self.msp)
 
 		summary = self.print_report()
 		self.textinfo.insert(END, summary)
