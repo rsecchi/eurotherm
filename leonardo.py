@@ -40,6 +40,7 @@ layer_panel  = 'Eurotherm_panel'
 text_color = 7
 box_color = 8
 collector_color = 1
+ask_for_write = False
 
 MAX_COST = 1000000
 MAX_DIST = 1e20
@@ -473,15 +474,18 @@ class Dorsals(list):
 		
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
-		if (self.gapl<min_dist and self.room.clt_xside==LEFT):
-			return False
-		else:
-			self.gap = self.gapl
 
-		if (self.gapr<min_dist and self.room.clt_xside==RIGHT):
-			return False
-		else:
-			self.gap = self.gapr
+		if (self.room.clt_xside==LEFT):
+			if (self.gapl<min_dist):
+				return False
+			else:
+				self.gap = self.gapl
+
+		if (self.room.clt_xside==RIGHT):
+			if (self.gapr<min_dist):
+				return False
+			else:
+				self.gap = self.gapr
 
 		return True
 
@@ -706,6 +710,8 @@ class Room:
 	# Building Room
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
+
+		print("-------- Room ",self.index)
 	
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -720,7 +726,7 @@ class Room:
 					self.panels = self.arrangement.dorsals.panels
 				
 					sy += search_tol
-					sx += search_tol
+				sx += search_tol
 
 			for i in range(0,len(self.points)):
 				self.points[i] = (self.points[i][1], self.points[i][0])
@@ -1241,8 +1247,6 @@ class App:
 			self.textinfo.insert(END, wstr)
 			return
 
-		for room in self.rooms:
-			print(room.index, room.is_collector)
 
 		# check if a room is contained in some other room
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -1251,11 +1255,11 @@ class App:
 			j=i+1
 			while (j<len(room) and room[j].ax < room[i].bx):
 				if room[i].contains(room[j]):
-					print("Room %d is contained in room %d" % (room[j].index,room[i].index))
+					print("Room %d containd roms %d"%(room[i].index, room[j].index))
 					room[i].obstacles.append(room[j])
 					room[j].contained_in = room[j]
 				if room[j].contains(room[i]):
-					print("Room %d is contained in room %d" % (room[i].index,room[j].index))
+					print("Room %d containd roms %d"%(room[j].index, room[i].index))
 					room[j].obstacles.append(room[i])
 					room[i].contained_in = room[j]
 				j += 1
@@ -1275,6 +1279,7 @@ class App:
 					if (not room.is_collector):
 						self.processed.append(room)
 
+
 		# Assign collectors to room
 		for room in self.processed:
 			dist_cltr = MAX_DIST
@@ -1284,7 +1289,6 @@ class App:
 				d = sqrt(vx*vx+vy*vy)
 				if (d<dist_cltr):
 					dist_ctlr = d
-					print(room.index, d)
 					room.collector = cltr
 					if (vx>=0):
 						room.clt_xside = RIGHT
@@ -1305,7 +1309,7 @@ class App:
 		summary = self.print_report()
 		self.textinfo.insert(END, summary)
 
-		if (os.path.isfile(self.outname)):
+		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
 				self.doc.saveas(self.outname)
 		else:
