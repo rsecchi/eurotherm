@@ -460,7 +460,7 @@ class Dorsals(list):
 		self.cost = 0 
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
-		self.gap = MAX_DIST
+		self.gap = 0
 		self.elems = 0
 		self.panels = list()
 		self.room = room
@@ -475,11 +475,14 @@ class Dorsals(list):
 		self.gapl = min(self.gapl, dorsal.gapl)
 		if (self.gapl<min_dist and self.room.clt_xside==LEFT):
 			return False
+		else:
+			self.gap = self.gapl
 
 		if (self.gapr<min_dist and self.room.clt_xside==RIGHT):
 			return False
+		else:
+			self.gap = self.gapr
 
-		self.gap = abs(self.gapr - self.gapl)
 		return True
 
 # Cell of the grid over which panels are laid out
@@ -600,7 +603,7 @@ class PanelArrangement:
 					 trial_dorsals.cost < self.dorsals.cost) or
 					(trial_dorsals.elems == self.dorsals.elems and
 					 trial_dorsals.cost == self.dorsals.cost and
-					 trial_dorsals.gap < self.dorsals.gap))):
+					 trial_dorsals.gap > self.dorsals.gap))):
 						self.dorsals = trial_dorsals
 						self.best_grid = self.cells
 
