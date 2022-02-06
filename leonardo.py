@@ -2,6 +2,8 @@
 
 import ezdxf
 import openpyxl
+import queue
+import threading
 import numpy as np
 from openpyxl.styles.borders import Border, Side
 import os.path
@@ -40,7 +42,7 @@ layer_panel  = 'Eurotherm_panel'
 text_color = 7
 box_color = 8
 collector_color = 1
-ask_for_write = False
+ask_for_write = True
 
 MAX_COST = 1000000
 MAX_DIST = 1e20
@@ -621,10 +623,11 @@ class Room:
 
 	index = 1
 
-	def __init__(self, poly):
+	def __init__(self, poly, output):
 
 		self.index = Room.index
 		Room.index = Room.index + 1
+		self.output = output
 		self.ignore = False
 		self.errorstr = ""
 		self.contained_in = None
@@ -711,7 +714,7 @@ class Room:
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
 
-		print("-------- Room ",self.index)
+		self.output.print("Processing Room %d\n" % self.index)
 	
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -900,127 +903,12 @@ class Room:
 			panel.draw(msp)
 
 
-class App:
-
-	def __init__(self):
-		self.loaded = False
-
-		self.root = Tk()
-		root = self.root
-		#root.geometry('500x300')
-		root.title("Eurotherm Leonardo planner")
-		root.resizable(width=False, height=False)
-
-		# Control section
-		ctlname = Label(root, text="Control")
-		ctlname.grid(row=0, column=0, padx=(25,0), pady=(10,0), sticky="w")
-
-		ctl = Frame(root)
-		self.ctl = ctl
-		ctl.config(borderwidth=1, relief='ridge')
-		ctl.grid(row=1, column=0, padx=(25,25), pady=(0,20))
-
-		button = Button(ctl, text="Open", width=5, command=self.search)
-		button.grid(row=1, column=1, sticky="e")
-
-		self.text = StringVar()
-		flabel = Label(ctl, textvariable=self.text, width=30, anchor="w")
-		flabel.config(borderwidth=1, relief='solid')
-		flabel.grid(row=1, column=0, padx=(10,30), pady=(20,10))
-
-		self.text1 = StringVar()
-		flabel = Label(ctl, textvariable=self.text1, width=30, anchor="w")
-		flabel.config(borderwidth=1, relief='solid')
-		flabel.grid(row=2, column=0, padx=(10,30), pady=(10,20))
-
-		self.var = StringVar() # variable for select layer menu
-
-		self.button1 = Button(ctl, text="Build", width=5, command=self.build_model, pady=5)
-		self.button1.grid(row=3, column=1, pady=(30,10))
-
-		# Parameters section
-		parname = Label(root, text="Settings")
-		parname.grid(row=2, column=0, padx=(25,0), pady=(1,0), sticky="w")
-		self.params = params = Frame(root)
-		params.config(borderwidth=1, relief='ridge')
-		params.grid(row=3, column=0, sticky="ew", padx=(25,25), pady=(0,2))
-
-		Label(params, text="A drawing unit in cm").grid(row=0, column=0, sticky="w")
-		self.entry1 = Entry(params, justify='right', width=10)
-		self.entry1.grid(row=0, column=1, sticky="w")
-		self.entry1.insert(END, str(default_scale))
-
-		#Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
-		#self.entry2 = Entry(params, justify='right', width=10)
-		#self.entry2.grid(row=1, column=1)
-		#self.entry2.insert(END, str(default_zone_cost))
-
-		#Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
-		#self.tcuts = IntVar()
-		#self.entry3 = Checkbutton(params, variable=self.tcuts)
-		#self.entry3.grid(row=2, column=1)
-
-		# Info Section
-		ctlname = Label(root, text="Report")
-		ctlname.grid(row=4, column=0, padx=(25,0), pady=(10,0), sticky="w")
-
-		self.textinfo = Text(root, height=10, width=58)
-		self.textinfo.config(borderwidth=1, relief='ridge')
-		self.textinfo.grid(row=5, column=0, pady=(0,15)) 
-		#sb = Scrollbar(root, command=self.textinfo.yview)
-		#sb.grid(row=3, column=1, sticky="nsw")
-
-
-		self.reset()
-		self.root.mainloop()
-	
-
-	def search(self,event=None):
-		self.filename = filedialog.askopenfilename(filetypes=[("DXF files", "*.dxf")])
-		self.loadfile()
-
-	def reset(self):
-		self.text.set("Select DXF")
-		self.text1.set("Modified DXF")
-		self.button1["state"] = "disabled"
-		self.textinfo.delete('1.0', END)
-
-		if (hasattr(self,'opt')): self.opt.destroy()	
-		self.var.set("Select layer")
-		self.opt = OptionMenu(self.ctl, self.var,['0'])
-		self.opt.config(width=26)
-		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
-
-	def loadfile(self):
-		try:
-			self.doc = ezdxf.readfile(self.filename)
-		except IOError:
-			self.reset()
-			return
-		except ezdxf.DXFStructureError:
-			self.textinfo.insert(END, 'Invalid or corrupted DXF file.')
-			self.reset()
-			return
-
-		self.loaded = True
-
-		self.text.set(self.filename)
-		self.outname = self.filename[:-4]+"_leo.dxf"
-		self.text1.set(self.outname)
-
-		layers = [layer.dxf.name for layer in self.doc.layers]
-		sel = layers[0]
-		for layer in layers:
-			if (layer == default_input_layer):
-				sel = default_input_layer
-				break
-
-		self.opt.destroy()
-		self.var.set(sel)
-		self.opt = OptionMenu(self.ctl,self.var,*layers)
-		self.opt.config(width=26)
-		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
-		self.button1["state"] = "normal" 
+class Model(threading.Thread):
+	def __init__(self, output):
+		super(Model, self).__init__()
+		self.rooms = list()
+		self.collectors = list()
+		self.output = output
 
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
@@ -1031,6 +919,168 @@ class App:
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_box, box_color)
 		self.new_layer(layer_panel, 0)
+
+	def run(self):
+		global x_font_size, y_font_size  
+		global scale, tolerance
+		global default_panel_width
+		global default_panel_height
+		global default_search_tol
+		global default_hatch_width
+		global default_hatch_height
+		global default_min_dist
+		global default_min_dist2
+		global panel_width 
+		global panel_height 
+		global search_tol 
+		global hatch_width
+		global hatch_height
+		global min_dist
+		global min_dist2
+ 
+		scale = self.scale
+
+		tolerance    = default_tolerance/scale
+		x_font_size  = default_x_font_size/scale
+		y_font_size  = default_y_font_size/scale
+
+		panel_width = default_panel_width/scale
+		panel_height = default_panel_height/scale
+		search_tol = default_search_tol/scale
+		hatch_width = default_hatch_width/scale
+		hatch_height = default_hatch_height/scale
+		min_dist = default_min_dist/scale
+		min_dist2 = default_min_dist2/scale
+
+		Room.index = 1
+		self.create_layers()
+
+		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
+			if (e.dxftype() != 'LWPOLYLINE'):
+				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
+				self.textinfo.insert(END, wstr)
+
+		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
+		query = self.msp.query(searchstr)
+		if (len(query) == 0):
+			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
+			self.output.print(END, wstr)
+
+		# Create list of rooms
+		for poly in query:
+			room = Room(poly, self.output)
+			self.rooms.append(room)
+			room.error = False
+			if (len(room.errorstr)>0):
+				self.textinfo.insert(END,room.errorstr)
+				room.error = True
+			else:
+				area = scale * scale * room.area
+				if (area > max_room_area):
+					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
+						max_room_area)
+					wstr += "Consider splitting area \n\n"
+					self.output.print(wstr)
+					room.errorstr = wstr
+					room.error = True
+	
+		# get valid rooms
+		self.valid_rooms = list()
+		for room in self.rooms:
+			if (not room.error):
+				self.valid_rooms.append(room)
+			if (room.color == collector_color):
+				self.collectors.append(room)
+				room.is_collector = True
+			else:
+				room.is_collector = False
+					
+		# check if collectors exist
+		if (not self.collectors):
+			wstr = "ABORT: No collectors found"
+			self.output.print(wstr)
+			return
+
+
+		# check if a room is contained in some other room
+		self.valid_rooms.sort(key=lambda room: room.ax)	
+		room = self.valid_rooms
+		for i in range(0,len(room)):
+			j=i+1
+			while (j<len(room) and room[j].ax < room[i].bx):
+				if room[i].contains(room[j]):
+					room[i].obstacles.append(room[j])
+					room[j].contained_in = room[j]
+				if room[j].contains(room[i]):
+					room[j].obstacles.append(room[i])
+					room[i].contained_in = room[j]
+				j += 1
+		
+		# check if the room is too small to be processed
+		self.processed = list()
+		for room in self.valid_rooms:
+			area = scale * scale * room.area
+			if (room.contained_in == None):
+				if  (area < min_room_area):
+					wstr = "WARNING: area less than %d m2: " % min_room_area
+					wstr += "Consider changing scale!\n"
+					self.output.print(wstr)
+					room.errorstr = wstr
+					room.error = True
+				else:
+					if (not room.is_collector):
+						self.processed.append(room)
+
+
+		# Assign collectors to room
+		for room in self.processed:
+			dist_cltr = MAX_DIST
+			for cltr in self.collectors:
+				(vx, vy) = (cltr.centre[0]-room.centre[0], 
+								cltr.centre[1]-room.centre[1])
+				d = sqrt(vx*vx+vy*vy)
+				if (d<dist_cltr):
+					dist_ctlr = d
+					room.collector = cltr
+					if (vx>=0):
+						room.clt_xside = RIGHT
+					else:
+						room.clt_xside = LEFT
+
+					if (vy>=0):
+						room.clt_yside = TOP
+					else:
+						room.clt_yside = BOTTOM
+			
+
+		# allocating panels in room
+		for room in self.processed:
+			room.alloc_panels()
+			room.draw(self.msp)
+
+		# Now connect the Dorsals
+
+		# summary
+		self.output.clear()
+		summary = self.print_report()
+		self.output.print(summary)
+
+		if (os.path.isfile(self.outname) and ask_for_write==True):
+			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
+				self.doc.saveas(self.outname)
+		else:
+			self.doc.saveas(self.outname)
+
+		# Creating XLS
+		#self.save_xls()
+		#wb = openpyxl.Workbook()
+		#ws = wb.active
+		#ws.title = "Bill of Materials"
+		#if (len(self.rooms)>0):
+		#	self.save_crocs_xls(ws)
+		#	self.save_omegas_xls(ws)
+		#out = self.filename[:-4] + "_struct.xlsx"	
+		#wb.save(out)
 
 	def print_report(self):
 		
@@ -1094,7 +1144,155 @@ class App:
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p1x1_cut, p1x1_spr) 
 
 		return smtxt + txt
-		
+
+class App:
+
+	def __init__(self):
+		self.loaded = False
+		self.queue = queue.Queue()
+		self.model = Model(self)
+
+		self.root = Tk()
+		root = self.root
+		#root.geometry('500x300')
+		root.title("Eurotherm Leonardo Planner")
+		root.resizable(width=False, height=False)
+
+		# Control section
+		ctlname = Label(root, text="Control")
+		ctlname.grid(row=0, column=0, padx=(25,0), pady=(10,0), sticky="w")
+
+		ctl = Frame(root)
+		self.ctl = ctl
+		ctl.config(borderwidth=1, relief='ridge')
+		ctl.grid(row=1, column=0, padx=(25,25), pady=(0,20))
+
+		button = Button(ctl, text="Open", width=5, command=self.search)
+		button.grid(row=1, column=1, sticky="e")
+
+		self.text = StringVar()
+		flabel = Label(ctl, textvariable=self.text, width=30, anchor="w")
+		flabel.config(borderwidth=1, relief='solid')
+		flabel.grid(row=1, column=0, padx=(10,30), pady=(20,10))
+
+		self.text1 = StringVar()
+		flabel = Label(ctl, textvariable=self.text1, width=30, anchor="w")
+		flabel.config(borderwidth=1, relief='solid')
+		flabel.grid(row=2, column=0, padx=(10,30), pady=(10,20))
+
+		self.var = StringVar() # variable for select layer menu
+
+		self.button1 = Button(ctl, text="Build", width=5, command=self.create_model, pady=5)
+		self.button1.grid(row=3, column=1, pady=(30,10))
+
+		# Parameters section
+		parname = Label(root, text="Settings")
+		parname.grid(row=2, column=0, padx=(25,0), pady=(1,0), sticky="w")
+		self.params = params = Frame(root)
+		params.config(borderwidth=1, relief='ridge')
+		params.grid(row=3, column=0, sticky="ew", padx=(25,25), pady=(0,2))
+
+		Label(params, text="A drawing unit in cm").grid(row=0, column=0, sticky="w")
+		self.entry1 = Entry(params, justify='right', width=10)
+		self.entry1.grid(row=0, column=1, sticky="w")
+		self.entry1.insert(END, str(default_scale))
+
+		#Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
+		#self.entry2 = Entry(params, justify='right', width=10)
+		#self.entry2.grid(row=1, column=1)
+		#self.entry2.insert(END, str(default_zone_cost))
+
+		#Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
+		#self.tcuts = IntVar()
+		#self.entry3 = Checkbutton(params, variable=self.tcuts)
+		#self.entry3.grid(row=2, column=1)
+
+		# Info Section
+		ctlname = Label(root, text="Report")
+		ctlname.grid(row=4, column=0, padx=(25,0), pady=(10,0), sticky="w")
+
+		self.textinfo = Text(root, height=10, width=58)
+		self.textinfo.config(borderwidth=1, relief='ridge')
+		self.textinfo.grid(row=5, column=0, pady=(0,15)) 
+		#sb = Scrollbar(root, command=self.textinfo.yview)
+		#sb.grid(row=3, column=1, sticky="nsw")
+
+
+		self.reset()
+		self.root.mainloop()
+
+	def print(self, text):
+		self.textinfo.insert(END, text)
+
+	def clear(self):
+		self.textinfo.delete('1.0', END)
+
+	def search(self,event=None):
+		self.filename = filedialog.askopenfilename(filetypes=[("DXF files", "*.dxf")])
+		self.loadfile()
+
+	def reset(self):
+		self.text.set("Select DXF")
+		self.text1.set("Modified DXF")
+		self.button1["state"] = "disabled"
+		self.textinfo.delete('1.0', END)
+
+		if (hasattr(self,'opt')): self.opt.destroy()	
+		self.var.set("Select layer")
+		self.opt = OptionMenu(self.ctl, self.var,['0'])
+		self.opt.config(width=26)
+		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
+
+	def loadfile(self):
+		try:
+			self.doc = ezdxf.readfile(self.filename)
+		except IOError:
+			self.reset()
+			return
+		except ezdxf.DXFStructureError:
+			self.textinfo.insert(END, 'Invalid or corrupted DXF file.')
+			self.reset()
+			return
+
+		self.loaded = True
+
+		self.text.set(self.filename)
+		self.outname = self.filename[:-4]+"_leo.dxf"
+		self.text1.set(self.outname)
+
+		layers = [layer.dxf.name for layer in self.doc.layers]
+		sel = layers[0]
+		for layer in layers:
+			if (layer == default_input_layer):
+				sel = default_input_layer
+				break
+
+		self.opt.destroy()
+		self.var.set(sel)
+		self.opt = OptionMenu(self.ctl,self.var,*layers)
+		self.opt.config(width=26)
+		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
+		self.button1["state"] = "normal" 
+
+
+	def create_model(self):
+		self.textinfo.delete('1.0', END)
+
+		if (not self.loaded):
+			self.textinfo(END, "File not loaded")
+			return
+
+		# reload file
+		self.model.doc = self.doc = ezdxf.readfile(self.filename)	
+		self.model.msp = self.msp = self.doc.modelspace()
+		self.model.scale = float(self.entry1.get())
+
+		self.model.inputlayer = self.var.get()
+		self.model.textinfo = self.textinfo
+		self.model.outname = self.outname
+
+		self.model.start()
+
 
 	def save_xls(self):
 		wb = openpyxl.load_workbook(xlsx_template)
@@ -1152,179 +1350,60 @@ class App:
 		out = self.filename[:-4] + "_doghe.xlsx"	
 		wb.save(out)
 
+#	def connect_dorsals():
+#		pass
+#
+#	def dist(p1, p2):
+#    	return sqrt(pow(p1[0]-p2[0],2)+pow(p1[1]-p2[1],2))
+#
+#	def alloc(points, collectors):
+#
+#    	np = len(points)
+#    	cap = len(collectors) * maxc
+#    	free = cap - np
+#
+#    	if (free<0):
+#        	print("not enough collectors")
+#        	return
+#
+#    	for point in points:
+#        	point.bogus = False
+#
+#    	for i in range(free):
+#        	p = type('NoItem', (), {})()
+#        	p.bogus = True
+#        	points.append(p)
+#
+#
+#    	# alloc to first free
+#    	point = iter(points)
+#    	for c in collectors:
+#        	for i in range(0, maxc):
+#            	p = next(point)
+#            	c.items.append(p)
+#            	p.cltr = c
+#
+#
+#   		done = False
+#		while not done:
+#			done = True
+#        		for p1 in points:
+#            		for p2 in points:
+#                		if (p1.bogus and p2.bogus):
+#                    	continue
+#
+#					if ( (p1.bogus and dist(p2.pos, p1.cltr.pos) < dist(p2.pos, p2.cltr.pos)) or
+#                     (p2.bogus and dist(p1.pos, p2.cltr.pos) < dist(p1.pos, p1.cltr.pos)) or
+#                     ((not p1.bogus) and (not p2.bogus) and
+#                      (dist(p1.pos, p2.cltr.pos) + dist(p2.pos, p1.cltr.pos) <
+#                      dist(p1.pos, p1.cltr.pos) + dist(p2.pos, p2.cltr.pos)))):
+#						p1.cltr.items.remove(p1)
+#						p2.cltr.items.remove(p2)
+#						p1.cltr, p2.cltr = p2.cltr, p1.cltr
+#						p1.cltr.items.append(p1)
+#						p2.cltr.items.append(p2)
+#
 
-	def build_model(self):
-		global x_font_size, y_font_size  
-		global scale, tolerance
-		global default_panel_width
-		global default_panel_height
-		global default_search_tol
-		global default_hatch_width
-		global default_hatch_height
-		global default_min_dist
-		global default_min_dist2
-		global panel_width 
-		global panel_height 
-		global search_tol 
-		global hatch_width
-		global hatch_height
-		global min_dist
-		global min_dist2
- 
-		self.textinfo.delete('1.0', END)
-
-		if (not self.loaded):
-			self.textinfo(END, "File not loaded")
-			return
-
-		scale = float(self.entry1.get())
-
-		tolerance    = default_tolerance/scale
-		x_font_size  = default_x_font_size/scale
-		y_font_size  = default_y_font_size/scale
-
-		panel_width = default_panel_width/scale
-		panel_height = default_panel_height/scale
-		search_tol = default_search_tol/scale
-		hatch_width = default_hatch_width/scale
-		hatch_height = default_hatch_height/scale
-		min_dist = default_min_dist/scale
-		min_dist2 = default_min_dist2/scale
-
-		# reload file
-		self.doc = ezdxf.readfile(self.filename)	
-		self.msp = self.doc.modelspace()
-		Room.index = 1
-		self.rooms = list()
-		self.collectors = list()
-
-		self.create_layers()
-		inputlayer = self.var.get()
-
-		for e in self.msp.query('*[layer=="%s"]' % inputlayer):
-			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
-				self.textinfo.insert(END, wstr)
-
-		searchstr = 'LWPOLYLINE[layer=="'+inputlayer+'"]'
-		query = self.msp.query(searchstr)
-		if (len(query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines\n" % inputlayer
-			self.textinfo.insert(END, wstr)
-
-		# Create list of rooms
-		for poly in query:
-			room = Room(poly)
-			self.rooms.append(room)
-			room.error = False
-			if (len(room.errorstr)>0):
-				self.textinfo.insert(END,room.errorstr)
-				room.error = True
-			else:
-				area = scale * scale * room.area
-				if (area > max_room_area):
-					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
-						max_room_area)
-					wstr += "Consider splitting area \n\n"
-					self.textinfo.insert(END, wstr)
-					room.errorstr = wstr
-					room.error = True
-	
-		# get valid rooms
-		self.valid_rooms = list()
-		for room in self.rooms:
-			if (not room.error):
-				self.valid_rooms.append(room)
-			if (room.color == collector_color):
-				self.collectors.append(room)
-				room.is_collector = True
-			else:
-				room.is_collector = False
-					
-		# check if collectors exist
-		if (not self.collectors):
-			wstr = "ABORT: No collectors found"
-			self.textinfo.insert(END, wstr)
-			return
-
-
-		# check if a room is contained in some other room
-		self.valid_rooms.sort(key=lambda room: room.ax)	
-		room = self.valid_rooms
-		for i in range(0,len(room)):
-			j=i+1
-			while (j<len(room) and room[j].ax < room[i].bx):
-				if room[i].contains(room[j]):
-					print("Room %d containd roms %d"%(room[i].index, room[j].index))
-					room[i].obstacles.append(room[j])
-					room[j].contained_in = room[j]
-				if room[j].contains(room[i]):
-					print("Room %d containd roms %d"%(room[j].index, room[i].index))
-					room[j].obstacles.append(room[i])
-					room[i].contained_in = room[j]
-				j += 1
-		
-		# check if the room is too small to be processed
-		self.processed = list()
-		for room in self.valid_rooms:
-			area = scale * scale * room.area
-			if (room.contained_in == None):
-				if  (area < min_room_area):
-					wstr = "WARNING: area less than %d m2: " % min_room_area
-					wstr += "Consider changing scale!\n"
-					self.textinfo.insert(END, wstr)
-					room.errorstr = wstr
-					room.error = True
-				else:
-					if (not room.is_collector):
-						self.processed.append(room)
-
-
-		# Assign collectors to room
-		for room in self.processed:
-			dist_cltr = MAX_DIST
-			for cltr in self.collectors:
-				(vx, vy) = (cltr.centre[0]-room.centre[0], 
-								cltr.centre[1]-room.centre[1])
-				d = sqrt(vx*vx+vy*vy)
-				if (d<dist_cltr):
-					dist_ctlr = d
-					room.collector = cltr
-					if (vx>=0):
-						room.clt_xside = RIGHT
-					else:
-						room.clt_xside = LEFT
-
-					if (vy>=0):
-						room.clt_yside = TOP
-					else:
-						room.clt_yside = BOTTOM
-			
-
-		# allocating panels in room
-		for room in self.processed:
-			room.alloc_panels()
-			room.draw(self.msp)
-
-		summary = self.print_report()
-		self.textinfo.insert(END, summary)
-
-		if (os.path.isfile(self.outname) and ask_for_write==True):
-			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
-				self.doc.saveas(self.outname)
-		else:
-				self.doc.saveas(self.outname)
-
-		# Creating XLS
-		#self.save_xls()
-		#wb = openpyxl.Workbook()
-		#ws = wb.active
-		#ws.title = "Bill of Materials"
-		#if (len(self.rooms)>0):
-		#	self.save_crocs_xls(ws)
-		#	self.save_omegas_xls(ws)
-		#out = self.filename[:-4] + "_struct.xlsx"	
-		#wb.save(out)
 
 	
 App()
