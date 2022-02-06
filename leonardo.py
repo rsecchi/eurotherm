@@ -21,6 +21,10 @@ zone_cost = 1
 min_room_area = 1
 max_room_area = 500
 
+feeds_per_collector = 16
+area_per_feed_m2 = 14.4
+target_eff = 0.7
+
 default_x_font_size  = 20
 default_y_font_size  = 30
 
@@ -285,6 +289,7 @@ class Panel:
 		self.size = size
 		self.color = cell.color
 		self.mode = cell.mode
+		self.pos = (self.xcoord, self.ycoord)
 
 	def draw(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -447,10 +452,31 @@ class Dorsal:
 	def new_panel(self, cell, size, handside=0):
 
 		panel = Panel(cell,size,self.side+handside*2)
-		self.panels.append(panel)
 		self.elems += size[0]*size[1]
 
 		panel.dist_from_walls()
+
+		# Calculate water entry point
+		ax = panel.xcoord; bx = ax + panel.width
+		ay = panel.ycoord; by = ay + panel.height
+		if (self.side==0):
+			lft = (ax,by)
+			rgt = (bx,by)
+		else:
+			lft = (ax,ay)
+			rgt = (bx,ay)
+		
+		if (self.room.clt_xside == LEFT):
+			if (len(self.panels)==0 or
+			    self.attach[0] > lft[0]):
+				self.attach = lft
+		else:
+			if (len(self.panels)==0 or
+			    self.attach[0] < rgt[0]):
+				self.attach = rgt
+
+		self.panels.append(panel)
+
 		if (panel.gapl < self.gapl):
 			self.gapl = panel.gapl
 
@@ -473,6 +499,9 @@ class Dorsals(list):
 		self.cost += dorsal.cost
 		self.elems += dorsal.elems
 		self.panels += dorsal.panels
+
+		if (len(dorsal.panels)>0):
+			self.append(dorsal)
 		
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
@@ -522,6 +551,7 @@ class PanelArrangement:
 		self.dorsals.cost = MAX_COST
 		self.room = room
 		self.elems = 0
+		self.alloc_mode = -1
 
 	def len(self):
 		return len(self.cells)
@@ -579,10 +609,12 @@ class PanelArrangement:
 			init_pos = (i, pos[1]) 
 
 			bottomdorsal = Dorsal(self.grid, init_pos, 0)
+			bottomdorsal.room = self.room
 			bottomdorsal.make_dorsal()
 
 			init_pos = (i+2, pos[1]) 
 			topdorsal = Dorsal(self.grid, init_pos, 1)
+			topdorsal.room = self.room
 			topdorsal.make_dorsal()
 
 			if (not dorsals.add(topdorsal) or
@@ -612,6 +644,7 @@ class PanelArrangement:
 					 trial_dorsals.gap > self.dorsals.gap))):
 						self.dorsals = trial_dorsals
 						self.best_grid = self.cells
+						self.alloc_mode = self.mode
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
@@ -676,7 +709,7 @@ class Room:
 		self.panels = list()
 		self.bounding_box()
 		self.area = self._area()
-		self.centre = self._centre()
+		self.pos = self._centre()
 		self.perimeter = self._perimeter()
 
 	def _area(self):
@@ -689,7 +722,7 @@ class Room:
 	def _centre(self):
 		(cx, cy) = (0, 0)
 		p = self.points
-		n = len(p) - 1
+		n = len(p) 
 		for p in self.points:
 			(cx, cy) = (cx+p[0], cy+p[1])
 
@@ -1032,12 +1065,31 @@ class Model(threading.Thread):
 						self.processed.append(room)
 
 
-		# Assign collectors to room
+		# Check if enough collectors
+		w = panel_width/100
+		h = panel_height/100
+		tot_area = 0
+		for room in self.processed:
+			tot_area += room.area
+
+		full_cover_feeds = tot_area/(w*h)/area_per_feed_m2
+		needed_feeds = ceil(target_eff * full_cover_feeds)
+		available_feeds = feeds_per_collector * len(self.collectors)
+		self.output.print("Available water feed pipes %g\n" % available_feeds)
+		self.output.print("Minimum required feed pipes: %d\n" % needed_feeds)
+		if (needed_feeds > available_feeds):
+			self.output.print("ABORT: Too few collectors\n")
+			return
+
+		if (full_cover_feeds > available_feeds):
+			self.output.print("WARNING: Low number of collectors\n")
+
+		# Assign collectors to rooms
 		for room in self.processed:
 			dist_cltr = MAX_DIST
 			for cltr in self.collectors:
-				(vx, vy) = (cltr.centre[0]-room.centre[0], 
-								cltr.centre[1]-room.centre[1])
+				(vx, vy) = (cltr.pos[0]-room.pos[0], 
+								cltr.pos[1]-room.pos[1])
 				d = sqrt(vx*vx+vy*vy)
 				if (d<dist_cltr):
 					dist_ctlr = d
@@ -1059,9 +1111,10 @@ class Model(threading.Thread):
 			room.draw(self.msp)
 
 		# Now connect the Dorsals
+		self.connect_dorsals()
 
 		# summary
-		self.output.clear()
+		# self.output.clear()
 		summary = self.print_report()
 		self.output.print(summary)
 
@@ -1071,16 +1124,81 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
-		# Creating XLS
-		#self.save_xls()
-		#wb = openpyxl.Workbook()
-		#ws = wb.active
-		#ws.title = "Bill of Materials"
-		#if (len(self.rooms)>0):
-		#	self.save_crocs_xls(ws)
-		#	self.save_omegas_xls(ws)
-		#out = self.filename[:-4] + "_struct.xlsx"	
-		#wb.save(out)
+
+	def connect_dorsals(self):
+
+		self.output.print("connecting dorsals\n")
+		dorsals = self.dorsals = list()
+		collectors = self.collectors
+		self.panels = list()
+
+		for room in self.processed:
+			room_dors = room.arrangement.dorsals
+			mode = room.arrangement.alloc_mode
+			dorsals += room_dors
+			self.panels += room_dors.panels
+			for dorsal in room_dors:
+				dorsal.cltrs = list()
+				if (mode==0):
+					dorsal.pos = dorsal.attach
+				else:
+					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
+
+
+		for collector in collectors:
+			collector.items = list()
+
+		np = len(dorsals)
+		cap = len(collectors) * feeds_per_collector
+		free = cap - np
+
+		if (free<0):
+			print("ABORT: Not enough collectors")
+			return
+
+		for dorsal in dorsals:
+			dorsal.bogus = False
+
+		for i in range(free):
+			p = type('NoItem', (), {})()
+			p.bogus = True
+			dorsals.append(p)
+
+
+    	# alloc to first free
+		dors = iter(self.dorsals)
+		for c in self.collectors:
+			for i in range(0, feeds_per_collector):
+				p = next(dors)
+				c.items.append(p)
+				p.cltr = c
+
+		done = False
+		while not done:
+			done = True
+			for p1 in dorsals:
+				for p2 in dorsals:
+					if (p1.bogus and p2.bogus):
+						continue
+
+					if ((p1.bogus and dist(p2.pos, p1.cltr.pos) < dist(p2.pos, p2.cltr.pos)) or
+                       (p2.bogus and dist(p1.pos, p2.cltr.pos) < dist(p1.pos, p1.cltr.pos)) or
+                       ((not p1.bogus) and (not p2.bogus) and
+                       (dist(p1.pos, p2.cltr.pos) + dist(p2.pos, p1.cltr.pos) <
+                       dist(p1.pos, p1.cltr.pos) + dist(p2.pos, p2.cltr.pos)))):
+						p1.cltr.items.remove(p1)
+						p2.cltr.items.remove(p2)
+						p1.cltr, p2.cltr = p2.cltr, p1.cltr
+						p1.cltr.items.append(p1)
+						p2.cltr.items.append(p2)
+		
+		for c in self.collectors:
+			for item in c.items:
+				if item.bogus: continue
+				pline = [c.pos, item.pos]
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_panel
+				pl.dxf.color = 0
 
 	def print_report(self):
 		
@@ -1099,7 +1217,7 @@ class Model(threading.Thread):
 		w = default_panel_width
 		h = default_panel_height
 		failed_rooms = 0
-		for room in self.rooms:
+		for room in self.processed:
 
 			if (len(room.errorstr)>0):
 				failed_rooms += 1
@@ -1121,7 +1239,7 @@ class Model(threading.Thread):
 			
 			
 		# Summary of all areas
-		smtxt =  "Total rooms %d  (%d failed)\n" % (Room.index-1, failed_rooms)
+		smtxt =  "Total rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
 		smtxt += "Total area %.5g m2\n" % area
 		smtxt += "Total active area %.5g m2" % active_area
 		smtxt += " (%.4g %%)\n" % (100*active_area/area)
@@ -1293,6 +1411,17 @@ class App:
 
 		self.model.start()
 
+		# Creating XLS
+		#self.save_xls()
+		#wb = openpyxl.Workbook()
+		#ws = wb.active
+		#ws.title = "Bill of Materials"
+		#if (len(self.rooms)>0):
+		#	self.save_crocs_xls(ws)
+		#	self.save_omegas_xls(ws)
+		#out = self.filename[:-4] + "_struct.xlsx"	
+		#wb.save(out)
+
 
 	def save_xls(self):
 		wb = openpyxl.load_workbook(xlsx_template)
@@ -1349,60 +1478,6 @@ class App:
 
 		out = self.filename[:-4] + "_doghe.xlsx"	
 		wb.save(out)
-
-#	def connect_dorsals():
-#		pass
-#
-#	def dist(p1, p2):
-#    	return sqrt(pow(p1[0]-p2[0],2)+pow(p1[1]-p2[1],2))
-#
-#	def alloc(points, collectors):
-#
-#    	np = len(points)
-#    	cap = len(collectors) * maxc
-#    	free = cap - np
-#
-#    	if (free<0):
-#        	print("not enough collectors")
-#        	return
-#
-#    	for point in points:
-#        	point.bogus = False
-#
-#    	for i in range(free):
-#        	p = type('NoItem', (), {})()
-#        	p.bogus = True
-#        	points.append(p)
-#
-#
-#    	# alloc to first free
-#    	point = iter(points)
-#    	for c in collectors:
-#        	for i in range(0, maxc):
-#            	p = next(point)
-#            	c.items.append(p)
-#            	p.cltr = c
-#
-#
-#   		done = False
-#		while not done:
-#			done = True
-#        		for p1 in points:
-#            		for p2 in points:
-#                		if (p1.bogus and p2.bogus):
-#                    	continue
-#
-#					if ( (p1.bogus and dist(p2.pos, p1.cltr.pos) < dist(p2.pos, p2.cltr.pos)) or
-#                     (p2.bogus and dist(p1.pos, p2.cltr.pos) < dist(p1.pos, p1.cltr.pos)) or
-#                     ((not p1.bogus) and (not p2.bogus) and
-#                      (dist(p1.pos, p2.cltr.pos) + dist(p2.pos, p1.cltr.pos) <
-#                      dist(p1.pos, p1.cltr.pos) + dist(p2.pos, p2.cltr.pos)))):
-#						p1.cltr.items.remove(p1)
-#						p2.cltr.items.remove(p2)
-#						p1.cltr, p2.cltr = p2.cltr, p1.cltr
-#						p1.cltr.items.append(p1)
-#						p2.cltr.items.append(p2)
-#
 
 
 	
