@@ -8,6 +8,7 @@ import numpy as np
 from openpyxl.styles.borders import Border, Side
 import os.path
 from math import ceil, floor, sqrt
+from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
@@ -21,7 +22,7 @@ zone_cost = 1
 min_room_area = 1
 max_room_area = 500
 
-feeds_per_collector = 16
+feeds_per_collector = 8 
 area_per_feed_m2 = 14.4
 target_eff = 0.7
 
@@ -742,6 +743,16 @@ class Room:
 		self.ay = min(self.ycoord)
 		self.by = max(self.ycoord)
 		
+	def dist(self, collector):
+
+		dorsals = self.arrangement.dorsals
+		d = MAX_DIST
+		for dorsal in dorsals:
+			cltr_dist = dist(dorsal.pos, collector.pos)
+			if (d > cltr_dist):
+				d = cltr_dist 
+				attachment = dorsal.pos
+		return (d, attachment)
 
 	# Building Room
 	def alloc_panels(self):
@@ -1070,6 +1081,7 @@ class Model(threading.Thread):
 		h = panel_height/100
 		tot_area = 0
 		for room in self.processed:
+			room.feeds = ceil(room.area/(w*h)/area_per_feed_m2*target_eff)
 			tot_area += room.area
 
 		full_cover_feeds = tot_area/(w*h)/area_per_feed_m2
@@ -1110,8 +1122,37 @@ class Model(threading.Thread):
 			room.alloc_panels()
 			room.draw(self.msp)
 
+		# find attachment points of dorsals
+		self.dorsals = list()
+		for room in self.processed:
+			room_dors = room.arrangement.dorsals
+			mode = room.arrangement.alloc_mode
+			self.dorsals += room_dors
+			for dorsal in room_dors:
+				dorsal.cltrs = list()
+				if (mode==0):
+					dorsal.pos = dorsal.attach
+				else:
+					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
+
 		# Now connect the Dorsals
-		self.connect_dorsals()
+		self.processed.append(None)
+		self.best_dist = MAX_DIST
+		self.best_list = list()
+		room_iter = iter(self.processed)
+		for collector in self.collectors:
+			collector.freespace = feeds_per_collector 
+			collector.items = list()
+		self.connect_rooms(room_iter, 0)
+		self.processed.pop()
+
+		# draw connections
+		for collector, items in self.best_list:
+			for room in items:
+				pline = (collector.pos, room.attachment)
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_panel
+				pl.dxf.color = 0
 
 		# summary
 		# self.output.clear()
@@ -1125,81 +1166,32 @@ class Model(threading.Thread):
 			self.doc.saveas(self.outname)
 
 
-	def connect_dorsals(self):
-
-		self.output.print("connecting dorsals\n")
-		dorsals = self.dorsals = list()
-		collectors = self.collectors
-		self.panels = list()
-
-		for room in self.processed:
-			room_dors = room.arrangement.dorsals
-			mode = room.arrangement.alloc_mode
-			dorsals += room_dors
-			self.panels += room_dors.panels
-			for dorsal in room_dors:
-				dorsal.cltrs = list()
-				if (mode==0):
-					dorsal.pos = dorsal.attach
-				else:
-					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
-
-
-		for collector in collectors:
-			collector.items = list()
-
-		np = len(dorsals)
-		cap = len(collectors) * feeds_per_collector
-		free = cap - np
-
-		if (free<0):
-			print("ABORT: Not enough collectors")
-			return
-
-		for dorsal in dorsals:
-			dorsal.bogus = False
-
-		for i in range(free):
-			p = type('NoItem', (), {})()
-			p.bogus = True
-			dorsals.append(p)
-
-
-    	# alloc to first free
-		dors = iter(self.dorsals)
-		for c in self.collectors:
-			for i in range(0, feeds_per_collector):
-				p = next(dors)
-				c.items.append(p)
-				p.cltr = c
-
-		done = False
-		while not done:
-			done = True
-			for p1 in dorsals:
-				for p2 in dorsals:
-					if (p1.bogus and p2.bogus):
-						continue
-
-					if ((p1.bogus and dist(p2.pos, p1.cltr.pos) < dist(p2.pos, p2.cltr.pos)) or
-                       (p2.bogus and dist(p1.pos, p2.cltr.pos) < dist(p1.pos, p1.cltr.pos)) or
-                       ((not p1.bogus) and (not p2.bogus) and
-                       (dist(p1.pos, p2.cltr.pos) + dist(p2.pos, p1.cltr.pos) <
-                       dist(p1.pos, p1.cltr.pos) + dist(p2.pos, p2.cltr.pos)))):
-						p1.cltr.items.remove(p1)
-						p2.cltr.items.remove(p2)
-						p1.cltr, p2.cltr = p2.cltr, p1.cltr
-						p1.cltr.items.append(p1)
-						p2.cltr.items.append(p2)
+	def connect_rooms(self, room_iter, partial):
+	
+		room = next(room_iter)
 		
-		for c in self.collectors:
-			for item in c.items:
-				if item.bogus: continue
-				pline = [c.pos, item.pos]
-				pl = self.msp.add_lwpolyline(pline)
-				pl.dxf.layer = layer_panel
-				pl.dxf.color = 0
-
+		if (room == None):
+			if (partial < self.best_dist):
+				self.best_dist = partial
+				self.best_list = list()
+				for collector in self.collectors:
+					for room in collector.items:
+						room.attachment = room.attach
+					item = (collector, copy(collector.items))
+					self.best_list.append(item)
+				return
+		
+		for collector in self.collectors:
+			room_dist, attach = room.dist(collector)
+			new_partial = partial + room_dist
+			if (new_partial<self.best_dist and collector.freespace>=room.feeds):
+				collector.items.append(room)
+				collector.freespace -= room.feeds
+				room.attach = attach
+				self.connect_rooms(copy(room_iter), new_partial)
+				collector.items.remove(room)
+				collector.freespace += room.feeds
+					
 	def print_report(self):
 		
 		txt = "\n ------- Zone Report ----------\n\n"
