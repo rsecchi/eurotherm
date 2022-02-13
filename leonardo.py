@@ -38,11 +38,13 @@ default_hatch_height = 10
 default_search_tol = 5
 default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
+default_wall_depth = 50
 
 default_input_layer = 'aree sapp'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
 layer_panel  = 'Eurotherm_panel'
+layer_link   = 'Eurotherm_link'
 
 text_color = 7
 box_color = 8
@@ -196,19 +198,6 @@ def cross(box, line):
 	A3 = (by - p0y) * (p1x - p0x)
 	A4 = (bx - p0x) * (p1y - p0y)
 
-	#cx1 = p0x + A1/(p1y-p0y)
-	#cx2 = p0x + A3/(p1y-p0y)
-	#cy1 = p0y + A2/(p1x-p0x)
-	#cy2 = p0y + A4/(p1x-p0x)
-
-	#if ((ax<=cx1 and cx1<=bx) or 
-	#	(ax<=cx2 and cx2<=bx) or
-	#	(ay<=cy1 and cy1<=by) or
-	#	(ay<=cy2 and cy2<=by)):
-	#	return True
-	#
-	#return False
-
 	if (p1x>p0x):
 		if (p1y>p0y):
 			return  ((A1<=A2 and A2<=A3) or
@@ -235,28 +224,6 @@ def cross(box, line):
 	return False
 
 
-#  v_par = <v,p> / <v,v>
-
-def dist2(line, point):
-	(xp,yp) = point
-	(x0,y0),(x1,y1) = line
-	
-	(ux, uy) = (x1-x0, y1-y0)
-	(px, py) = (xp-x0, yp-y0)
-	
-	u2 = ux*ux + uy*uy
-	p2 = px*px + py*py
-	up = ux*px + uy*py
-
-	if (up>u2):
-		return u2+p2-2*up
-
-	if (up<=0 or u2==0):
-		return p2
-
-	return p2-up*up/u2
-
-
 def hdist(line, point):
 	(xp,yp) = point
 	(x0,y0),(x1,y1) = line
@@ -271,6 +238,91 @@ def hdist(line, point):
 		return min(x1,x0)
 
 	return abs((x0*y1-x1*y0)/(y1-y0))
+
+
+def dist2(line, point):
+	(xp,yp) = point
+	(x0,y0),(x1,y1) = line
+	
+	(ux, uy) = (x1-x0, y1-y0)
+	(px, py) = (xp-x0, yp-y0)
+	
+	u2 = ux*ux + uy*uy
+	p2 = px*px + py*py
+	up = ux*px + uy*py
+
+	if (u2==0):
+		return (0, False, point)
+
+	q = (x0 + up*ux/u2, y0 + up*uy/u2)
+
+	if (up>u2):
+		return (u2+p2-2*up, False, line[1])
+
+	if (up<=0 or u2==0):
+		return (p2, False, line[0])
+
+	return (p2-up*up/u2, True, q)
+
+
+
+# Project line1 into line2 and returns the 
+# facing segments
+def is_gate(line, target):
+	
+	(xa0,ya0), (xa1,ya1) = (a0,a1) = line
+	(xb0,yb0), (xb1,yb1) = (b0,b1) = target
+
+	# reference on target
+	(ux, uy) = (xb1-xb0, yb1-yb0)
+	u = sqrt(ux*ux + uy*uy)
+	(uvx, uvy) = (ux/u, uy/u)
+	(uox, uoy) = (-uvy, uvx)
+	
+	# change of reference for p and q
+	(px, py) = (xa0-xb0, ya0-yb0)
+	(qx, qy) = (xa1-xb0, ya1-yb0)
+	(npx, npy) = (uvx*px+uvy*py, uox*px+uoy*py)
+	(nqx, nqy) = (uvx*qx+uvy*qy, uox*qx+uoy*qy)
+
+	w = abs(npx - nqx)
+
+	if ((w <= min_dist) or
+		(npx<=0 and nqx<=0) or (npx>=u and nqx>=u)):
+		return (False, (None, None))
+
+	if (npx<0):
+		p1 = (xb0,yb0)
+		l1 = 0
+	else:
+		if (npx>u):
+			p1 = (xb1,yb1)
+			l1 = u
+		else:
+			p1 = (xb0+uvx*npx, yb0+uvy*npx)
+			l1 = npx
+
+	if (nqx<0):
+		p2 = (xb0,yb0)
+		l2 = 0
+	else:
+		if (nqx>u):
+			p2 = (xb1,yb1)
+			l2 = u
+		else:
+			p2 = (xb0+uvx*nqx, yb0+uvy*nqx)
+			l2 = nqx
+
+	if (abs(l1-l2)<=min_dist):
+		return (False, (None, None))
+
+	d1 = abs((npy*(nqx-l1) - (npx-l1)*nqy)/w)
+	d2 = abs((npy*(nqx-l2) - (npx-l2)*nqy)/w)
+	
+	if (d1<= wall_depth and d2<=wall_depth):
+		return (True, (p1, p2))
+
+	return (False, (None, None))
 
 
 # This class represents the radiating panel
@@ -666,6 +718,7 @@ class Room:
 		self.errorstr = ""
 		self.contained_in = None
 		self.obstacles = list()
+		self.gates = list()
 
 		tol = tolerance
 		self.orient = 0
@@ -723,8 +776,9 @@ class Room:
 	def _centre(self):
 		(cx, cy) = (0, 0)
 		p = self.points
-		n = len(p) 
-		for p in self.points:
+		n = len(p)-1
+		for i in range(0,n):
+			p = self.points[i]
 			(cx, cy) = (cx+p[0], cy+p[1])
 
 		return (cx/n, cy/n)
@@ -887,6 +941,18 @@ class Room:
 
 		return False
 
+	def add_gates(self, room):
+		
+		p1 = self.points
+		p2 = room.points
+		for i in range(0, len(p1)-1):
+			line1 = (p1[i], p1[i+1]) 
+			for j in range(0, len(p2)-1):
+				line2 = (p2[j], p2[j+1]) 
+				cond, wall = is_gate(line2, line1)
+				if (cond):
+					self.gates.append((room, wall))
+
 	# Reporting Room
 	def report(self):
 		txt = ""
@@ -963,6 +1029,14 @@ class Model(threading.Thread):
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_box, box_color)
 		self.new_layer(layer_panel, 0)
+		self.new_layer(layer_link, 0)
+
+	def find_gates(self):
+		
+		for room1 in self.processed:
+			for room2 in self.processed:
+				if (room1 != room2):
+					room1.add_gates(room2)
 
 	def run(self):
 		global x_font_size, y_font_size  
@@ -974,6 +1048,7 @@ class Model(threading.Thread):
 		global default_hatch_height
 		global default_min_dist
 		global default_min_dist2
+		global default_wall_depth
 		global panel_width 
 		global panel_height 
 		global search_tol 
@@ -981,6 +1056,7 @@ class Model(threading.Thread):
 		global hatch_height
 		global min_dist
 		global min_dist2
+		global wall_depth
  
 		scale = self.scale
 
@@ -995,6 +1071,7 @@ class Model(threading.Thread):
 		hatch_height = default_hatch_height/scale
 		min_dist = default_min_dist/scale
 		min_dist2 = default_min_dist2/scale
+		wall_depth = default_wall_depth/scale
 
 		Room.index = 1
 		self.create_layers()
@@ -1075,6 +1152,7 @@ class Model(threading.Thread):
 					if (not room.is_collector):
 						self.processed.append(room)
 
+		self.find_gates()
 
 		# Check if enough collectors
 		w = panel_width/100
@@ -1153,6 +1231,22 @@ class Model(threading.Thread):
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_panel
 				pl.dxf.color = 0
+
+		# draw gates
+		for room in self.processed:
+			for newroom, wall in room.gates:
+				pl = self.msp.add_lwpolyline(wall)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 6
+				pline = (room.pos, newroom.pos)
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 5
+
+				pl = self.msp.add_circle(room.pos,4*search_tol)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 5
+
 
 		# summary
 		# self.output.clear()
