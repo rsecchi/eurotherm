@@ -3,6 +3,7 @@
 import ezdxf
 import openpyxl
 import queue
+import bisect
 import threading
 import numpy as np
 from openpyxl.styles.borders import Border, Side
@@ -22,7 +23,7 @@ zone_cost = 1
 min_room_area = 1
 max_room_area = 500
 
-feeds_per_collector = 8 
+feeds_per_collector = 100
 area_per_feed_m2 = 14.4
 target_eff = 0.7
 
@@ -49,7 +50,7 @@ layer_link   = 'Eurotherm_link'
 text_color = 7
 box_color = 8
 collector_color = 1
-ask_for_write = True
+ask_for_write = False
 
 MAX_COST = 1000000
 MAX_DIST = 1e20
@@ -763,7 +764,7 @@ class Room:
 		self.panels = list()
 		self.bounding_box()
 		self.area = self._area()
-		self.pos = self._centre()
+		self.pos = self._barycentre()
 		self.perimeter = self._perimeter()
 
 	def _area(self):
@@ -790,6 +791,21 @@ class Room:
 		for i in range(0, len(p)-1):
 			d += sqrt(pow(p[i+1][0]-p[i][0],2)+pow(p[i+1][1]-p[i][1],2))
 		return d
+
+	def _barycentre(self):
+		
+		p = self.points
+		(xb, yb) = (0, 0)
+		Ax = Ay = 0
+		for i in range(len(p)-1):
+			(x0, y0) = p[i]
+			(x1, y1) = p[i+1]
+			xb += (y1-y0)*(x0*x0+x0*x1+x1*x1)/6
+			yb += (x1-x0)*(y0*y0+y0*y1+y1*y1)/6
+			Ax += (y1-y0)*(x0+x1)/2
+			Ay += (x1-x0)*(y0+y1)/2
+
+		return (xb/Ax, yb/Ay)
 
 	def bounding_box(self):
 		self.ax = min(self.xcoord)
@@ -952,6 +968,22 @@ class Room:
 				cond, wall = is_gate(line2, line1)
 				if (cond):
 					self.gates.append((room, wall))
+
+	def set_as_root(self, queue):
+		self.visited = True
+		for room, wall in self.gates:
+			if (not room.visited):
+				distance = dist(self.pos, room.pos)
+				walk = self.walk + distance
+				if (walk < room.walk):
+					room.walk = walk
+					room.uplink = self
+
+		# select next room
+		if (len(queue)>0):
+			queue.sort(key=lambda x: x.walk)
+			next_room = queue.pop(0)
+			next_room.set_as_root(queue)
 
 	# Reporting Room
 	def report(self):
@@ -1131,7 +1163,7 @@ class Model(threading.Thread):
 			while (j<len(room) and room[j].ax < room[i].bx):
 				if room[i].contains(room[j]):
 					room[i].obstacles.append(room[j])
-					room[j].contained_in = room[j]
+					room[j].contained_in = room[i]
 				if room[j].contains(room[i]):
 					room[j].obstacles.append(room[i])
 					room[i].contained_in = room[j]
@@ -1152,7 +1184,33 @@ class Model(threading.Thread):
 					if (not room.is_collector):
 						self.processed.append(room)
 
+		# create collectors' trees
 		self.find_gates()
+		for room in self.processed:
+			room.links = list()
+
+		for collector in self.collectors:
+			for room in self.processed:
+				room.visited = False
+				room.uplink = None
+				room.walk = MAX_DIST
+
+			root = collector.contained_in
+			root.walk = 0
+			root.uplink = root
+			
+			root.set_as_root(self.processed.copy())
+
+			for room in self.processed:
+				link_item = (collector, room.walk, room.uplink)
+				room.links.append(link_item)
+			
+		#for room in self.processed:
+		#	print("Room", room.index)
+		#	for link in room.links:
+		#		print("   collector:", link[0].index, 
+		#			link[1], "uplink room ",link[2].index)
+
 
 		# Check if enough collectors
 		w = panel_width/100
@@ -1233,19 +1291,38 @@ class Model(threading.Thread):
 				pl.dxf.color = 0
 
 		# draw gates
+		# for room in self.processed:
+		# 	for newroom, wall in room.gates:
+		# 		pl = self.msp.add_lwpolyline(wall)
+		# 		pl.dxf.layer = layer_link
+		# 		pl.dxf.color = 6
+		# 		pline = (room.pos, newroom.pos)
+		# 		pl = self.msp.add_lwpolyline(pline)
+		# 		pl.dxf.layer = layer_link
+		# 		pl.dxf.color = 5
+
+		# 		pl = self.msp.add_circle(room.pos,4*search_tol)
+		# 		pl.dxf.layer = layer_link
+		# 		pl.dxf.color = 5
+
 		for room in self.processed:
-			for newroom, wall in room.gates:
-				pl = self.msp.add_lwpolyline(wall)
-				pl.dxf.layer = layer_link
-				pl.dxf.color = 6
-				pline = (room.pos, newroom.pos)
+			(x0, y0) = room.pos
+			d = 0
+			i = 1
+			pl = self.msp.add_circle(room.pos,4*search_tol)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+			for c, walk, uplink in room.links:
+				(x1, y1) = uplink.pos
+				pline = ((x0+d,y0+d), (x1+d,y1+d))
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
-				pl.dxf.color = 5
-
-				pl = self.msp.add_circle(room.pos,4*search_tol)
+				pl.dxf.color = 1
+				pl = self.msp.add_circle(uplink.pos,4*search_tol)
 				pl.dxf.layer = layer_link
-				pl.dxf.color = 5
+				pl.dxf.color = 1
+				d += 5*search_tol
+				i += 1
 
 
 		# summary
@@ -1259,6 +1336,7 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
+		print("Done")
 
 	def connect_rooms(self, room_iter, partial):
 	
