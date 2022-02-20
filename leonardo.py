@@ -23,7 +23,7 @@ zone_cost = 1
 min_room_area = 1
 max_room_area = 500
 
-feeds_per_collector = 100
+feeds_per_collector = 8
 area_per_feed_m2 = 14.4
 target_eff = 0.7
 
@@ -813,7 +813,7 @@ class Room:
 		self.ay = min(self.ycoord)
 		self.by = max(self.ycoord)
 		
-	def dist(self, collector):
+	def dist_linear(self, collector):
 
 		dorsals = self.arrangement.dorsals
 		d = MAX_DIST
@@ -823,6 +823,30 @@ class Room:
 				d = cltr_dist 
 				attachment = dorsal.pos
 		return (d, attachment)
+
+	def dist_on_tree(self, collector):
+
+		dorsals = self.arrangement.dorsals
+		d = MAX_DIST
+		for dorsal in dorsals:
+			cltr_dist = dist(dorsal.pos, collector.pos)
+			if (d > cltr_dist):
+				d = cltr_dist 
+				attachment = dorsal.pos
+
+		d = MAX_DIST
+		uplink = None
+		for cltr, walk, next_room in self.links:
+			if (cltr == collector):
+				d = walk
+				uplink = next_room
+
+		return (d, attachment, uplink)
+
+	def wall(self, room):
+		for nroom, nwall in self.gates:
+			if (room==nroom):
+				return nwall
 
 	# Building Room
 	def alloc_panels(self):
@@ -969,11 +993,15 @@ class Room:
 				if (cond):
 					self.gates.append((room, wall))
 
-	def set_as_root(self, queue):
+	def set_as_root(self, queue, collector):
 		self.visited = True
 		for room, wall in self.gates:
 			if (not room.visited):
-				distance = dist(self.pos, room.pos)
+				if (collector.contained_in == self):
+					pos = collector.pos
+				else:
+					pos = self.pos
+				distance = dist(pos, room.pos)
 				walk = self.walk + distance
 				if (walk < room.walk):
 					room.walk = walk
@@ -983,7 +1011,7 @@ class Room:
 		if (len(queue)>0):
 			queue.sort(key=lambda x: x.walk)
 			next_room = queue.pop(0)
-			next_room.set_as_root(queue)
+			next_room.set_as_root(queue, collector)
 
 	# Reporting Room
 	def report(self):
@@ -1069,6 +1097,41 @@ class Model(threading.Thread):
 			for room2 in self.processed:
 				if (room1 != room2):
 					room1.add_gates(room2)
+
+	def assign_collectors(self):
+
+		for room in self.processed:
+			dist_cltr = MAX_DIST
+			for cltr in self.collectors:
+
+				# distance from collector
+				d = MAX_DIST
+				for cl, walk, uplink in room.links:
+					if cltr == cl:
+						d = walk
+
+				(vx, vy) = (cltr.pos[0]-room.pos[0], 
+								cltr.pos[1]-room.pos[1])
+
+				if (d<dist_cltr):
+					dist_ctlr = d
+					room.collector = cltr
+					if (vx>=0):
+						room.clt_xside = RIGHT
+					else:
+						room.clt_xside = LEFT
+
+					if (vy>=0):
+						room.clt_yside = TOP
+					else:
+						room.clt_yside = BOTTOM
+
+	def route(self):
+
+		# reverse path from rooms
+		for room in self.processed:
+			#print(room.links)
+			pass
 
 	def run(self):
 		global x_font_size, y_font_size  
@@ -1189,6 +1252,7 @@ class Model(threading.Thread):
 		for room in self.processed:
 			room.links = list()
 
+		# direct rooms to collects
 		for collector in self.collectors:
 			for room in self.processed:
 				room.visited = False
@@ -1199,7 +1263,7 @@ class Model(threading.Thread):
 			root.walk = 0
 			root.uplink = root
 			
-			root.set_as_root(self.processed.copy())
+			root.set_as_root(self.processed.copy(), collector)
 
 			for room in self.processed:
 				link_item = (collector, room.walk, room.uplink)
@@ -1232,26 +1296,8 @@ class Model(threading.Thread):
 		if (full_cover_feeds > available_feeds):
 			self.output.print("WARNING: Low number of collectors\n")
 
-		# Assign collectors to rooms
-		for room in self.processed:
-			dist_cltr = MAX_DIST
-			for cltr in self.collectors:
-				(vx, vy) = (cltr.pos[0]-room.pos[0], 
-								cltr.pos[1]-room.pos[1])
-				d = sqrt(vx*vx+vy*vy)
-				if (d<dist_cltr):
-					dist_ctlr = d
-					room.collector = cltr
-					if (vx>=0):
-						room.clt_xside = RIGHT
-					else:
-						room.clt_xside = LEFT
-
-					if (vy>=0):
-						room.clt_yside = TOP
-					else:
-						room.clt_yside = BOTTOM
-			
+		# Preliminary assignment of collectors to rooms
+		self.assign_collectors()
 
 		# allocating panels in room
 		for room in self.processed:
@@ -1274,7 +1320,6 @@ class Model(threading.Thread):
 		# Now connect the Dorsals
 		self.processed.append(None)
 		self.best_dist = MAX_DIST
-		self.best_list = list()
 		room_iter = iter(self.processed)
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
@@ -1282,48 +1327,12 @@ class Model(threading.Thread):
 		self.connect_rooms(room_iter, 0)
 		self.processed.pop()
 
-		# draw connections
-		for collector, items in self.best_list:
-			for room in items:
-				pline = (collector.pos, room.attachment)
-				pl = self.msp.add_lwpolyline(pline)
-				pl.dxf.layer = layer_panel
-				pl.dxf.color = 0
+		# Route water pipes
+		self.route()
 
-		# draw gates
-		# for room in self.processed:
-		# 	for newroom, wall in room.gates:
-		# 		pl = self.msp.add_lwpolyline(wall)
-		# 		pl.dxf.layer = layer_link
-		# 		pl.dxf.color = 6
-		# 		pline = (room.pos, newroom.pos)
-		# 		pl = self.msp.add_lwpolyline(pline)
-		# 		pl.dxf.layer = layer_link
-		# 		pl.dxf.color = 5
-
-		# 		pl = self.msp.add_circle(room.pos,4*search_tol)
-		# 		pl.dxf.layer = layer_link
-		# 		pl.dxf.color = 5
-
-		for room in self.processed:
-			(x0, y0) = room.pos
-			d = 0
-			i = 1
-			pl = self.msp.add_circle(room.pos,4*search_tol)
-			pl.dxf.layer = layer_link
-			pl.dxf.color = 1
-			for c, walk, uplink in room.links:
-				(x1, y1) = uplink.pos
-				pline = ((x0+d,y0+d), (x1+d,y1+d))
-				pl = self.msp.add_lwpolyline(pline)
-				pl.dxf.layer = layer_link
-				pl.dxf.color = 1
-				pl = self.msp.add_circle(uplink.pos,4*search_tol)
-				pl.dxf.layer = layer_link
-				pl.dxf.color = 1
-				d += 5*search_tol
-				i += 1
-
+		# drawing connections
+		self.draw_links()
+		self.draw_trees()
 
 		# summary
 		# self.output.clear()
@@ -1338,28 +1347,87 @@ class Model(threading.Thread):
 
 		print("Done")
 
+	def draw_links(self):	
+		# draw connections
+		for collector, items in self.best_list:
+			for room in items:
+				pos = room.attachment
+				while (room != collector.contained_in):
+					(p1, p2) = room.wall(room.uplink)
+					med = ((p1[0]+p2[0])/2, (p1[1]+p2[1])/2)
+					pline = (pos, med)
+					pl = self.msp.add_lwpolyline(pline)
+					pl.dxf.layer = layer_panel
+					pl.dxf.color = 0
+					pos = med
+					room = room.uplink
+				
+				pline = (pos, collector.pos)
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_panel
+				pl.dxf.color = 0
+
+	def draw_trees(self):
+		for room in self.processed:
+			(x0, y0) = room.pos
+			pl = self.msp.add_circle(room.pos,2*search_tol)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+
+			(x1, y1) = room.uplink.pos
+			pline = ((x0,y0), (x1,y1))
+			pl = self.msp.add_lwpolyline(pline)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+			pl = self.msp.add_circle(room.uplink.pos,2*search_tol)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+
+	def draw_gates(self):
+
+		for room in self.processed:
+			for newroom, wall in room.gates:
+				pl = self.msp.add_lwpolyline(wall)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 6
+				pline = (room.pos, newroom.pos)
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 5
+
+				pl = self.msp.add_circle(room.pos,4*search_tol)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 5
+
+	# Connect rooms to collectors using branch-and-bound
 	def connect_rooms(self, room_iter, partial):
 	
 		room = next(room_iter)
-		
+
 		if (room == None):
 			if (partial < self.best_dist):
 				self.best_dist = partial
 				self.best_list = list()
+				for room in self.processed:
+					if (room):
+						room.downlinks = list()
 				for collector in self.collectors:
 					for room in collector.items:
 						room.attachment = room.attach
+						room.uplink = room._uplink
+						room.uplink.downlinks.append(room)
 					item = (collector, copy(collector.items))
 					self.best_list.append(item)
 				return
 		
 		for collector in self.collectors:
-			room_dist, attach = room.dist(collector)
+			room_dist, attach, uplink = room.dist_on_tree(collector)
 			new_partial = partial + room_dist
 			if (new_partial<self.best_dist and collector.freespace>=room.feeds):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
 				room.attach = attach
+				room._uplink = uplink
 				self.connect_rooms(copy(room_iter), new_partial)
 				collector.items.remove(room)
 				collector.freespace += room.feeds
