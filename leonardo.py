@@ -27,8 +27,7 @@ feeds_per_collector = 8
 area_per_feed_m2 = 14.4
 target_eff = 0.7
 
-default_x_font_size  = 20
-default_y_font_size  = 30
+default_font_size = 35
 
 # Half panels default dimensions in cm
 default_panel_width = 100
@@ -124,6 +123,16 @@ def writedxf(msp, strn, pos, scale):
 		pl = msp.add_lwpolyline(poly)
 		pl.dxf.layer = layer_text
 		pos = (pos[0]+scale[0]*3, pos[1])
+
+def write_text(msp, strn, pos):
+	
+	text = msp.add_mtext(strn, 
+		dxfattribs={"style": "Arial"})
+	text.dxf.insert = pos
+	text.dxf.attachment_point = ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER
+	text.dxf.char_height = font_size
+	text.dxf.layer = layer_text
+	
 
 def spread(a,b,size):
 	l = []
@@ -1069,6 +1078,8 @@ class Room:
 		
 		self.arrangement.draw_grid(msp)
 
+		write_text(msp, "Room %d" % self.index, self.pos)
+
 		for panel in self.panels:
 			panel.draw(msp)
 
@@ -1134,7 +1145,7 @@ class Model(threading.Thread):
 			pass
 
 	def run(self):
-		global x_font_size, y_font_size  
+		global font_size
 		global scale, tolerance
 		global default_panel_width
 		global default_panel_height
@@ -1156,8 +1167,7 @@ class Model(threading.Thread):
 		scale = self.scale
 
 		tolerance    = default_tolerance/scale
-		x_font_size  = default_x_font_size/scale
-		y_font_size  = default_y_font_size/scale
+		font_size  = default_font_size/scale
 
 		panel_width = default_panel_width/scale
 		panel_height = default_panel_height/scale
@@ -1332,7 +1342,7 @@ class Model(threading.Thread):
 
 		# drawing connections
 		self.draw_links()
-		self.draw_trees()
+		# self.draw_trees()
 
 		# summary
 		# self.output.clear()
@@ -1345,7 +1355,6 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
-		print("Done")
 
 	def draw_links(self):	
 		# draw connections
@@ -1358,14 +1367,14 @@ class Model(threading.Thread):
 					pline = (pos, med)
 					pl = self.msp.add_lwpolyline(pline)
 					pl.dxf.layer = layer_panel
-					pl.dxf.color = 0
+					pl.dxf.color = 4
 					pos = med
 					room = room.uplink
 				
 				pline = (pos, collector.pos)
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_panel
-				pl.dxf.color = 0
+				pl.dxf.color = 4
 
 	def draw_trees(self):
 		for room in self.processed:
