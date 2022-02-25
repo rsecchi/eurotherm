@@ -15,7 +15,7 @@ from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
 # Parameter settings (values in cm)
-default_scale = 0.1  # scale=100 if the drawing is in m
+default_scale = 1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -40,7 +40,7 @@ default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 50
 
-default_input_layer = 'aree sapp'
+default_input_layer = 'AREE LEONARDO'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
 layer_panel  = 'Eurotherm_panel'
@@ -59,9 +59,10 @@ LEFT = 0
 TOP = 1
 BOTTOM = 0
 
-xlsx_template = 'template.xlsx'
-sheet_template = 'BoM'
-
+xlsx_template = 'leo_template.xlsx'
+sheet_template_1 = 'LEONARDO 5.5'
+sheet_template_2 = 'LEONARDO 3.5'
+sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
 
 alphabet = {
@@ -837,9 +838,10 @@ class Room:
 
 		dorsals = self.arrangement.dorsals
 		d = MAX_DIST
+		attachment = None
 		for dorsal in dorsals:
 			cltr_dist = dist(dorsal.pos, collector.pos)
-			if (d > cltr_dist):
+			if (d >= cltr_dist):
 				d = cltr_dist 
 				attachment = dorsal.pos
 
@@ -861,7 +863,7 @@ class Room:
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
 
-		self.output.print("Processing Room %d\n" % self.index)
+		self.output.print("%d " % self.index)
 	
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -896,7 +898,7 @@ class Room:
 
 
 		p = self.points
-		x = point[0]; y = point[1]
+		x, y = point
 		ints = 0
 
 		for i in range(0, len(p)-1):
@@ -905,6 +907,10 @@ class Room:
 				if (max(p[i][1], p[i+1][1]) >= y
 				  and min(p[i][1], p[i+1][1]) <=y):
 					return True
+
+			#if (p[i][1]==y and p[i+1][1]==y and
+			#	min(p[i][0], p[i+1][0]) <= x <= max(p[i][0], p[i+1][0])):
+			#		return True
 
 			if (p[i][0] == p[i+1][0]):
 				continue	
@@ -1090,6 +1096,7 @@ class Model(threading.Thread):
 		self.rooms = list()
 		self.collectors = list()
 		self.output = output
+		self.best_list = list()
 
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
@@ -1112,8 +1119,11 @@ class Model(threading.Thread):
 	def assign_collectors(self):
 
 		for room in self.processed:
+			#print("assign collectors ", room.index)
 			dist_cltr = MAX_DIST
 			for cltr in self.collectors:
+
+				#print("checking collector: ", cltr.index)
 
 				# distance from collector
 				d = MAX_DIST
@@ -1124,7 +1134,7 @@ class Model(threading.Thread):
 				(vx, vy) = (cltr.pos[0]-room.pos[0], 
 								cltr.pos[1]-room.pos[1])
 
-				if (d<dist_cltr):
+				if (d<=dist_cltr):
 					dist_ctlr = d
 					room.collector = cltr
 					if (vx>=0):
@@ -1231,17 +1241,19 @@ class Model(threading.Thread):
 		# check if a room is contained in some other room
 		self.valid_rooms.sort(key=lambda room: room.ax)	
 		room = self.valid_rooms
-		for i in range(0,len(room)):
+		for i in range(len(room)):
 			j=i+1
 			while (j<len(room) and room[j].ax < room[i].bx):
-				if room[i].contains(room[j]):
-					room[i].obstacles.append(room[j])
-					room[j].contained_in = room[i]
-				if room[j].contains(room[i]):
-					room[j].obstacles.append(room[i])
-					room[i].contained_in = room[j]
+				if (room[i].contains(room[j]) or 
+					room[j].contains(room[i])):
+					if (room[i].area > room[j].area):
+						room[i].obstacles.append(room[j])
+						room[j].contained_in = room[i]
+					else:
+						room[j].obstacles.append(room[i])
+						room[i].contained_in = room[j]
 				j += 1
-		
+	
 		# check if the room is too small to be processed
 		self.processed = list()
 		for room in self.valid_rooms:
@@ -1337,12 +1349,14 @@ class Model(threading.Thread):
 		self.connect_rooms(room_iter, 0)
 		self.processed.pop()
 
-		# Route water pipes
-		self.route()
+		#print("route")
+		## Route water pipes
+		#self.route()
 
-		# drawing connections
-		self.draw_links()
-		# self.draw_trees()
+		## drawing connections
+		#self.draw_links()
+		#self.draw_trees()
+		#self.draw_gates()
 
 		# summary
 		# self.output.clear()
@@ -1355,6 +1369,10 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
+		# save data in XLS
+		self.save_in_xls()
+
+		print("DONE")
 
 	def draw_links(self):	
 		# draw connections
@@ -1414,6 +1432,7 @@ class Model(threading.Thread):
 		room = next(room_iter)
 
 		if (room == None):
+			print("Reaching leave ", partial)
 			if (partial < self.best_dist):
 				self.best_dist = partial
 				self.best_list = list()
@@ -1478,9 +1497,11 @@ class Model(threading.Thread):
 			p1x2_l += panel_count[6]
 			p1x2_r += panel_count[7]
 			
-			
+		self.area = area
+		self.active_area = active_area		
+	
 		# Summary of all areas
-		smtxt =  "Total rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
+		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
 		smtxt += "Total area %.5g m2\n" % area
 		smtxt += "Total active area %.5g m2" % active_area
 		smtxt += " (%.4g %%)\n" % (100*active_area/area)
@@ -1503,6 +1524,46 @@ class Model(threading.Thread):
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p1x1_cut, p1x1_spr) 
 
 		return smtxt + txt
+
+	def save_in_xls(self):
+		wb = openpyxl.load_workbook(xlsx_template)
+		ws1 = wb[sheet_template_1]
+		ws2 = wb[sheet_template_2]
+		ws3 = wb[sheet_template_3]
+
+		# copy total area
+		ws1['D3'] = self.area
+		ws2['D3'] = self.area
+		ws3['D3'] = self.area
+		ws1['D4'] = self.area
+		ws2['D4'] = self.area
+		ws3['D4'] = self.area
+
+		# copy total coverage
+		ws1['C3'] = self.active_area
+		ws2['C3'] = self.active_area
+		ws3['C3'] = self.active_area
+		ws1['C4'] = self.active_area
+		ws2['C4'] = self.active_area
+		ws3['C4'] = self.active_area
+
+		#for room in self.processed:
+		#	print(room.index)
+
+			#ws[pos_width] = ceil(width/5)*5/100
+			#ws[pos_paneltype] = 'BLH'
+			#ws[pos_start_profile] = 'NONE'
+			#ws[pos_len] = round(length/5)*50
+			#ws[pos_start_profile] = 'NONE'
+			#ws[pos_end_profile] = 'NONE'
+			#ws[pos_perimeter] = perimeter
+			#ws[pos_omega] = '0.0'
+
+			#ws[pos_area].number_format = "0.00"
+
+		out = self.filename[:-4] + ".xlsx"	
+		wb.save(out)
+
 
 class App:
 
@@ -1570,7 +1631,7 @@ class App:
 		ctlname = Label(root, text="Report")
 		ctlname.grid(row=4, column=0, padx=(25,0), pady=(10,0), sticky="w")
 
-		self.textinfo = Text(root, height=10, width=58)
+		self.textinfo = Text(root, height=20, width=58)
 		self.textinfo.config(borderwidth=1, relief='ridge')
 		self.textinfo.grid(row=5, column=0, pady=(0,15)) 
 		#sb = Scrollbar(root, command=self.textinfo.yview)
@@ -1649,76 +1710,9 @@ class App:
 		self.model.inputlayer = self.var.get()
 		self.model.textinfo = self.textinfo
 		self.model.outname = self.outname
+		self.model.filename = self.filename
 
 		self.model.start()
-
-		# Creating XLS
-		#self.save_xls()
-		#wb = openpyxl.Workbook()
-		#ws = wb.active
-		#ws.title = "Bill of Materials"
-		#if (len(self.rooms)>0):
-		#	self.save_crocs_xls(ws)
-		#	self.save_omegas_xls(ws)
-		#out = self.filename[:-4] + "_struct.xlsx"	
-		#wb.save(out)
-
-
-	def save_xls(self):
-		wb = openpyxl.load_workbook(xlsx_template)
-		ws = wb[sheet_template]
-
-		index = 0
-		for room in self.rooms:
-
-			if (len(room.errorstr)>0):
-				curr_row = str(index+6)
-				index = index + 1
-				pos_name = 'B' + curr_row
-				pos_err = 'C' + curr_row
-				ws[pos_name] = 'Zone ' + str(room.index)
-				continue
-
-			for box in room.boxes:
-				curr_row = str(index+6)
-				index = index + 1
-
-				pos_name = 'B' + curr_row
-				pos_paneltype = 'C' + curr_row
-				pos_start_profile = 'D' + curr_row
-				pos_len = 'E' + curr_row
-				pos_end_profile = 'F' + curr_row
-				pos_width = 'G' + curr_row
-				pos_perimeter = 'H' + curr_row
-				pos_omega = 'I' + curr_row
-
-				if (len(room.boxes) == 1):
-					ws[pos_name] = "Zone %d" % (room.index) 
-				else:
-					ws[pos_name] = "Zone %d " % (room.index) + chr(64+box.number)
-					perimeter = 0.0
-
-				if (box.number == 1):
-					perimeter = room.perimeter*scale/100
-				else:
-					perimenter = 0.0
-
-				width = (box.bx - box.ax)*scale
-				length = (box.by - box.ay)*scale + extra_len
-
-				ws[pos_width] = ceil(width/5)*5/100
-				ws[pos_paneltype] = 'BLH'
-				ws[pos_start_profile] = 'NONE'
-				ws[pos_len] = round(length/5)*50
-				ws[pos_start_profile] = 'NONE'
-				ws[pos_end_profile] = 'NONE'
-				ws[pos_perimeter] = perimeter
-				ws[pos_omega] = '0.0'
-
-				#ws[pos_area].number_format = "0.00"
-
-		out = self.filename[:-4] + "_doghe.xlsx"	
-		wb.save(out)
 
 
 	
