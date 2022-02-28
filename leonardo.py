@@ -1090,7 +1090,7 @@ class Room:
 		
 		self.arrangement.draw_grid(msp)
 
-		write_text(msp, "Room %d" % self.index, self.pos)
+		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 		for panel in self.panels:
 			panel.draw(msp)
@@ -1239,8 +1239,7 @@ class Model(threading.Thread):
 			self.output.print(wstr)
 			return
 
-
-		# check if a room is contained in some other room
+		# check if an area is contained in a room
 		self.valid_rooms.sort(key=lambda room: room.ax)	
 		room = self.valid_rooms
 		for i in range(len(room)):
@@ -1258,6 +1257,7 @@ class Model(threading.Thread):
 	
 		# check if the room is too small to be processed
 		self.processed = list()
+		pindex = 1
 		for room in self.valid_rooms:
 			area = scale * scale * room.area
 			if (room.contained_in == None):
@@ -1269,15 +1269,12 @@ class Model(threading.Thread):
 					room.error = True
 				else:
 					if (not room.is_collector):
+						room.pindex = pindex
+						pindex += 1
 						self.processed.append(room)
-
-			
-		#for room in self.processed:
-		#	print("Room", room.index)
-		#	for link in room.links:
-		#		print("   collector:", link[0].index, 
-		#			link[1], "uplink room ",link[2].index)
-
+	
+		self.output.print("Detected %d rooms\n" % len(self.processed))
+		self.output.print("Detected %d collectors\n" % len(self.collectors))
 
 		# Check if enough collectors
 		w = panel_width/100
@@ -1347,7 +1344,9 @@ class Model(threading.Thread):
 		room_iter = iter(self.processed)
 		tot_iterations = 0
 		self.found_one = False
+		self.output.print("Linking Rooms:")
 		self.connect_rooms(room_iter, 0)
+		self.output.print("\n")
 		self.processed.pop()           ;# Remove sentinel
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms\n")
@@ -1355,18 +1354,19 @@ class Model(threading.Thread):
 		#self.draw_uplinks()
 		#print("Done allocating collectors")
 		#self.draw_trees(self.collectors[3])
-		#self.doc.saveas(self.outname)
 
 		# Determine which side is collector in each room
 		self.collector_side()
 
 		################################################################
 
-		# allocating panels in room
+		# allocating panels in room	
+		self.output.print("Processing Room:")
 		for room in self.processed:
-			self.output.print("%d " % room.index)
+			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
 			room.draw(self.msp)
+		self.output.print("\n")
 
 
 		# find attachment points of dorsals
@@ -1386,7 +1386,6 @@ class Model(threading.Thread):
 				d = dist(dorsal.pos, room.uplink.pos)
 				if (d <= uplink_dist):
 					uplink_dist = d
-					print(room.index)
 					room.attachment = dorsal.pos
 
 		#print("route")
@@ -1401,6 +1400,8 @@ class Model(threading.Thread):
 		# self.output.clear()
 		summary = self.print_report()
 		self.output.print(summary)
+		f = open(self.outname+".txt", "w")
+		print(summary, file = f)
 
 		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
@@ -1420,7 +1421,6 @@ class Model(threading.Thread):
 				if (len(room.panels) == 0):
 					continue
 
-				print("Attach:", room.index)
 				pos = room.attachment
 				while (room != collector.contained_in):
 					(p1, p2) = room.wall(room.uplink)
@@ -1508,6 +1508,8 @@ class Model(threading.Thread):
 		global tot_iterations, max_iterations
 
 		# Check if time to give up
+		if (tot_iterations % 100e3 == 0):
+			self.output.print("#")
 		tot_iterations += 1
 		if (tot_iterations > max_iterations):
 			return
@@ -1550,7 +1552,7 @@ class Model(threading.Thread):
 					
 	def print_report(self):
 		
-		txt = "\n ------- Zone Report ----------\n\n"
+		txt = "\n ------- Room Report ----------\n\n"
 
 		area = 0 
 		active_area = 0 
@@ -1571,7 +1573,7 @@ class Model(threading.Thread):
 				failed_rooms += 1
 				continue
 
-			txt += "Zone%d  --------- \n" % room.index
+			txt += "Room %d  --------- \n" % room.pindex
 			roomtxt, rarea, ractive, panel_count = room.report()
 			area += rarea
 			active_area += ractive
@@ -1590,6 +1592,7 @@ class Model(threading.Thread):
 	
 		# Summary of all areas
 		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
+		smtxt += "\n\nTotal collectors %d\n" % (len(self.collectors))
 		smtxt += "Total area %.5g m2\n" % area
 		smtxt += "Total active area %.5g m2" % active_area
 		smtxt += " (%.4g %%)\n" % (100*active_area/area)
