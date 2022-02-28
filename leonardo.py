@@ -23,8 +23,8 @@ extra_len    = 20
 zone_cost = 1
 min_room_area = 1
 max_room_area = 500
-default_max_clt_distance = 1000
-max_clt_break = 3
+default_max_clt_distance = 1500
+max_clt_break = 5
 
 feeds_per_collector = 8
 area_per_feed_m2 = 14.4
@@ -1326,18 +1326,29 @@ class Model(threading.Thread):
 			collector.freespace = feeds_per_collector 
 			collector.items = list()
 
+		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
+
 		# trim distance vectors
 		for room in self.processed:
 			room.links.sort(key=lambda x: x[1])
 			if (len(room.links)==0):
-				self.output.print("CRITICAL: Room %d isolated\n" % room.index)
+				self.output.print(
+					"ABORT: No collectors can be reached from Room %d\n" % room.index)
+				return
+
+		bound = 0
+		for room in reversed(self.processed):
+			room.bound = bound
+			bound += room.links[0][1]
+			#print(room.pindex, room.bound, room.links[0][1])
 
 		for room in self.processed:
 			for i, link in enumerate(room.links):
 				if (link[1]>max_clt_distance 
 					or i>=max_clt_break):
 					break
-			del room.links[i:]	
+			del room.links[i:]
+
 
 		#  connect rooms
 		self.processed.append(None)    ;# Add sentinel
@@ -1537,11 +1548,14 @@ class Model(threading.Thread):
 					self.best_list.append(item)
 				return
 
+		#print(room.index, room.bound)
+
 		# Recursive cases
 		for link in room.links:
 			collector, room_dist, uplink = link
 			new_partial = partial + room_dist
-			if (new_partial<self.best_dist and collector.freespace>=room.feeds):
+			if (new_partial+room.bound<self.best_dist and 
+				collector.freespace>=room.feeds):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
 				room._uplink = uplink
