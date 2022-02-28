@@ -14,6 +14,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
+
 # Parameter settings (values in cm)
 default_scale = 1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
@@ -22,6 +23,8 @@ extra_len    = 20
 zone_cost = 1
 min_room_area = 1
 max_room_area = 500
+default_max_clt_distance = 1000
+max_clt_break = 3
 
 feeds_per_collector = 8
 area_per_feed_m2 = 14.4
@@ -104,6 +107,10 @@ alphabet = {
 	'8': [3,1,5,9,12,14,11,3],
 	'9': [8,6,3,1,5,11,13,12]
 }
+
+
+max_iterations = 5e6
+
 
 def pletter(letter,pos,scale):
 	path = alphabet[letter]
@@ -854,6 +861,7 @@ class Room:
 
 		return (d, attachment, uplink)
 
+
 	def wall(self, room):
 		for nroom, nwall in self.gates:
 			if (room==nroom):
@@ -863,8 +871,6 @@ class Room:
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
 
-		self.output.print("%d " % self.index)
-	
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
 			self.bounding_box()
@@ -1116,36 +1122,27 @@ class Model(threading.Thread):
 				if (room1 != room2):
 					room1.add_gates(room2)
 
-	def assign_collectors(self):
+	def collector_side(self):
 
 		for room in self.processed:
-			#print("assign collectors ", room.index)
-			dist_cltr = MAX_DIST
-			for cltr in self.collectors:
 
-				#print("checking collector: ", cltr.index)
+			if (not room.collector):
+				self.output.print("CRITICAL: Room %d disconnected\n" % room.index)
+				continue
 
-				# distance from collector
-				d = MAX_DIST
-				for cl, walk, uplink in room.links:
-					if cltr == cl:
-						d = walk
+			cltr = room.collector
+			(vx, vy) = (cltr.pos[0]-room.pos[0], 
+							cltr.pos[1]-room.pos[1])
 
-				(vx, vy) = (cltr.pos[0]-room.pos[0], 
-								cltr.pos[1]-room.pos[1])
+			if (vx>=0):
+				room.clt_xside = RIGHT
+			else:
+				room.clt_xside = LEFT
 
-				if (d<=dist_cltr):
-					dist_ctlr = d
-					room.collector = cltr
-					if (vx>=0):
-						room.clt_xside = RIGHT
-					else:
-						room.clt_xside = LEFT
-
-					if (vy>=0):
-						room.clt_yside = TOP
-					else:
-						room.clt_yside = BOTTOM
+			if (vy>=0):
+				room.clt_yside = TOP
+			else:
+				room.clt_yside = BOTTOM
 
 	def route(self):
 
@@ -1165,6 +1162,7 @@ class Model(threading.Thread):
 		global default_min_dist
 		global default_min_dist2
 		global default_wall_depth
+		global default_max_clt_distance
 		global panel_width 
 		global panel_height 
 		global search_tol 
@@ -1173,7 +1171,10 @@ class Model(threading.Thread):
 		global min_dist
 		global min_dist2
 		global wall_depth
+		global max_clt_distance
  
+		global tot_iterations, max_iterations
+
 		scale = self.scale
 
 		tolerance    = default_tolerance/scale
@@ -1187,6 +1188,7 @@ class Model(threading.Thread):
 		min_dist = default_min_dist/scale
 		min_dist2 = default_min_dist2/scale
 		wall_depth = default_wall_depth/scale
+		max_clt_distance = default_max_clt_distance/scale
 
 		Room.index = 1
 		self.create_layers()
@@ -1269,27 +1271,6 @@ class Model(threading.Thread):
 					if (not room.is_collector):
 						self.processed.append(room)
 
-		# create collectors' trees
-		self.find_gates()
-		for room in self.processed:
-			room.links = list()
-
-		# direct rooms to collects
-		for collector in self.collectors:
-			for room in self.processed:
-				room.visited = False
-				room.uplink = None
-				room.walk = MAX_DIST
-
-			root = collector.contained_in
-			root.walk = 0
-			root.uplink = root
-			
-			root.set_as_root(self.processed.copy(), collector)
-
-			for room in self.processed:
-				link_item = (collector, room.walk, room.uplink)
-				room.links.append(link_item)
 			
 		#for room in self.processed:
 		#	print("Room", room.index)
@@ -1318,13 +1299,75 @@ class Model(threading.Thread):
 		if (full_cover_feeds > available_feeds):
 			self.output.print("WARNING: Low number of collectors\n")
 
-		# Preliminary assignment of collectors to rooms
-		self.assign_collectors()
+		################################################################
+
+
+		# create trees
+		self.find_gates()
+		for room in self.processed:
+			room.links = list()
+
+		for collector in self.collectors:
+			for room in self.processed:
+				room.visited = False
+				room.uplink = None
+				room.walk = MAX_DIST
+
+			root = collector.contained_in
+			root.walk = 0
+			root.uplink = root
+			
+			root.set_as_root(self.processed.copy(), collector)
+
+			for room in self.processed:
+				link_item = (collector, room.walk, room.uplink)
+				room.links.append(link_item)
+
+
+		self.best_dist = MAX_DIST
+		for collector in self.collectors:
+			collector.freespace = feeds_per_collector 
+			collector.items = list()
+
+		# trim distance vectors
+		for room in self.processed:
+			room.links.sort(key=lambda x: x[1])
+			if (len(room.links)==0):
+				self.output.print("CRITICAL: Room %d isolated\n" % room.index)
+
+		for room in self.processed:
+			for i, link in enumerate(room.links):
+				if (link[1]>max_clt_distance 
+					or i>=max_clt_break):
+					break
+			del room.links[i:]	
+
+		#  connect rooms
+		self.processed.append(None)    ;# Add sentinel
+		room_iter = iter(self.processed)
+		tot_iterations = 0
+		self.found_one = False
+		self.connect_rooms(room_iter, 0)
+		self.processed.pop()           ;# Remove sentinel
+		if (not self.found_one):
+			self.output.print("CRITICAL: Could not connect rooms\n")
+
+		#self.draw_uplinks()
+		#print("Done allocating collectors")
+		#self.draw_trees(self.collectors[3])
+		#self.doc.saveas(self.outname)
+
+		# Determine which side is collector in each room
+		self.collector_side()
+
+		################################################################
 
 		# allocating panels in room
 		for room in self.processed:
+			self.output.print("%d " % room.index)
 			room.alloc_panels()
 			room.draw(self.msp)
+
 
 		# find attachment points of dorsals
 		self.dorsals = list()
@@ -1332,30 +1375,26 @@ class Model(threading.Thread):
 			room_dors = room.arrangement.dorsals
 			mode = room.arrangement.alloc_mode
 			self.dorsals += room_dors
+			uplink_dist = MAX_DIST
 			for dorsal in room_dors:
-				dorsal.cltrs = list()
+				# dorsal.cltrs = list()
 				if (mode==0):
 					dorsal.pos = dorsal.attach
 				else:
 					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
 
-		# Now connect the Dorsals
-		self.processed.append(None)
-		self.best_dist = MAX_DIST
-		room_iter = iter(self.processed)
-		for collector in self.collectors:
-			collector.freespace = feeds_per_collector 
-			collector.items = list()
-		self.connect_rooms(room_iter, 0)
-		self.processed.pop()
+				d = dist(dorsal.pos, room.uplink.pos)
+				if (d <= uplink_dist):
+					uplink_dist = d
+					print(room.index)
+					room.attachment = dorsal.pos
 
 		#print("route")
 		## Route water pipes
 		#self.route()
 
 		## drawing connections
-		#self.draw_links()
-		#self.draw_trees()
+		self.draw_links()
 		#self.draw_gates()
 
 		# summary
@@ -1378,6 +1417,10 @@ class Model(threading.Thread):
 		# draw connections
 		for collector, items in self.best_list:
 			for room in items:
+				if (len(room.panels) == 0):
+					continue
+
+				print("Attach:", room.index)
 				pos = room.attachment
 				while (room != collector.contained_in):
 					(p1, p2) = room.wall(room.uplink)
@@ -1394,8 +1437,40 @@ class Model(threading.Thread):
 				pl.dxf.layer = layer_panel
 				pl.dxf.color = 4
 
-	def draw_trees(self):
+	def draw_trees(self, collector):
+
 		for room in self.processed:
+
+			uplink = None
+			for item in room.links:
+				if (collector == item[0]):
+					cltr, walk, uplink = item
+					break
+
+			if (not uplink):
+				continue
+
+			(x0, y0) = room.pos
+			pl = self.msp.add_circle(room.pos,2*search_tol)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+
+			(x1, y1) = uplink.pos
+			pline = ((x0,y0), (x1,y1))
+			pl = self.msp.add_lwpolyline(pline)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+			pl = self.msp.add_circle(room.uplink.pos,2*search_tol)
+			pl.dxf.layer = layer_link
+			pl.dxf.color = 1
+
+	def draw_uplinks(self):
+
+		for room in self.processed:
+
+			if (not room.uplink):
+				continue
+
 			(x0, y0) = room.pos
 			pl = self.msp.add_circle(room.pos,2*search_tol)
 			pl.dxf.layer = layer_link
@@ -1409,6 +1484,7 @@ class Model(threading.Thread):
 			pl = self.msp.add_circle(room.uplink.pos,2*search_tol)
 			pl.dxf.layer = layer_link
 			pl.dxf.color = 1
+
 
 	def draw_gates(self):
 
@@ -1428,34 +1504,46 @@ class Model(threading.Thread):
 
 	# Connect rooms to collectors using branch-and-bound
 	def connect_rooms(self, room_iter, partial):
-	
+
+		global tot_iterations, max_iterations
+
+		# Check if time to give up
+		tot_iterations += 1
+		if (tot_iterations > max_iterations):
+			return
+
 		room = next(room_iter)
 
+		# Terminal case
 		if (room == None):
-			print("Reaching leave ", partial)
 			if (partial < self.best_dist):
+				# Found solution
+				self.found_one = True
+
 				self.best_dist = partial
 				self.best_list = list()
-				for room in self.processed:
-					if (room):
-						room.downlinks = list()
+				ir = iter(self.processed)
+				while (x:=next(ir)) != None:
+					x.downlinks = list()
+					x.uplink = x._uplink
+					x.collector = x._collector
+
 				for collector in self.collectors:
 					for room in collector.items:
-						room.attachment = room.attach
-						room.uplink = room._uplink
 						room.uplink.downlinks.append(room)
 					item = (collector, copy(collector.items))
 					self.best_list.append(item)
 				return
-		
-		for collector in self.collectors:
-			room_dist, attach, uplink = room.dist_on_tree(collector)
+
+		# Recursive cases
+		for link in room.links:
+			collector, room_dist, uplink = link
 			new_partial = partial + room_dist
 			if (new_partial<self.best_dist and collector.freespace>=room.feeds):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
-				room.attach = attach
 				room._uplink = uplink
+				room._collector = collector
 				self.connect_rooms(copy(room_iter), new_partial)
 				collector.items.remove(room)
 				collector.freespace += room.feeds
