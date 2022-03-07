@@ -1,6 +1,8 @@
 #!/usr/local/bin/python3
 
 import ezdxf
+from ezdxf.addons import Importer
+
 import openpyxl
 import queue
 import bisect
@@ -13,6 +15,11 @@ from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
+
+
+# block names
+block_blue_120x100 = "P10-3B_F$LEONAR$"
+block_blue_60x100  = "P06-3B_F$LEONAR$"
 
 
 # Parameter settings (values in cm)
@@ -47,6 +54,7 @@ default_input_layer = 'AREE LEONARDO'
 layer_text   = 'Eurotherm_text'
 layer_box    = 'Eurotherm_box'
 layer_panel  = 'Eurotherm_panel'
+layer_panelp = 'Eurotherm_prof'
 layer_link   = 'Eurotherm_link'
 
 text_color = 7
@@ -362,7 +370,153 @@ class Panel:
 		self.mode = cell.mode
 		self.pos = (self.xcoord, self.ycoord)
 
+
+	def draw_whole(self, msp):
+
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
+
+		if (self.side==0 or self.side==2):
+			if (self.mode==0):
+				orig1 = (ax, by)
+				orig2 = (bx, by)
+			else:
+				orig1 = (by, ax)
+				orig2 = (by, bx)
+		else:
+			if (self.mode==0):
+				orig1 = (ax, ay)
+				orig2 = (bx, ay)
+			else:
+				orig1 = (ay, ax)
+				orig2 = (ay, bx)
+
+		if (self.size[1]==2):
+			pnl = block_blue_120x100	
+			if (self.side==0 or self.side==2):
+				if (self.mode==0):
+					rot1, xs1, ys1 = 90, 0.1, 0.1
+					rot2, xs2, ys2 = 90, 0.1, -0.1
+				else:
+					rot1, xs1, ys1 = 0, 0.1, -0.1
+					rot2, xs2, ys2 = 0, 0.1, 0.1
+			else:
+				if (self.mode==0):
+					rot1, xs1, ys1 = 90, -0.1, 0.1
+					rot2, xs2, ys2 = 90, -0.1, -0.1
+				else:
+					rot1, xs1, ys1 = 0, -0.1, -0.1
+					rot2, xs2, ys2 = 0, -0.1, 0.1
+		else:
+			pnl = block_blue_60x100
+			if (self.side==0 or self.side==2):
+				if (self.mode==0):
+					rot1, xs1, ys1 = 0, 0.1, -0.1
+					rot2, xs2, ys2 = 0, -0.1, -0.1
+				else:
+					rot1, xs1, ys1 = 90, 0.1, 0.1
+					rot2, xs2, ys2 = 90, -0.1, 0.1
+			else:
+				if (self.mode==0):
+					rot1, xs1, ys1 = 0, 0.1, 0.1
+					rot2, xs2, ys2 = 0, -0.1, 0.1
+				else:
+					rot1, xs1, ys1 = 90, 0.1, -0.1
+					rot2, xs2, ys2 = 90, -0.1, -0.1
+	
+		block1 = msp.add_blockref(pnl, orig1, 
+			dxfattribs={'xscale': xs1, 'yscale': ys1, 'rotation': rot1})
+
+		block2 = msp.add_blockref(pnl, orig2, 
+			dxfattribs={'xscale': xs2, 'yscale': ys2, 'rotation': rot2})
+
+		block1.dxf.layer = layer_panel
+		block2.dxf.layer = layer_panel
+
+
+	def draw_half(self, msp):
+
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
+			
+		if (self.size[1]==2):
+			pnl = block_blue_120x100	
+		else:
+			pnl = block_blue_60x100	
+	
+		if (self.side==0):
+			orig = (ax, by)
+			if (self.size[1]==2):
+				if (self.mode==0):
+					rot, xs, ys = 90, 0.1, 0.1
+				else:
+					rot, xs, ys = 0, 0.1, -0.1
+			else:
+				if (self.mode==0):
+					rot, xs, ys = 0, 0.1, -0.1
+				else:
+					rot, xs, ys = 90, 0.1, 0.1
+				
+
+		if (self.side==1):
+			orig = (ax, ay)
+			if (self.size[1]==2):
+				if (self.mode==0):
+					rot, xs, ys = 90, 0.1, -0.1
+				else:
+					rot, xs, ys = 0, 0.1, 0.1
+			else:
+				if (self.mode==0):
+					rot, xs, ys = 0, 0.1, 0.1
+				else:
+					rot, xs, ys = 90, 0.1, -0.1
+
+		if (self.side==2):
+			orig = (bx,by)
+			if (self.size[1]==2):
+				if (self.mode==0):
+					rot, xs, ys = 90, 0.1, -0.1
+				else:
+					rot, xs, ys = 0, 0.1, 0.1
+			else:
+				if (self.mode==0):
+					rot, xs, ys = 0, -0.1, -0.1
+				else:
+					rot, xs, ys = 90, -0.1, 0.1
+
+		if (self.side==3):
+			orig = (bx,ay)
+			if (self.size[1]==2):
+				if (self.mode==0):
+					rot, xs, ys = 90, -0.1, -0.1
+				else:
+					rot, xs, ys = 0, -0.1, 0.1
+			else:
+				if (self.mode==0):
+					rot, xs, ys = 0, -0.1, 0.1
+				else:
+					rot, xs, ys = 90, -0.1, -0.1
+
+
+		if (self.mode==1):
+			orig = (orig[1], orig[0])
+
+		block = msp.add_blockref(pnl, orig, 
+			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+
+		block.dxf.layer = layer_panel
+
+
 	def draw(self, msp):
+		#if (self.size[0]==2):
+			#self.draw_whole(msp)
+		#else:
+		self.draw_half(msp)
+
+
+			
+
+	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
 		ay = self.ycoord; by = ay + self.height
 		dx = hatch_width; dy = hatch_height
@@ -398,7 +552,7 @@ class Panel:
 				pline[i] = (pline[i][1], pline[i][0])
 
 		pl = msp.add_lwpolyline(pline)
-		pl.dxf.layer = layer_panel
+		pl.dxf.layer = layer_panelp
 		pl.dxf.color = self.color
 
 
@@ -1088,12 +1242,14 @@ class Room:
 
 	def draw(self, msp):
 		
-		self.arrangement.draw_grid(msp)
+		#self.arrangement.draw_grid(msp)
 
 		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 		for panel in self.panels:
-			panel.draw(msp)
+			if (panel.side==3 and panel.size[0]==1):
+				panel.draw(msp)
+				panel.draw_profile(msp)
 
 
 class Model(threading.Thread):
@@ -1113,7 +1269,10 @@ class Model(threading.Thread):
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_box, box_color)
 		self.new_layer(layer_panel, 0)
+		self.new_layer(layer_panelp, 0)
 		self.new_layer(layer_link, 0)
+
+		#self.doc.layers.get(layer_box).off()
 
 	def find_gates(self):
 		
@@ -1817,9 +1976,23 @@ class App:
 		self.model.outname = self.outname
 		self.model.filename = self.filename
 
+		# copy blocks of panels
+		print("Copy panel blocks")
+		print("blocks in panel.dxf")
+
+		source_dxf = ezdxf.readfile("panels.dxf")
+		for block in source_dxf.blocks:
+			print(block.name)			
+
+		importer = Importer(source_dxf, self.doc)
+		importer.import_block(block_blue_120x100)
+		importer.import_block(block_blue_60x100)
+		
+		print("\n#####################################")
+		print("imported blocks")
+		for block in self.doc.blocks:
+			print(block.name)
 		self.model.start()
-
-
 	
 App()
 
