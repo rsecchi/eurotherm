@@ -462,9 +462,9 @@ class Panel:
 			orig = (ax, ay)
 			if (self.size[1]==2):
 				if (self.mode==0):
-					rot, xs, ys = 90, 0.1, -0.1
+					rot, xs, ys = 90, -0.1, 0.1
 				else:
-					rot, xs, ys = 0, 0.1, 0.1
+					rot, xs, ys = 0, -0.1, -0.1
 			else:
 				if (self.mode==0):
 					rot, xs, ys = 0, 0.1, 0.1
@@ -508,13 +508,11 @@ class Panel:
 
 
 	def draw(self, msp):
-		#if (self.size[0]==2):
-			#self.draw_whole(msp)
-		#else:
-		self.draw_half(msp)
+		if (self.size[0]==2):
+			self.draw_whole(msp)
+		else:
+			self.draw_half(msp)
 
-
-			
 
 	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -1247,9 +1245,8 @@ class Room:
 		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 		for panel in self.panels:
-			if (panel.side==3 and panel.size[0]==1):
-				panel.draw(msp)
-				panel.draw_profile(msp)
+			panel.draw(msp)
+			panel.draw_profile(msp)
 
 
 class Model(threading.Thread):
@@ -1995,5 +1992,4 @@ class App:
 		self.model.start()
 	
 App()
-
 
