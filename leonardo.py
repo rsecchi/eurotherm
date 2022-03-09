@@ -18,8 +18,10 @@ from tkinter.messagebox import askyesno
 
 
 # block names
-block_blue_120x100 = "P10-3_PLUS$LEONAR$"
-block_blue_60x100  = "P06-3_PLUS$LEONAR$"
+block_blue_120x100  = "Leo 55_120"
+block_blue_60x100   = "Leo 55_60"
+block_green_120x100 = "Leo 55_120 idro"
+block_green_60x100  = "Leo 55_60 idro"
 
 
 # Parameter settings (values in cm)
@@ -391,43 +393,25 @@ class Panel:
 				orig1 = (ay, ax)
 				orig2 = (ay, bx)
 
-		if (self.size[1]==2):
-			pnl = block_blue_120x100	
-			if (self.side==0 or self.side==2):
-				if (self.mode==0):
-					rot1, xs1, ys1 = 90, 0.1, 0.1
-					rot2, xs2, ys2 = 90, 0.1, -0.1
-				else:
-					rot1, xs1, ys1 = 0, 0.1, -0.1
-					rot2, xs2, ys2 = 0, 0.1, 0.1
+		if (self.side==0 or self.side==2):
+			if (self.mode==0):
+				rot1, xs1, ys1 = 90, 0.1, 0.1
+				rot2, xs2, ys2 = 90, 0.1, -0.1
 			else:
-				if (self.mode==0):
-					rot1, xs1, ys1 = 90, -0.1, 0.1
-					rot2, xs2, ys2 = 90, -0.1, -0.1
-				else:
-					rot1, xs1, ys1 = 0, -0.1, -0.1
-					rot2, xs2, ys2 = 0, -0.1, 0.1
+				rot1, xs1, ys1 = 0, 0.1, -0.1
+				rot2, xs2, ys2 = 0, 0.1, 0.1
 		else:
-			pnl = block_blue_60x100
-			if (self.side==0 or self.side==2):
-				if (self.mode==0):
-					rot1, xs1, ys1 = 0, 0.1, -0.1
-					rot2, xs2, ys2 = 0, -0.1, -0.1
-				else:
-					rot1, xs1, ys1 = 90, 0.1, 0.1
-					rot2, xs2, ys2 = 90, -0.1, 0.1
+			if (self.mode==0):
+				rot1, xs1, ys1 = 90, -0.1, 0.1
+				rot2, xs2, ys2 = 90, -0.1, -0.1
 			else:
-				if (self.mode==0):
-					rot1, xs1, ys1 = 0, 0.1, 0.1
-					rot2, xs2, ys2 = 0, -0.1, 0.1
-				else:
-					rot1, xs1, ys1 = 90, 0.1, -0.1
-					rot2, xs2, ys2 = 90, -0.1, -0.1
-	
-		block1 = msp.add_blockref(pnl, orig1, 
+				rot1, xs1, ys1 = 0, -0.1, -0.1
+				rot2, xs2, ys2 = 0, -0.1, 0.1
+
+		block1 = msp.add_blockref(self.panel_type, orig1, 
 			dxfattribs={'xscale': xs1, 'yscale': ys1, 'rotation': rot1})
 
-		block2 = msp.add_blockref(pnl, orig2, 
+		block2 = msp.add_blockref(self.panel_type, orig2, 
 			dxfattribs={'xscale': xs2, 'yscale': ys2, 'rotation': rot2})
 
 		block1.dxf.layer = layer_panel
@@ -438,76 +422,57 @@ class Panel:
 
 		ax = self.xcoord; bx = ax + self.width
 		ay = self.ycoord; by = ay + self.height
-			
-		if (self.size[1]==2):
-			pnl = block_blue_120x100	
-		else:
-			pnl = block_blue_60x100	
 	
 		if (self.side==0):
 			orig = (ax, by)
-			if (self.size[1]==2):
-				if (self.mode==0):
-					rot, xs, ys = 90, 0.1, 0.1
-				else:
-					rot, xs, ys = 0, 0.1, -0.1
+			if (self.mode==0):
+				rot, xs, ys = 90, 0.1, 0.1
 			else:
-				if (self.mode==0):
-					rot, xs, ys = 0, 0.1, -0.1
-				else:
-					rot, xs, ys = 90, 0.1, 0.1
-				
+				rot, xs, ys = 0, 0.1, -0.1
 
 		if (self.side==1):
 			orig = (ax, ay)
-			if (self.size[1]==2):
-				if (self.mode==0):
-					rot, xs, ys = 90, -0.1, 0.1
-				else:
-					rot, xs, ys = 0, -0.1, -0.1
+			if (self.mode==0):
+				rot, xs, ys = 90, -0.1, 0.1
 			else:
-				if (self.mode==0):
-					rot, xs, ys = 0, 0.1, 0.1
-				else:
-					rot, xs, ys = 90, 0.1, -0.1
+				rot, xs, ys = 0, -0.1, -0.1
 
 		if (self.side==2):
 			orig = (bx,by)
-			if (self.size[1]==2):
-				if (self.mode==0):
-					rot, xs, ys = 90, 0.1, -0.1
-				else:
-					rot, xs, ys = 0, 0.1, 0.1
+			if (self.mode==0):
+				rot, xs, ys = 90, 0.1, -0.1
 			else:
-				if (self.mode==0):
-					rot, xs, ys = 0, -0.1, -0.1
-				else:
-					rot, xs, ys = 90, -0.1, 0.1
+				rot, xs, ys = 0, 0.1, 0.1
 
 		if (self.side==3):
 			orig = (bx,ay)
-			if (self.size[1]==2):
-				if (self.mode==0):
-					rot, xs, ys = 90, -0.1, -0.1
-				else:
-					rot, xs, ys = 0, -0.1, 0.1
+			if (self.mode==0):
+				rot, xs, ys = 90, -0.1, -0.1
 			else:
-				if (self.mode==0):
-					rot, xs, ys = 0, -0.1, 0.1
-				else:
-					rot, xs, ys = 90, -0.1, -0.1
-
+				rot, xs, ys = 0, -0.1, 0.1
 
 		if (self.mode==1):
 			orig = (orig[1], orig[0])
 
-		block = msp.add_blockref(pnl, orig, 
+		block = msp.add_blockref(self.panel_type, orig, 
 			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 
 		block.dxf.layer = layer_panel
 
 
 	def draw(self, msp):
+
+		if (self.size[1]==2):
+			if (self.color==3):
+				self.panel_type = block_green_120x100	
+			else:
+				self.panel_type = block_blue_120x100	
+		else:
+			if (self.color==3):
+				self.panel_type = block_green_60x100	
+			else:
+				self.panel_type = block_blue_120x100	
+
 		if (self.size[0]==2):
 			self.draw_whole(msp)
 		else:
@@ -1985,6 +1950,8 @@ class App:
 		importer = Importer(source_dxf, self.doc)
 		importer.import_block(block_blue_120x100)
 		importer.import_block(block_blue_60x100)
+		importer.import_block(block_green_120x100)
+		importer.import_block(block_green_60x100)
 		
 		print("\n#####################################")
 		print("imported blocks")
