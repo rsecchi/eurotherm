@@ -18,8 +18,8 @@ from tkinter.messagebox import askyesno
 
 
 # block names
-block_blue_120x100 = "P10-3B_F$LEONAR$"
-block_blue_60x100  = "P06-3B_F$LEONAR$"
+block_blue_120x100 = "P10-3_PLUS$LEONAR$"
+block_blue_60x100  = "P06-3_PLUS$LEONAR$"
 
 
 # Parameter settings (values in cm)
@@ -1281,7 +1281,6 @@ class Model(threading.Thread):
 	def collector_side(self):
 
 		for room in self.processed:
-
 			if (not room.collector):
 				self.output.print("CRITICAL: Room %d disconnected\n" % room.index)
 				continue
@@ -1487,10 +1486,11 @@ class Model(threading.Thread):
 		# trim distance vectors
 		for room in self.processed:
 			room.links.sort(key=lambda x: x[1])
-			if (len(room.links)==0):
+			if (room.links[0][1]> max_clt_distance):
 				self.output.print(
-					"ABORT: No collectors can be reached from Room %d\n" % room.index)
-				return
+					"No collectors from Room %d, " % room.pindex)
+				self.output.print("ignoring room")
+				self.processed.remove(room)
 
 		bound = 0
 		for room in reversed(self.processed):
@@ -1499,14 +1499,19 @@ class Model(threading.Thread):
 			#print(room.pindex, room.bound, room.links[0][1])
 
 		for room in self.processed:
+			if (len(room.links)==1):
+				continue
+
 			for i, link in enumerate(room.links):
 				if (link[1]>max_clt_distance 
 					or i>=max_clt_break):
 					break
 			del room.links[i:]
 
+		################################################################
 
-		#  connect rooms
+		#  Mapping rooms to collectors
+
 		self.processed.append(None)    ;# Add sentinel
 		room_iter = iter(self.processed)
 		tot_iterations = 0
@@ -1555,13 +1560,11 @@ class Model(threading.Thread):
 					uplink_dist = d
 					room.attachment = dorsal.pos
 
-		#print("route")
-		## Route water pipes
-		#self.route()
-
 		## drawing connections
-		self.draw_links()
-		#self.draw_gates()
+		# self.draw_links()
+		for collector in self.collectors:
+			self.draw_trees(collector)
+		# self.draw_gates()
 
 		# summary
 		# self.output.clear()
@@ -1703,8 +1706,6 @@ class Model(threading.Thread):
 					item = (collector, copy(collector.items))
 					self.best_list.append(item)
 				return
-
-		#print(room.index, room.bound)
 
 		# Recursive cases
 		for link in room.links:
