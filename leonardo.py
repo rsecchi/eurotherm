@@ -25,7 +25,7 @@ block_green_60x100  = "Leo 55_60 idro"
 
 
 # Parameter settings (values in cm)
-default_scale = 1  # scale=100 if the drawing is in m
+default_scale = 0.1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -408,6 +408,9 @@ class Panel:
 				rot1, xs1, ys1 = 0, -0.1, -0.1
 				rot2, xs2, ys2 = 0, -0.1, 0.1
 
+		xs1, ys1 = xs1/scale, ys1/scale
+		xs2, ys2 = xs2/scale, ys2/scale
+
 		block1 = msp.add_blockref(self.panel_type, orig1, 
 			dxfattribs={'xscale': xs1, 'yscale': ys1, 'rotation': rot1})
 
@@ -454,6 +457,8 @@ class Panel:
 		if (self.mode==1):
 			orig = (orig[1], orig[0])
 
+		xs, ys = xs/scale, ys/scale
+
 		block = msp.add_blockref(self.panel_type, orig, 
 			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 
@@ -471,7 +476,7 @@ class Panel:
 			if (self.color==3):
 				self.panel_type = block_green_60x100	
 			else:
-				self.panel_type = block_blue_120x100	
+				self.panel_type = block_blue_60x100	
 
 		if (self.size[0]==2):
 			self.draw_whole(msp)
@@ -1440,7 +1445,6 @@ class Model(threading.Thread):
 				link_item = (collector, room.walk, room.uplink)
 				room.links.append(link_item)
 
-
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
@@ -1464,14 +1468,15 @@ class Model(threading.Thread):
 			#print(room.pindex, room.bound, room.links[0][1])
 
 		for room in self.processed:
-			if (len(room.links)==1):
-				continue
 
 			for i, link in enumerate(room.links):
 				if (link[1]>max_clt_distance 
 					or i>=max_clt_break):
 					break
-			del room.links[i:]
+
+			if (i+1 < len(room.links)):
+				del room.links[i:]
+
 
 		################################################################
 
@@ -1526,9 +1531,9 @@ class Model(threading.Thread):
 					room.attachment = dorsal.pos
 
 		## drawing connections
-		# self.draw_links()
-		for collector in self.collectors:
-			self.draw_trees(collector)
+		self.draw_links2()
+		#for collector in self.collectors:
+		#	self.draw_trees(collector)
 		# self.draw_gates()
 
 		# summary
@@ -1560,6 +1565,28 @@ class Model(threading.Thread):
 				while (room != collector.contained_in):
 					(p1, p2) = room.wall(room.uplink)
 					med = ((p1[0]+p2[0])/2, (p1[1]+p2[1])/2)
+					pline = (pos, med)
+					pl = self.msp.add_lwpolyline(pline)
+					pl.dxf.layer = layer_panel
+					pl.dxf.color = 4
+					pos = med
+					room = room.uplink
+				
+				pline = (pos, collector.pos)
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_panel
+				pl.dxf.color = 4
+
+	def draw_links2(self):	
+		# draw connections
+		for collector, items in self.best_list:
+			for room in items:
+				if (len(room.panels) == 0):
+					continue
+
+				pos = room.pos
+				while (room != collector.contained_in):
+					med = room.pos
 					pline = (pos, med)
 					pl = self.msp.add_lwpolyline(pline)
 					pl.dxf.layer = layer_panel
@@ -1940,23 +1967,13 @@ class App:
 		self.model.filename = self.filename
 
 		# copy blocks of panels
-		print("Copy panel blocks")
-		print("blocks in panel.dxf")
-
 		source_dxf = ezdxf.readfile("panels.dxf")
-		for block in source_dxf.blocks:
-			print(block.name)			
-
 		importer = Importer(source_dxf, self.doc)
 		importer.import_block(block_blue_120x100)
 		importer.import_block(block_blue_60x100)
 		importer.import_block(block_green_120x100)
 		importer.import_block(block_green_60x100)
 		
-		print("\n#####################################")
-		print("imported blocks")
-		for block in self.doc.blocks:
-			print(block.name)
 		self.model.start()
 	
 App()
