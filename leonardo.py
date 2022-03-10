@@ -16,6 +16,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
+dxf_version = "AC1021"
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -1919,7 +1920,7 @@ class App:
 
 	def loadfile(self):
 		try:
-			self.doc = ezdxf.readfile(self.filename)
+			self.doc_src = ezdxf.readfile(self.filename)
 		except IOError:
 			self.reset()
 			return
@@ -1934,7 +1935,7 @@ class App:
 		self.outname = self.filename[:-4]+"_leo.dxf"
 		self.text1.set(self.outname)
 
-		layers = [layer.dxf.name for layer in self.doc.layers]
+		layers = [layer.dxf.name for layer in self.doc_src.layers]
 		sel = layers[0]
 		for layer in layers:
 			if (layer == default_input_layer):
@@ -1957,8 +1958,9 @@ class App:
 			return
 
 		# reload file
-		self.model.doc = self.doc = ezdxf.readfile(self.filename)	
-		self.model.msp = self.msp = self.doc.modelspace()
+		self.doc = ezdxf.readfile(self.filename)	
+		self.model.doc = ezdxf.new(dxf_version)
+		self.model.msp = self.model.doc.modelspace()
 		self.model.scale = float(self.entry1.get())
 
 		self.model.inputlayer = self.var.get()
@@ -1966,14 +1968,20 @@ class App:
 		self.model.outname = self.outname
 		self.model.filename = self.filename
 
-		# copy blocks of panels
+		# copy input layer from source
+		importer = Importer(self.doc, self.model.doc)
+		ents = self.doc.modelspace().query('*[layer=="%s"]' 
+				% self.model.inputlayer)
+		importer.import_entities(ents)
+
+		# copy blocks from panels
 		source_dxf = ezdxf.readfile("panels.dxf")
-		importer = Importer(source_dxf, self.doc)
+		importer = Importer(source_dxf, self.model.doc)
 		importer.import_block(block_blue_120x100)
 		importer.import_block(block_blue_60x100)
 		importer.import_block(block_green_120x100)
 		importer.import_block(block_green_60x100)
-		
+
 		self.model.start()
 	
 App()
