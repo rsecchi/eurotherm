@@ -16,7 +16,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
-dxf_version = "AC1021"
+dxf_version = "AC1024"
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -1825,7 +1825,7 @@ class App:
 	def __init__(self):
 		self.loaded = False
 		self.queue = queue.Queue()
-		self.model = Model(self)
+		self.model = None
 
 		self.root = Tk()
 		root = self.root
@@ -1951,11 +1951,18 @@ class App:
 
 
 	def create_model(self):
+
+		if self.model and self.model.is_alive():
+			return
+
 		self.textinfo.delete('1.0', END)
 
 		if (not self.loaded):
 			self.textinfo(END, "File not loaded")
 			return
+
+		# create model and initialise it
+		self.model = Model(self)
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
@@ -1981,6 +1988,7 @@ class App:
 		importer.import_block(block_blue_60x100)
 		importer.import_block(block_green_120x100)
 		importer.import_block(block_green_60x100)
+
 
 		self.model.start()
 	
