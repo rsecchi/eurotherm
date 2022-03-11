@@ -1216,7 +1216,8 @@ class Room:
 		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 		for panel in self.panels:
-			# panel.draw(msp)       <<<  MODIFIED LINE
+			panel.draw(msp)
+			#       <<<  MODIFIED LINE
 			panel.draw_profile(msp)
 
 
@@ -1983,12 +1984,12 @@ class App:
 		#importer.import_entities(ents)
 
 		## copy blocks from panels
-		#source_dxf = ezdxf.readfile("panels.dxf")
-		#importer = Importer(source_dxf, self.model.doc)
-		#importer.import_block(block_blue_120x100)
-		#importer.import_block(block_blue_60x100)
-		#importer.import_block(block_green_120x100)
-		#importer.import_block(block_green_60x100)
+		source_dxf = ezdxf.readfile("panels.dxf")
+		importer = Importer(source_dxf, self.model.doc)
+		importer.import_block(block_blue_120x100)
+		importer.import_block(block_blue_60x100)
+		importer.import_block(block_green_120x100)
+		importer.import_block(block_green_60x100)
 
 
 		self.model.start()
