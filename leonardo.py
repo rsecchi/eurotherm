@@ -1211,12 +1211,12 @@ class Room:
 
 	def draw(self, msp):
 		
-		#self.arrangement.draw_grid(msp)
+		self.arrangement.draw_grid(msp)
 
 		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 		for panel in self.panels:
-			panel.draw(msp)
+			# panel.draw(msp)       <<<  MODIFIED LINE
 			panel.draw_profile(msp)
 
 
@@ -1966,7 +1966,8 @@ class App:
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
-		self.model.doc = ezdxf.new(dxf_version)
+		#self.model.doc = ezdxf.new(dxf_version)
+		self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
 		self.model.msp = self.model.doc.modelspace()
 		self.model.scale = float(self.entry1.get())
 
@@ -1976,18 +1977,18 @@ class App:
 		self.model.filename = self.filename
 
 		# copy input layer from source
-		importer = Importer(self.doc, self.model.doc)
-		ents = self.doc.modelspace().query('*[layer=="%s"]' 
-				% self.model.inputlayer)
-		importer.import_entities(ents)
+		#importer = Importer(self.doc, self.model.doc)
+		#ents = self.doc.modelspace().query('*[layer=="%s"]' 
+		#		% self.model.inputlayer)
+		#importer.import_entities(ents)
 
-		# copy blocks from panels
-		source_dxf = ezdxf.readfile("panels.dxf")
-		importer = Importer(source_dxf, self.model.doc)
-		importer.import_block(block_blue_120x100)
-		importer.import_block(block_blue_60x100)
-		importer.import_block(block_green_120x100)
-		importer.import_block(block_green_60x100)
+		## copy blocks from panels
+		#source_dxf = ezdxf.readfile("panels.dxf")
+		#importer = Importer(source_dxf, self.model.doc)
+		#importer.import_block(block_blue_120x100)
+		#importer.import_block(block_blue_60x100)
+		#importer.import_block(block_green_120x100)
+		#importer.import_block(block_green_60x100)
 
 
 		self.model.start()
