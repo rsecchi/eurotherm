@@ -26,7 +26,7 @@ block_green_60x100  = "Leo 55_60 idro"
 
 
 # Parameter settings (values in cm)
-default_scale = 0.1  # scale=100 if the drawing is in m
+default_scale = 1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -78,6 +78,8 @@ sheet_template_1 = 'LEONARDO 5.5'
 sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
+sheet_breakdown = 'Panels BOM'
+show_panel_list = True
 
 alphabet = {
 	' ': [],
@@ -1399,6 +1401,7 @@ class Model(threading.Thread):
 						room.pindex = pindex
 						pindex += 1
 						self.processed.append(room)
+
 	
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
@@ -1411,11 +1414,12 @@ class Model(threading.Thread):
 			room.feeds = ceil(room.area/(w*h)/area_per_feed_m2*target_eff)
 			tot_area += room.area
 
-		full_cover_feeds = tot_area/(w*h)/area_per_feed_m2
-		needed_feeds = ceil(target_eff * full_cover_feeds)
+		full_cover_feeds = self.full_cover_feeds = tot_area/(w*h)/area_per_feed_m2
+		needed_feeds = self.needed_feeds = ceil(target_eff * full_cover_feeds)
 		available_feeds = feeds_per_collector * len(self.collectors)
-		self.output.print("Available water feed pipes %g\n" % available_feeds)
-		self.output.print("Minimum required feed pipes: %d\n" % needed_feeds)
+		self.output.print("Available pipes %g\n" % available_feeds)
+		self.output.print("Estimated pipes for 70%% cover: %d\n" % needed_feeds)
+		self.output.print("Estimated pipes for 100%% cover: %d\n" % full_cover_feeds)
 		if (needed_feeds > available_feeds):
 			self.output.print("ABORT: Too few collectors\n")
 			return
@@ -1532,11 +1536,14 @@ class Model(threading.Thread):
 					uplink_dist = d
 					room.attachment = dorsal.pos
 
+		print("Attachment done")
+
 		## drawing connections
 		self.draw_links2()
 		#for collector in self.collectors:
 		#	self.draw_trees(collector)
 		# self.draw_gates()
+		print("Links done")
 
 		# summary
 		# self.output.clear()
@@ -1582,6 +1589,7 @@ class Model(threading.Thread):
 	def draw_links2(self):	
 		# draw connections
 		for collector, items in self.best_list:
+
 			for room in items:
 				if (len(room.panels) == 0):
 					continue
@@ -1732,6 +1740,7 @@ class Model(threading.Thread):
 		w = default_panel_width
 		h = default_panel_height
 		failed_rooms = 0
+		feeds = 0
 		for room in self.processed:
 
 			if (len(room.errorstr)>0):
@@ -1751,16 +1760,20 @@ class Model(threading.Thread):
 			p1x1_r += panel_count[5]
 			p1x2_l += panel_count[6]
 			p1x2_r += panel_count[7]
+			room.actual_feeds = ceil(ractive/(w*h)/area_per_feed_m2)
+			feeds += room.actual_feeds
 			
 		self.area = area
 		self.active_area = active_area		
+		self.feeds = feeds
 	
 		# Summary of all areas
 		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
-		smtxt += "\n\nTotal collectors %d\n" % (len(self.collectors))
+		smtxt += "Total collectors %d\n" % (len(self.collectors))
 		smtxt += "Total area %.5g m2\n" % area
 		smtxt += "Total active area %.5g m2" % active_area
 		smtxt += " (%.4g %%)\n" % (100*active_area/area)
+		smtxt += "Total pipes %d\n" % self.feeds
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
 		smtxt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h)
@@ -1769,12 +1782,12 @@ class Model(threading.Thread):
 		smtxt += "  %d left, %d right\n" % (p1x1_l, p1x1_r)
 		smtxt += "\n> requirements:\n"
 		p2x2_cut = min(p1x2_r,p1x2_l) + abs(p1x2_r-p1x2_l)
-		p2x2_tot = p2x2 + p2x2_cut 
+		self.panels_200x120 = p2x2_tot = p2x2 + p2x2_cut 
 		p2x2_spr = abs(p1x2_r-p1x2_l)
 		smtxt += "  %d panels %dx%d, \n" % (p2x2_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_cut, p2x2_spr)
 		p1x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
-		p1x1_tot = p1x1 + p1x1_cut 
+		self.panels_200x60 = p1x1_tot = p1x1 + p1x1_cut 
 		p1x1_spr = abs(p1x1_r-p1x1_l)
 		smtxt += "  %d panels %dx%d, \n" % (p1x1_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p1x1_cut, p1x1_spr) 
@@ -1786,6 +1799,8 @@ class Model(threading.Thread):
 		ws1 = wb[sheet_template_1]
 		ws2 = wb[sheet_template_2]
 		ws3 = wb[sheet_template_3]
+
+		no_collectors = len(self.collectors)
 
 		# copy total area
 		ws1['D3'] = self.area
@@ -1802,6 +1817,37 @@ class Model(threading.Thread):
 		ws1['C4'] = self.active_area
 		ws2['C4'] = self.active_area
 		ws3['C4'] = self.active_area
+
+		# copy total panels
+		ws1['F3'] = ws1['F4'] = self.panels_200x120
+		ws1['F3'] = ws1['F4'] = self.panels_200x120
+		ws2['F3'] = ws2['F4'] = self.panels_200x120
+		ws2['F3'] = ws2['F4'] = self.panels_200x120
+		ws3['F3'] = ws3['F4'] = self.panels_200x120
+		ws3['F3'] = ws3['F4'] = self.panels_200x120
+
+		ws1['G3'] = ws1['G4'] = self.panels_200x60
+		ws1['G3'] = ws1['G4'] = self.panels_200x60
+		ws2['G3'] = ws2['G4'] = self.panels_200x60
+		ws2['G3'] = ws2['G4'] = self.panels_200x60
+		ws3['G3'] = ws3['G4'] = self.panels_200x60
+		ws3['G3'] = ws3['G4'] = self.panels_200x60
+
+		# copy number of feeds
+		ws1['H3'] = ws1['H4'] = self.feeds
+		ws1['H3'] = ws1['H4'] = self.feeds
+		ws2['H3'] = ws2['H4'] = self.feeds
+		ws2['H3'] = ws2['H4'] = self.feeds
+		ws3['H3'] = ws3['H4'] = self.feeds
+		ws3['H3'] = ws3['H4'] = self.feeds
+
+		# copy number of collectors 
+		ws1['I3'] = ws1['I4'] = no_collectors 
+		ws1['I3'] = ws1['I4'] = no_collectors 
+		ws2['I3'] = ws2['I4'] = no_collectors 
+		ws2['I3'] = ws2['I4'] = no_collectors 
+		ws3['I3'] = ws3['I4'] = no_collectors 
+		ws3['I3'] = ws3['I4'] = no_collectors 
 
 		#for room in self.processed:
 		#	print(room.index)
