@@ -1228,6 +1228,7 @@ class Model(threading.Thread):
 		super(Model, self).__init__()
 		self.rooms = list()
 		self.collectors = list()
+		self.zone = list()
 		self.output = output
 		self.best_list = list()
 
@@ -1279,6 +1280,96 @@ class Model(threading.Thread):
 		for room in self.processed:
 			#print(room.links)
 			pass
+
+
+	def create_trees(self):
+
+		# create trees
+		self.find_gates()
+		for room in self.processed:
+			room.links = list()
+			room.zone = None
+
+		zone = 1
+		for collector in self.collectors:
+			collector.is_leader = False
+
+			for room in self.processed:
+				room.visited = False
+				room.uplink = None
+				room.walk = MAX_DIST
+
+			root = collector.contained_in
+			root.walk = 0
+			root.uplink = root
+			
+			root.set_as_root(self.processed.copy(), collector)
+
+			leader = None
+			for room in self.processed:
+
+				# create new zone for unlinked collectors
+				if ((not room.zone) and room.walk<MAX_DIST):
+					if (not collector.is_leader):
+						collector.is_leader = True
+						collector.zone_num = zone
+						collector.number = 1
+						collector.name = 'C' + str(zone) + '+1'
+						zone += 1
+					room.zone = collector
+				else:
+					if (room.zone):
+						leader = room.zone
+ 
+				link_item = (collector, room.walk, room.uplink)
+				room.links.append(link_item)
+
+			if (not collector.is_leader):
+				if (leader):
+					collector.zone_num = leader.zone_num
+					leader.number += 1
+					collector.number = leader.number
+					collector.name = 'C' + str(leader.zone_num)
+					collector.name += '+' + str(leader.number)
+				else:
+					collector.name ="unassigned"
+					collector.zone_num = 0
+					collector.number = 0
+					
+
+		self.best_dist = MAX_DIST
+		for collector in self.collectors:
+			collector.freespace = feeds_per_collector 
+			collector.items = list()
+
+		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
+
+		# trim distance vectors
+		for room in self.processed:
+			room.links.sort(key=lambda x: x[1])
+			if (room.links[0][1]> max_clt_distance):
+				self.output.print(
+					"No collectors from Room %d, " % room.pindex)
+				self.output.print("ignoring room")
+				self.processed.remove(room)
+
+		bound = 0
+		for room in reversed(self.processed):
+			room.bound = bound
+			bound += room.links[0][1]
+			#print(room.pindex, room.bound, room.links[0][1])
+
+		for room in self.processed:
+
+			for i, link in enumerate(room.links):
+				if (link[1]>max_clt_distance 
+					or i>=max_clt_break):
+					break
+
+			if (i+1 < len(room.links)):
+				del room.links[i:]
+
+
 
 	def run(self):
 		global font_size
@@ -1427,61 +1518,9 @@ class Model(threading.Thread):
 		if (full_cover_feeds > available_feeds):
 			self.output.print("WARNING: Low number of collectors\n")
 
+
 		################################################################
-
-
-		# create trees
-		self.find_gates()
-		for room in self.processed:
-			room.links = list()
-
-		for collector in self.collectors:
-			for room in self.processed:
-				room.visited = False
-				room.uplink = None
-				room.walk = MAX_DIST
-
-			root = collector.contained_in
-			root.walk = 0
-			root.uplink = root
-			
-			root.set_as_root(self.processed.copy(), collector)
-
-			for room in self.processed:
-				link_item = (collector, room.walk, room.uplink)
-				room.links.append(link_item)
-
-		self.best_dist = MAX_DIST
-		for collector in self.collectors:
-			collector.freespace = feeds_per_collector 
-			collector.items = list()
-
-		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
-
-		# trim distance vectors
-		for room in self.processed:
-			room.links.sort(key=lambda x: x[1])
-			if (room.links[0][1]> max_clt_distance):
-				self.output.print(
-					"No collectors from Room %d, " % room.pindex)
-				self.output.print("ignoring room")
-				self.processed.remove(room)
-
-		bound = 0
-		for room in reversed(self.processed):
-			room.bound = bound
-			bound += room.links[0][1]
-			#print(room.pindex, room.bound, room.links[0][1])
-
-		for room in self.processed:
-
-			for i, link in enumerate(room.links):
-				if (link[1]>max_clt_distance 
-					or i>=max_clt_break):
-					break
-
-			if (i+1 < len(room.links)):
-				del room.links[i:]
+		self.create_trees()
 
 
 		################################################################
@@ -1754,8 +1793,14 @@ class Model(threading.Thread):
 			txt += roomtxt + "\n"
 			p2x2 += panel_count[0]
 			p2x1 += panel_count[1]
+			room.panels_200x120 = panel_count[0]
+			room.panels_200x60 = panel_count[1]
+
 			p1x2 += panel_count[2]
 			p1x1 += panel_count[3]
+			room.panels_100x120 = panel_count[2]
+			room.panels_100x60 = panel_count[3]
+
 			p1x1_l += panel_count[4]
 			p1x1_r += panel_count[5]
 			p1x2_l += panel_count[6]
@@ -1849,19 +1894,58 @@ class Model(threading.Thread):
 		ws3['I3'] = ws3['I4'] = no_collectors 
 		ws3['I3'] = ws3['I4'] = no_collectors 
 
-		#for room in self.processed:
-		#	print(room.index)
+		if show_panel_list:
+			ws = wb.create_sheet(sheet_breakdown)
 
-			#ws[pos_width] = ceil(width/5)*5/100
-			#ws[pos_paneltype] = 'BLH'
-			#ws[pos_start_profile] = 'NONE'
-			#ws[pos_len] = round(length/5)*50
-			#ws[pos_start_profile] = 'NONE'
-			#ws[pos_end_profile] = 'NONE'
-			#ws[pos_perimeter] = perimeter
-			#ws[pos_omega] = '0.0'
+			# header
+			ws['B3'] = "Zone"
+			ws['C3'] = "Collector"
+			ws['D3'] = "Room"
+			ws['E3'] = "Panels 200x120"
+			ws['F3'] = "Panels 200x60"
+			ws['G3'] = "Panels 100x120"
+			ws['H3'] = "Panels 100x60"
 
-			#ws[pos_area].number_format = "0.00"
+			ws.column_dimensions['B'].width = 20
+			ws.column_dimensions['C'].width = 10
+			ws.column_dimensions['D'].width = 10
+			ws.column_dimensions['E'].width = 20
+			ws.column_dimensions['F'].width = 20
+			ws.column_dimensions['G'].width = 20
+			ws.column_dimensions['H'].width = 20
+
+			self.processed.sort(key=lambda x: 
+				(x.collector.zone_num, x.collector.number, x.pindex))
+
+			zone = 0
+			index = 4
+			for room in self.processed:
+
+				while (room.collector.zone_num>zone):
+					zone += 1
+					pos = 'B' + str(index)
+					ws[pos] = "Zone %d" % zone
+
+				pos = 'C' + str(index)
+				ws[pos] = room.collector.name
+				
+				pos = 'D' + str(index)
+				ws[pos] = room.pindex
+
+				pos = 'E' + str(index)
+				ws[pos] = room.panels_200x120
+
+				pos = 'F' + str(index)
+				ws[pos] = room.panels_200x60
+
+				pos = 'G' + str(index)
+				ws[pos] = room.panels_100x120
+
+				pos = 'H' + str(index)
+				ws[pos] = room.panels_100x60
+
+				#ws[pos_area].number_format = "0.00"
+				index += 1
 
 		out = self.filename[:-4] + ".xlsx"	
 		wb.save(out)
