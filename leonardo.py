@@ -356,6 +356,18 @@ def is_gate(line, target):
 	return (False, (None, None))
 
 
+def set_border(ws, row, cols):
+
+#	thin_border = Border(left=Side(style='thin'), 
+#                   right=Side(style='thin'), 
+#                   top=Side(style='thin'), 
+#                   bottom=Side(style='thin'))
+
+	cell_border = Border(top=Side(style='thin'))
+	for col in cols:
+		ws[col+row].border = cell_border
+
+
 # This class represents the radiating panel
 # with its characteristics
 # side=00  -->  water feed over top edge, left panel
@@ -1909,22 +1921,30 @@ class Model(threading.Thread):
 			ws.column_dimensions['B'].width = 20
 			ws.column_dimensions['C'].width = 10
 			ws.column_dimensions['D'].width = 10
-			ws.column_dimensions['E'].width = 20
-			ws.column_dimensions['F'].width = 20
-			ws.column_dimensions['G'].width = 20
-			ws.column_dimensions['H'].width = 20
+			ws.column_dimensions['E'].width = 15
+			ws.column_dimensions['F'].width = 15
+			ws.column_dimensions['G'].width = 15
+			ws.column_dimensions['H'].width = 15
+
+			set_border(ws, '3', "BCDEFGH")
 
 			self.processed.sort(key=lambda x: 
 				(x.collector.zone_num, x.collector.number, x.pindex))
 
 			zone = 0
 			index = 4
+			number = -1
 			for room in self.processed:
 
 				while (room.collector.zone_num>zone):
 					zone += 1
 					pos = 'B' + str(index)
 					ws[pos] = "Zone %d" % zone
+					set_border(ws,str(index), 'B')
+				
+				if (room.collector.number != number):
+					number = room.collector.number
+					set_border(ws, str(index), "CDEFGH")
 
 				pos = 'C' + str(index)
 				ws[pos] = room.collector.name
@@ -1932,17 +1952,21 @@ class Model(threading.Thread):
 				pos = 'D' + str(index)
 				ws[pos] = room.pindex
 
-				pos = 'E' + str(index)
-				ws[pos] = room.panels_200x120
+				if (room.panels_200x120>0):
+					pos = 'E' + str(index)
+					ws[pos] = room.panels_200x120
 
-				pos = 'F' + str(index)
-				ws[pos] = room.panels_200x60
+				if (room.panels_200x60>0):
+					pos = 'F' + str(index)
+					ws[pos] = room.panels_200x60
 
-				pos = 'G' + str(index)
-				ws[pos] = room.panels_100x120
+				if (room.panels_100x120>0):
+					pos = 'G' + str(index)
+					ws[pos] = room.panels_100x120
 
-				pos = 'H' + str(index)
-				ws[pos] = room.panels_100x60
+				if (room.panels_100x60>0):
+					pos = 'H' + str(index)
+					ws[pos] = room.panels_100x60
 
 				#ws[pos_area].number_format = "0.00"
 				index += 1
