@@ -1231,7 +1231,6 @@ class Room:
 
 		for panel in self.panels:
 			panel.draw(msp)
-			#       <<<  MODIFIED LINE
 			panel.draw_profile(msp)
 
 
@@ -1305,6 +1304,7 @@ class Model(threading.Thread):
 		zone = 1
 		for collector in self.collectors:
 			collector.is_leader = False
+			collector.zone_rooms = list()
 
 			for room in self.processed:
 				room.visited = False
@@ -1329,6 +1329,7 @@ class Model(threading.Thread):
 						collector.name = 'C' + str(zone) + '+1'
 						zone += 1
 					room.zone = collector
+					collector.zone_rooms.append(room)
 				else:
 					if (room.zone):
 						leader = room.zone
@@ -1564,7 +1565,6 @@ class Model(threading.Thread):
 		for room in self.processed:
 			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
-			room.draw(self.msp)
 		self.output.print("\n")
 
 
@@ -1587,14 +1587,8 @@ class Model(threading.Thread):
 					uplink_dist = d
 					room.attachment = dorsal.pos
 
-		print("Attachment done")
+		self.draw()
 
-		## drawing connections
-		self.draw_links2()
-		#for collector in self.collectors:
-		#	self.draw_trees(collector)
-		# self.draw_gates()
-		print("Links done")
 
 		# summary
 		# self.output.clear()
@@ -1613,6 +1607,34 @@ class Model(threading.Thread):
 		self.save_in_xls()
 
 		print("DONE")
+
+	def draw(self):
+
+		# Box zones
+		for clt in self.collectors:
+			if (not clt.is_leader):
+				continue
+			ax = min([c.ax for c in clt.zone_rooms]) - min_dist
+			ay = min([c.ay for c in clt.zone_rooms]) - min_dist
+			bx = max([c.bx for c in clt.zone_rooms]) + min_dist
+			by = max([c.by for c in clt.zone_rooms]) + min_dist
+			
+			#pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+			pline = [(ay,ax),(by,ax),(by,bx),(ay,bx),(ay,ax)]
+			pl = self.msp.add_lwpolyline(pline)
+			pl.dxf.layer = layer_panel
+			pl.dxf.color = 4
+
+			write_text(self.msp, "Zone %d" % clt.number , (by,ax))
+
+		for room in self.processed:
+			room.draw(self.msp)
+
+		## drawing connections
+		self.draw_links2()
+		#for collector in self.collectors:
+		#	self.draw_trees(collector)
+		# self.draw_gates()
 
 	def draw_links(self):	
 		# draw connections
