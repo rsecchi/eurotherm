@@ -26,7 +26,7 @@ block_green_60x100  = "Leo 55_60 idro"
 
 
 # Parameter settings (values in cm)
-default_scale = 1  # scale=100 if the drawing is in m
+default_scale = 0.1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -145,12 +145,13 @@ def writedxf(msp, strn, pos, scale):
 		pl.dxf.layer = layer_text
 		pos = (pos[0]+scale[0]*3, pos[1])
 
-def write_text(msp, strn, pos):
+def write_text(msp, strn, pos, 
+	align=ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER):
 	
 	text = msp.add_mtext(strn, 
 		dxfattribs={"style": "Arial"})
 	text.dxf.insert = pos
-	text.dxf.attachment_point = ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER
+	text.dxf.attachment_point = align
 	text.dxf.char_height = font_size
 	text.dxf.layer = layer_text
 	
@@ -307,6 +308,8 @@ def is_gate(line, target):
 	# reference on target
 	(ux, uy) = (xb1-xb0, yb1-yb0)
 	u = sqrt(ux*ux + uy*uy)
+	if (u==0):
+		return (False, (None, None))
 	(uvx, uvy) = (ux/u, uy/u)
 	(uox, uoy) = (-uvy, uvx)
 	
@@ -1312,6 +1315,10 @@ class Model(threading.Thread):
 				room.walk = MAX_DIST
 
 			root = collector.contained_in
+			if (not root):
+				print("collector at ", collector.pos, " outside rooms")
+				continue
+
 			root.walk = 0
 			root.uplink = root
 			
@@ -1435,7 +1442,7 @@ class Model(threading.Thread):
 		query = self.msp.query(searchstr)
 		if (len(query) == 0):
 			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
-			self.output.print(END, wstr)
+			self.output.print(wstr)
 
 		# Create list of rooms
 		for poly in query:
@@ -1480,6 +1487,7 @@ class Model(threading.Thread):
 			while (j<len(room) and room[j].ax < room[i].bx):
 				if (room[i].contains(room[j]) or 
 					room[j].contains(room[i])):
+
 					if (room[i].area > room[j].area):
 						room[i].obstacles.append(room[j])
 						room[j].contained_in = room[i]
@@ -1511,14 +1519,13 @@ class Model(threading.Thread):
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
 
 		# Check if enough collectors
-		w = panel_width/100
-		h = panel_height/100
 		tot_area = 0
 		for room in self.processed:
-			room.feeds = ceil(room.area/(w*h)/area_per_feed_m2*target_eff)
-			tot_area += room.area
+			area = scale * scale * room.area
+			room.feeds = ceil(area/area_per_feed_m2*target_eff)
+			tot_area += area
 
-		full_cover_feeds = self.full_cover_feeds = tot_area/(w*h)/area_per_feed_m2
+		full_cover_feeds = self.full_cover_feeds = tot_area/area_per_feed_m2
 		needed_feeds = self.needed_feeds = ceil(target_eff * full_cover_feeds)
 		available_feeds = feeds_per_collector * len(self.collectors)
 		self.output.print("Available pipes %g\n" % available_feeds)
@@ -1531,13 +1538,16 @@ class Model(threading.Thread):
 		if (full_cover_feeds > available_feeds):
 			self.output.print("WARNING: Low number of collectors\n")
 
-
 		################################################################
 		self.create_trees()
+		# for collector in self.collectors:
+		#self.draw_trees(self.collectors[5])
 
+		#self.draw_gates()	
+		#self.doc.saveas(self.outname)
+		#return
 
 		################################################################
-
 		#  Mapping rooms to collectors
 
 		self.processed.append(None)    ;# Add sentinel
@@ -1550,9 +1560,10 @@ class Model(threading.Thread):
 		self.processed.pop()           ;# Remove sentinel
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms\n")
+			return
 
 		#self.draw_uplinks()
-		#print("Done allocating collectors")
+		print("Room connected")
 		#self.draw_trees(self.collectors[3])
 
 		# Determine which side is collector in each room
@@ -1567,6 +1578,7 @@ class Model(threading.Thread):
 			room.alloc_panels()
 		self.output.print("\n")
 
+		print("Panels arranged")
 
 		# find attachment points of dorsals
 		self.dorsals = list()
@@ -1587,9 +1599,7 @@ class Model(threading.Thread):
 					uplink_dist = d
 					room.attachment = dorsal.pos
 
-		self.draw()
-
-
+		##############################################################
 		# summary
 		# self.output.clear()
 		summary = self.print_report()
@@ -1597,12 +1607,18 @@ class Model(threading.Thread):
 		f = open(self.outname+".txt", "w")
 		print(summary, file = f)
 
+		##############################################################
+
+		self.draw()
+		##############################################################
+
 		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
 				self.doc.saveas(self.outname)
 		else:
 			self.doc.saveas(self.outname)
 
+		##############################################################
 		# save data in XLS
 		self.save_in_xls()
 
@@ -1614,10 +1630,10 @@ class Model(threading.Thread):
 		for clt in self.collectors:
 			if (not clt.is_leader):
 				continue
-			ax = min([c.ax for c in clt.zone_rooms]) - min_dist
-			ay = min([c.ay for c in clt.zone_rooms]) - min_dist
-			bx = max([c.bx for c in clt.zone_rooms]) + min_dist
-			by = max([c.by for c in clt.zone_rooms]) + min_dist
+			ax = min([c.ax for c in clt.zone_rooms]) - 2*min_dist
+			ay = min([c.ay for c in clt.zone_rooms]) - 2*min_dist
+			bx = max([c.bx for c in clt.zone_rooms]) + 2*min_dist
+			by = max([c.by for c in clt.zone_rooms]) + 2*min_dist
 			
 			#pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 			pline = [(ay,ax),(by,ax),(by,bx),(ay,bx),(ay,ax)]
@@ -1625,13 +1641,26 @@ class Model(threading.Thread):
 			pl.dxf.layer = layer_panel
 			pl.dxf.color = 4
 
-			write_text(self.msp, "Zone %d" % clt.number , (by,ax))
+			write_text(self.msp, "Zone %d" % clt.zone_num, (ay,bx+min_dist), 
+				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
+
+		# Collectors
+		for collector, items in self.best_list:
+			feeds = 0
+			for room in items:
+				feeds += room.actual_feeds
+			txt = collector.name + " (%d)" % feeds
+			write_text(self.msp, txt, collector.pos)
 
 		for room in self.processed:
 			room.draw(self.msp)
 
+		print("Room done")
+
 		## drawing connections
 		self.draw_links2()
+		print("Links completed")
+
 		#for collector in self.collectors:
 		#	self.draw_trees(collector)
 		# self.draw_gates()
@@ -1675,6 +1704,9 @@ class Model(threading.Thread):
 					pl.dxf.layer = layer_panel
 					pl.dxf.color = 4
 					pos = med
+					if (room.uplink == room):
+						print("breaking up", room.pindex, collector.contained_in.pindex)
+						break
 					room = room.uplink
 				
 				pline = (pos, collector.pos)
@@ -1705,6 +1737,10 @@ class Model(threading.Thread):
 			pl = self.msp.add_lwpolyline(pline)
 			pl.dxf.layer = layer_link
 			pl.dxf.color = 1
+			
+			if (not room.uplink):
+				continue
+
 			pl = self.msp.add_circle(room.uplink.pos,2*search_tol)
 			pl.dxf.layer = layer_link
 			pl.dxf.color = 1
@@ -1839,7 +1875,8 @@ class Model(threading.Thread):
 			p1x1_r += panel_count[5]
 			p1x2_l += panel_count[6]
 			p1x2_r += panel_count[7]
-			room.actual_feeds = ceil(ractive/(w*h)/area_per_feed_m2)
+
+			room.actual_feeds = ceil(ractive/area_per_feed_m2)
 			feeds += room.actual_feeds
 			
 		self.area = area
