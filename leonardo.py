@@ -1230,7 +1230,7 @@ class Room:
 		
 		self.arrangement.draw_grid(msp)
 
-		write_text(msp, "Room %d" % self.pindex, self.pos)
+		write_text(msp, "Room %d (%d)" % (self.pindex, self.actual_feeds), self.pos)
 
 		for panel in self.panels:
 			panel.draw(msp)
@@ -1701,18 +1701,18 @@ class Model(threading.Thread):
 					med = room.pos
 					pline = (pos, med)
 					pl = self.msp.add_lwpolyline(pline)
-					pl.dxf.layer = layer_panel
-					pl.dxf.color = 4
+					pl.dxf.layer = layer_link
+					pl.dxf.color = 6
 					pos = med
 					if (room.uplink == room):
-						print("breaking up", room.pindex, collector.contained_in.pindex)
 						break
 					room = room.uplink
 				
 				pline = (pos, collector.pos)
 				pl = self.msp.add_lwpolyline(pline)
-				pl.dxf.layer = layer_panel
-				pl.dxf.color = 4
+				pl.dxf.layer = layer_link
+				pl.dxf.color = 6
+
 
 	def draw_trees(self, collector):
 
