@@ -16,7 +16,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
 
-dxf_version = "AC1024"
+dxf_version = "AC1032"
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -36,17 +36,17 @@ max_room_area = 500
 default_max_clt_distance = 1500
 max_clt_break = 5
 
-feeds_per_collector = 8
-area_per_feed_m2 = 14.4
+feeds_per_collector = 10
+area_per_feed_m2 = 12
 target_eff = 0.7
 
-default_font_size = 35
+default_font_size = 10
 
 # Half panels default dimensions in cm
 default_panel_width = 100
 default_panel_height = 60
-default_hatch_width = 15
-default_hatch_height = 10
+default_hatch_width = 12
+default_hatch_height = 20
 
 default_search_tol = 5
 default_min_dist = 20
@@ -961,8 +961,11 @@ class Room:
 			yb += (x1-x0)*(y0*y0+y0*y1+y1*y1)/6
 			Ax += (y1-y0)*(x0+x1)/2
 			Ay += (x1-x0)*(y0+y1)/2
-
-		return (xb/Ax, yb/Ay)
+		
+		if (Ax!=0 and Ay!=0):
+			return (xb/Ax, yb/Ay)
+		else:
+			return (0, 0)
 
 	def bounding_box(self):
 		self.ax = min(self.xcoord)
@@ -1230,7 +1233,8 @@ class Room:
 		
 		self.arrangement.draw_grid(msp)
 
-		write_text(msp, "Room %d (%d)" % (self.pindex, self.actual_feeds), self.pos)
+		write_text(msp, "Room %d (%d)" % 
+			(self.pindex, self.actual_feeds), self.pos)
 
 		for panel in self.panels:
 			panel.draw(msp)
@@ -1257,8 +1261,6 @@ class Model(threading.Thread):
 		self.new_layer(layer_panel, 0)
 		self.new_layer(layer_panelp, 0)
 		self.new_layer(layer_link, 0)
-
-		#self.doc.layers.get(layer_box).off()
 
 	def find_gates(self):
 		
@@ -1333,7 +1335,7 @@ class Model(threading.Thread):
 						collector.is_leader = True
 						collector.zone_num = zone
 						collector.number = 1
-						collector.name = 'C' + str(zone) + '+1'
+						collector.name = 'C' + str(zone) + '.1'
 						zone += 1
 					room.zone = collector
 					collector.zone_rooms.append(room)
@@ -1350,7 +1352,7 @@ class Model(threading.Thread):
 					leader.number += 1
 					collector.number = leader.number
 					collector.name = 'C' + str(leader.zone_num)
-					collector.name += '+' + str(leader.number)
+					collector.name += '.' + str(leader.number)
 				else:
 					collector.name ="unassigned"
 					collector.zone_num = 0
@@ -1519,24 +1521,28 @@ class Model(threading.Thread):
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
 
 		# Check if enough collectors
-		tot_area = 0
+		tot_area = feeds_eff = feeds_max = 0
 		for room in self.processed:
 			area = scale * scale * room.area
-			room.feeds = ceil(area/area_per_feed_m2*target_eff)
+			room.feeds_eff = ceil(area/area_per_feed_m2*target_eff)
+			room.feeds_max = ceil(area/area_per_feed_m2)
+			feeds_eff += room.feeds_eff
+			feeds_max += room.feeds_max
+			# connect room based on max allocation
+			room.feeds = room.feeds_max
 			tot_area += area
 
-		full_cover_feeds = self.full_cover_feeds = tot_area/area_per_feed_m2
-		needed_feeds = self.needed_feeds = ceil(target_eff * full_cover_feeds)
 		available_feeds = feeds_per_collector * len(self.collectors)
 		self.output.print("Available pipes %g\n" % available_feeds)
-		self.output.print("Estimated pipes for 70%% cover: %d\n" % needed_feeds)
-		self.output.print("Estimated pipes for 100%% cover: %d\n" % full_cover_feeds)
-		if (needed_feeds > available_feeds):
+		self.output.print("Estimated pipes for %d%% cover: %d\n" % 
+				(100*target_eff, feeds_eff))
+		self.output.print("Estimated pipes for 100%% cover: %d\n" % feeds_max)
+		if (feeds_eff > available_feeds):
 			self.output.print("ABORT: Too few collectors\n")
 			return
 
-		if (full_cover_feeds > available_feeds):
-			self.output.print("WARNING: Low number of collectors\n")
+		if (feeds_max > available_feeds):
+			self.output.print("WARNING: Possible insufficient collectors\n")
 
 		################################################################
 		self.create_trees()
@@ -1612,6 +1618,9 @@ class Model(threading.Thread):
 		self.draw()
 		##############################################################
 
+		self.doc.layers.get(layer_box).off()
+		self.doc.layers.get(layer_panelp).off()
+
 		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
 				self.doc.saveas(self.outname)
@@ -1640,6 +1649,7 @@ class Model(threading.Thread):
 			pl = self.msp.add_lwpolyline(pline)
 			pl.dxf.layer = layer_panel
 			pl.dxf.color = 4
+			pl.dxf.linetype = 'CONTINUOUS'
 
 			write_text(self.msp, "Zone %d" % clt.zone_num, (ay,bx+min_dist), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
@@ -2180,7 +2190,7 @@ class App:
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
-		#self.model.doc = ezdxf.new(dxf_version)
+		# self.model.doc = ezdxf.new(dxf_version)
 		self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
 		self.model.msp = self.model.doc.modelspace()
 		self.model.scale = float(self.entry1.get())
@@ -2196,6 +2206,11 @@ class App:
 		#		% self.model.inputlayer)
 		#importer.import_entities(ents)
 
+		#for ent in ents:
+		#	dd = ent.dxf.dxfattribs._attribs
+		#	print(dd['true_color'])
+
+
 		## copy blocks from panels
 		source_dxf = ezdxf.readfile("panels.dxf")
 		importer = Importer(source_dxf, self.model.doc)
@@ -2204,6 +2219,11 @@ class App:
 		importer.import_block(block_green_120x100)
 		importer.import_block(block_green_60x100)
 
+
+		#print(dir(self.doc))
+
+		#for linetype in source_dxf.linetypes:
+		#	print(linetype.dxf.name)
 
 		self.model.start()
 	
