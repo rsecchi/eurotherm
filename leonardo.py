@@ -2015,21 +2015,7 @@ class Model(threading.Thread):
 			ws['K3'] = "Panels\n100x120"
 			ws['L3'] = "Panels\n100x60"
 
-
-			# ws.column_dimensions['B'].width = 10
-			# ws.column_dimensions['C'].width = 10
-			# ws.column_dimensions['D'].width = 10
-			# ws.column_dimensions['E'].width = 10
-			# ws.column_dimensions['F'].width = 10
-			# ws.column_dimensions['G'].width = 10
-			# ws.column_dimensions['H'].width = 10
-			# ws.column_dimensions['I'].width = 10
-			# ws.column_dimensions['J'].width = 10
-			# ws.column_dimensions['K'].width = 10
-			# ws.column_dimensions['L'].width = 10
-
 			set_border(ws, '3', "BCDEFGHIJKL")
-
 
 			self.processed.sort(key=lambda x: 
 				(x.collector.zone_num, x.collector.number, x.pindex))
@@ -2074,7 +2060,7 @@ class Model(threading.Thread):
 				ws[pos].number_format = "0.0"
 
 				pos = 'H' + str(index)
-				ws[pos] = room.feeds
+				ws[pos] = room.actual_feeds
 
 				if (room.panels_200x120>0):
 					pos = 'I' + str(index)
