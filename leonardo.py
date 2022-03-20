@@ -4,6 +4,7 @@ import ezdxf
 from ezdxf.addons import Importer
 
 import openpyxl
+from openpyxl.styles import Alignment
 import queue
 import bisect
 import threading
@@ -26,7 +27,7 @@ block_green_60x100  = "Leo 55_60 idro"
 
 
 # Parameter settings (values in cm)
-default_scale = 0.1  # scale=100 if the drawing is in m
+default_scale = 1  # scale=100 if the drawing is in m
 default_tolerance    = 1   # ignore too little variations
 
 extra_len    = 20
@@ -78,7 +79,7 @@ sheet_template_1 = 'LEONARDO 5.5'
 sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
-sheet_breakdown = 'Panels BOM'
+sheet_breakdown = 'Room Breakdown'
 show_panel_list = True
 
 alphabet = {
@@ -1216,6 +1217,10 @@ class Room:
 		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
 		active_ratio = 100*active_area/area
 
+		self.area_m2 = area
+		self.active_m2 = active_area
+		self.ratio = active_ratio
+
 		txt += "Room area: %.4g m2 \n" % area
 		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
 		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
@@ -1304,7 +1309,7 @@ class Model(threading.Thread):
 		self.find_gates()
 		for room in self.processed:
 			room.links = list()
-			room.zone = None
+			room.zone = False
 
 		zone = 1
 		for collector in self.collectors:
@@ -1329,16 +1334,23 @@ class Model(threading.Thread):
 			leader = None
 			for room in self.processed:
 
-				# create new zone for unlinked collectors
+				# check if room is assigned to a collector
 				if ((not room.zone) and room.walk<MAX_DIST):
+					# now assign  collector
+					
 					if (not collector.is_leader):
 						collector.is_leader = True
+						leader = collector
 						collector.zone_num = zone
 						collector.number = 1
+						collector.next_item = 2
 						collector.name = 'C' + str(zone) + '.1'
 						zone += 1
+
 					room.zone = collector
+					leader = room.zone
 					collector.zone_rooms.append(room)
+
 				else:
 					if (room.zone):
 						leader = room.zone
@@ -1349,16 +1361,16 @@ class Model(threading.Thread):
 			if (not collector.is_leader):
 				if (leader):
 					collector.zone_num = leader.zone_num
-					leader.number += 1
-					collector.number = leader.number
+					collector.number = leader.next_item
 					collector.name = 'C' + str(leader.zone_num)
-					collector.name += '.' + str(leader.number)
+					collector.name += '.' + str(leader.next_item)
+					leader.next_item += 1
+
 				else:
 					collector.name ="unassigned"
 					collector.zone_num = 0
 					collector.number = 0
-					
-
+	
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
@@ -1978,24 +1990,46 @@ class Model(threading.Thread):
 		if show_panel_list:
 			ws = wb.create_sheet(sheet_breakdown)
 
+			ws.row_dimensions[3].height = 32
+
 			# header
+			for i in range(66,77):
+				ws.column_dimensions[chr(i)].width = 8
+				ws[chr(i)+'3'].alignment = \
+					Alignment(wrapText=True, 
+						vertical ='center',
+						horizontal ='center')
+
+
 			ws['B3'] = "Zone"
 			ws['C3'] = "Collector"
 			ws['D3'] = "Room"
-			ws['E3'] = "Panels 200x120"
-			ws['F3'] = "Panels 200x60"
-			ws['G3'] = "Panels 100x120"
-			ws['H3'] = "Panels 100x60"
 
-			ws.column_dimensions['B'].width = 20
-			ws.column_dimensions['C'].width = 10
-			ws.column_dimensions['D'].width = 10
-			ws.column_dimensions['E'].width = 15
-			ws.column_dimensions['F'].width = 15
-			ws.column_dimensions['G'].width = 15
-			ws.column_dimensions['H'].width = 15
+			ws['E3'] = "Active\n[m2]"
+			ws['F3'] = "Area\n[m2]"
+			ws['G3'] = "% cover"
+			ws['H3'] = "lines"
 
-			set_border(ws, '3', "BCDEFGH")
+			ws['I3'] = "Panels\n200x120"
+			ws['J3'] = "Panels\n200x60"
+			ws['K3'] = "Panels\n100x120"
+			ws['L3'] = "Panels\n100x60"
+
+
+			# ws.column_dimensions['B'].width = 10
+			# ws.column_dimensions['C'].width = 10
+			# ws.column_dimensions['D'].width = 10
+			# ws.column_dimensions['E'].width = 10
+			# ws.column_dimensions['F'].width = 10
+			# ws.column_dimensions['G'].width = 10
+			# ws.column_dimensions['H'].width = 10
+			# ws.column_dimensions['I'].width = 10
+			# ws.column_dimensions['J'].width = 10
+			# ws.column_dimensions['K'].width = 10
+			# ws.column_dimensions['L'].width = 10
+
+			set_border(ws, '3', "BCDEFGHIJKL")
+
 
 			self.processed.sort(key=lambda x: 
 				(x.collector.zone_num, x.collector.number, x.pindex))
@@ -2013,32 +2047,54 @@ class Model(threading.Thread):
 				
 				if (room.collector.number != number):
 					number = room.collector.number
-					set_border(ws, str(index), "CDEFGH")
+					set_border(ws, str(index), "CDEFGHIJKL")
 
 				pos = 'C' + str(index)
 				ws[pos] = room.collector.name
+				ws[pos].alignment = Alignment(horizontal='center')
 				
 				pos = 'D' + str(index)
 				ws[pos] = room.pindex
+				ws[pos].alignment = Alignment(horizontal='center')
+
+				pos = 'F' + str(index)
+				ws[pos] = room.area_m2
+				ws[pos].number_format = "0.0"
+
+				if (room.active_m2==0):
+					index += 1
+					continue
+
+				pos = 'E' + str(index)
+				ws[pos] = room.active_m2
+				ws[pos].number_format = "0.0"
+
+				pos = 'G' + str(index)
+				ws[pos] = room.ratio
+				ws[pos].number_format = "0.0"
+
+				pos = 'H' + str(index)
+				ws[pos] = room.feeds
 
 				if (room.panels_200x120>0):
-					pos = 'E' + str(index)
+					pos = 'I' + str(index)
 					ws[pos] = room.panels_200x120
 
 				if (room.panels_200x60>0):
-					pos = 'F' + str(index)
+					pos = 'J' + str(index)
 					ws[pos] = room.panels_200x60
 
 				if (room.panels_100x120>0):
-					pos = 'G' + str(index)
+					pos = 'K' + str(index)
 					ws[pos] = room.panels_100x120
 
 				if (room.panels_100x60>0):
-					pos = 'H' + str(index)
+					pos = 'L' + str(index)
 					ws[pos] = room.panels_100x60
 
 				#ws[pos_area].number_format = "0.00"
 				index += 1
+
 
 		out = self.filename[:-4] + ".xlsx"	
 		wb.save(out)
@@ -2190,8 +2246,8 @@ class App:
 
 		# reload file
 		self.doc = ezdxf.readfile(self.filename)	
-		# self.model.doc = ezdxf.new(dxf_version)
-		self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
+		self.model.doc = ezdxf.new(dxf_version)
+		# self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
 		self.model.msp = self.model.doc.modelspace()
 		self.model.scale = float(self.entry1.get())
 
@@ -2201,15 +2257,11 @@ class App:
 		self.model.filename = self.filename
 
 		# copy input layer from source
-		#importer = Importer(self.doc, self.model.doc)
-		#ents = self.doc.modelspace().query('*[layer=="%s"]' 
-		#		% self.model.inputlayer)
-		#importer.import_entities(ents)
-
-		#for ent in ents:
-		#	dd = ent.dxf.dxfattribs._attribs
-		#	print(dd['true_color'])
-
+		importer = Importer(self.doc, self.model.doc)
+		ents = self.doc.modelspace().query('*[layer=="%s"]' 
+				% self.model.inputlayer)
+		importer.import_entities(ents)
+		importer.finalize()
 
 		## copy blocks from panels
 		source_dxf = ezdxf.readfile("panels.dxf")
@@ -2218,12 +2270,7 @@ class App:
 		importer.import_block(block_blue_60x100)
 		importer.import_block(block_green_120x100)
 		importer.import_block(block_green_60x100)
-
-
-		#print(dir(self.doc))
-
-		#for linetype in source_dxf.linetypes:
-		#	print(linetype.dxf.name)
+		importer.finalize()
 
 		self.model.start()
 	
