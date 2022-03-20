@@ -19,6 +19,8 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
+web_version = True
+
 # block names
 block_blue_120x100  = "Leo 55_120"
 block_blue_60x100   = "Leo 55_60"
@@ -2227,38 +2229,67 @@ class App:
 			self.textinfo(END, "File not loaded")
 			return
 
-		# create model and initialise it
-		self.model = Model(self)
+		self.scale = float(self.entry1.get())
+		self.inputlayer = self.var.get()
 
-		# reload file
-		self.doc = ezdxf.readfile(self.filename)	
-		self.model.doc = ezdxf.new(dxf_version)
-		# self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
-		self.model.msp = self.model.doc.modelspace()
-		self.model.scale = float(self.entry1.get())
+		_create_model(self)
 
-		self.model.inputlayer = self.var.get()
-		self.model.textinfo = self.textinfo
-		self.model.outname = self.outname
-		self.model.filename = self.filename
 
-		# copy input layer from source
-		importer = Importer(self.doc, self.model.doc)
-		ents = self.doc.modelspace().query('*[layer=="%s"]' 
-				% self.model.inputlayer)
-		importer.import_entities(ents)
-		importer.finalize()
+def _create_model(iface):
+	print("Called Interface")
 
-		## copy blocks from panels
-		source_dxf = ezdxf.readfile("panels.dxf")
-		importer = Importer(source_dxf, self.model.doc)
-		importer.import_block(block_blue_120x100)
-		importer.import_block(block_blue_60x100)
-		importer.import_block(block_green_120x100)
-		importer.import_block(block_green_60x100)
-		importer.finalize()
+	# create model and initialise it
+	iface.model = Model(iface)
 
-		self.model.start()
+	# reload file
+	iface.doc = ezdxf.readfile(iface.filename)	
+	iface.model.doc = ezdxf.new(dxf_version)
+	# self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
+
+	iface.model.msp = iface.model.doc.modelspace()
+	iface.model.scale = iface.scale
+	iface.model.inputlayer = iface.inputlayer
+	iface.model.textinfo = iface.textinfo
+	iface.model.outname = iface.outname
+	iface.model.filename = iface.filename
+
+	# copy input layer from source
+	importer = Importer(iface.doc, iface.model.doc)
+	ents = iface.doc.modelspace().query('*[layer=="%s"]' 
+			% iface.model.inputlayer)
+	importer.import_entities(ents)
+	importer.finalize()
+
+	## copy blocks from panels
+	source_dxf = ezdxf.readfile("panels.dxf")
+	importer = Importer(source_dxf, iface.model.doc)
+	importer.import_block(block_blue_120x100)
+	importer.import_block(block_blue_60x100)
+	importer.import_block(block_green_120x100)
+	importer.import_block(block_green_60x100)
+	importer.finalize()
+
+	iface.model.start()
+
 	
-App()
+class Iface:
+	def __init__(self):
+		self.filename = "Polilinee P2.dxf"
+		self.scale = default_scale
+		self.inputlayer = default_input_layer
+		self.textinfo = self
+		self.outname = "Polilinee P2_leo.dxf"
+		
+		_create_model(self)
+
+	def print(self, text):
+		print(text)
+
+
+if (web_version):
+	Iface()
+else:
+	App()
+
+
 
