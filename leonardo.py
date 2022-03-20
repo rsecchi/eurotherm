@@ -11,7 +11,7 @@ import threading
 import numpy as np
 from openpyxl.styles.borders import Border, Side
 import os.path
-from math import ceil, floor, sqrt
+from math import ceil, floor, sqrt, log10
 from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = True
+web_version = False
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -1386,7 +1386,7 @@ class Model(threading.Thread):
 			if (room.links[0][1]> max_clt_distance):
 				self.output.print(
 					"No collectors from Room %d, " % room.pindex)
-				self.output.print("ignoring room")
+				self.output.print("ignoring room\n")
 				self.processed.remove(room)
 
 		bound = 0
@@ -1405,11 +1405,11 @@ class Model(threading.Thread):
 			if (i+1 < len(room.links)):
 				del room.links[i:]
 
+	def rescale_model(self):
 
-
-	def run(self):
+		global tolerance 
 		global font_size
-		global scale, tolerance
+		global default_scale
 		global default_panel_width
 		global default_panel_height
 		global default_search_tol
@@ -1428,10 +1428,6 @@ class Model(threading.Thread):
 		global min_dist2
 		global wall_depth
 		global max_clt_distance
- 
-		global tot_iterations, max_iterations
-
-		scale = self.scale
 
 		tolerance    = default_tolerance/scale
 		font_size  = default_font_size/scale
@@ -1446,6 +1442,48 @@ class Model(threading.Thread):
 		wall_depth = default_wall_depth/scale
 		max_clt_distance = default_max_clt_distance/scale
 
+	def autoscale(self):
+		global scale
+		
+		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
+			if (e.dxftype() != 'LWPOLYLINE'):
+				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
+				self.textinfo.insert(END, wstr)
+
+		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
+		query = self.msp.query(searchstr)
+		if (len(query) == 0):
+			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
+			self.output.print(wstr)
+
+		n = 0
+		tot = 0
+		# Create list of rooms
+		for poly in query:
+			tot += Room(poly, self.output).area
+			n += 1
+
+		print(sqrt(tot/n))
+
+		scale = pow(10, ceil(log10(sqrt(n/tot))))
+		self.output.print("Autoscale: 1 unit = %d cm\n" % scale)
+
+
+	def run(self):
+ 
+		global tot_iterations, max_iterations
+		global scale
+
+		scale = self.scale
+		if (self.scale == "auto"):
+			scale = default_scale
+			self.rescale_model()
+			self.autoscale()
+		else:
+			scale = float(self.scale)
+
+		self.rescale_model()
+
 		Room.index = 1
 		self.create_layers()
 
@@ -1459,6 +1497,7 @@ class Model(threading.Thread):
 		if (len(query) == 0):
 			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
 			self.output.print(wstr)
+
 
 		# Create list of rooms
 		for poly in query:
@@ -1478,6 +1517,8 @@ class Model(threading.Thread):
 					room.errorstr = wstr
 					room.error = True
 	
+			
+
 		# get valid rooms
 		self.valid_rooms = list()
 		for room in self.rooms:
@@ -2138,7 +2179,7 @@ class App:
 		Label(params, text="A drawing unit in cm").grid(row=0, column=0, sticky="w")
 		self.entry1 = Entry(params, justify='right', width=10)
 		self.entry1.grid(row=0, column=1, sticky="w")
-		self.entry1.insert(END, str(default_scale))
+		self.entry1.insert(END, "auto")
 
 		#Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
 		#self.entry2 = Entry(params, justify='right', width=10)
@@ -2229,7 +2270,7 @@ class App:
 			self.textinfo(END, "File not loaded")
 			return
 
-		self.scale = float(self.entry1.get())
+		self.scale = self.entry1.get()
 		self.inputlayer = self.var.get()
 
 		_create_model(self)
