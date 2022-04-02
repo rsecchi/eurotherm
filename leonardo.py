@@ -2327,11 +2327,30 @@ class Iface:
 		print(text)
 
 
+
+
 if (web_version):
 
-	filename = sys.argv[1] 
-	units = sys.argv[2]	
-	Iface(filename, units)
+	import atexit
+
+	lock_name = "/var/apache_tmp/eurotherm.lock"
+
+	def remove_lock():
+		print("Goodbye lock")
+		os.remove(lock_name)
+	
+	if not os.path.exists(lock_name):
+
+		# Acquire lock 
+		open(lock_name, "w")	
+		atexit.register(remove_lock)
+
+		# Get command line parameters
+		filename = sys.argv[1] 
+		units = sys.argv[2]	
+		Iface(filename, units)
+	else:
+		print("resource busy")
 
 
 else:
