@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+</head>
+
+
+<body>
+	<h1>Leonardo Planner</h1>
+
+	<form action="/cgi-bin/eurotherm/save_file.py" 
+		  method="post" 
+		  enctype="multipart/form-data">
+
+	<div>
+		<h2>1. Seleziona il file formato DXF</h2>
+		<label for="filename">Select a file:</label>
+		<input type="file" id="dxfinput" name="filename">
+	</div>
+	<div>
+		<h2>2. Seleziona unit&agrave; di misura</h2>
+
+		<label for="units">unit&agrave; di misura:</label>
+		<select name="units">
+    		<option value="auto">auto</option>
+  			<option value="mm">millimetri</option>
+  			<option value="cm">centimetri</option>
+  			<option value="mt">metri</option>
+		</select>
+
+	</div>
+	<div>
+		<h2>3. Carica</h2>
+		<button type="submit">Calcola</button>
+	</div>
+
+	</form>
+
+</body>
+
+</html>
