@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = False
+web_version = True
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -2314,12 +2314,12 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self):
-		self.filename = "Polilinee P2.dxf"
-		self.scale = default_scale
+	def __init__(self, infile, units):
+		self.filename = infile
+		self.scale = units
 		self.inputlayer = default_input_layer
 		self.textinfo = self
-		self.outname = "Polilinee P2_leo.dxf"
+		self.outname = infile[:-4]+"_leo.dxf"
 		
 		_create_model(self)
 
@@ -2328,7 +2328,12 @@ class Iface:
 
 
 if (web_version):
-	Iface()
+
+	filename = sys.argv[1] 
+	units = sys.argv[2]	
+	Iface(filename, units)
+
+
 else:
 	App()
 
