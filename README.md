@@ -11,10 +11,10 @@ Maini Python script executing the calculation. It can be called as a command lin
 
 # web interface
 
-The directory web\_frontend should be used as DocumentRoot
-The directory cgi-bin should be linked to the CGI directory
+>The directory web\_frontend should be used as DocumentRoot
+>The directory cgi-bin should be linked to the CGI directory
 
-example
+>Example of Apache configuration
 
 ```
 ScriptAlias /cgi-bin/ /var/www/cgi-bin/
@@ -23,10 +23,9 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
     SetHandler cgi-script
 </Directory>
 
-
 <VirtualHost *:80>
     ServerAdmin r.secchi@gmail.com
-    DocumentRoot /var/www/planner
+    DocumentRoot /var/www/eurotherm
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
