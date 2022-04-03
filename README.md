@@ -1,7 +1,12 @@
 # eurotherm
 Eurotherm script
 
+Installing the web interface
 
-# Random house generator in python
-http://www.polygonpi.com/?p=1191
+leonardo.py:  
+
+Main script executing the calculation. It can be called as a command line as follow:
+./leonardo.py <filename> <units>
+
+
 
