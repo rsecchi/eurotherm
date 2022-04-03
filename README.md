@@ -6,8 +6,9 @@ Installing the web interface
 leonardo.py:  
 
 Maini Python script executing the calculation. It can be called as a command line as follow:
+'''
 ./leonardo.py <filename> <units>
-
+'''
 
 # web interface
 
