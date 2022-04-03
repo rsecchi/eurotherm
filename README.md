@@ -10,7 +10,7 @@ where the filename is the DXF inputs and units it is the units used in the DXF i
 
 >The directory web\_frontend should be used as DocumentRoot
 
->The directory cgi-bin should be linked to the CGI directory
+>The directory cgi-bin should be linked into the CGI directory
 
 >Example of Apache configuration
 
@@ -36,6 +36,7 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 
 ```
 ln -s $PWD/web_frontend /var/www/eurotherm
+ln -s $PWD/cgi-bin /var/www/cgi-bin/eurotherm
 ```
 
 
