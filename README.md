@@ -5,8 +5,38 @@ Installing the web interface
 
 leonardo.py:  
 
-Main script executing the calculation. It can be called as a command line as follow:
+Maini Python script executing the calculation. It can be called as a command line as follow:
 ./leonardo.py <filename> <units>
+
+
+# web interface
+
+The directory web\_frontend should be used as DocumentRoot
+The directory cgi-bin should be linked to the CGI directory
+
+example
+
+```
+ScriptAlias /cgi-bin/ /var/www/cgi-bin/
+<Directory /var/www/cgi-bin>
+    Options ExecCGI
+    SetHandler cgi-script
+</Directory>
+
+
+<VirtualHost *:80>
+    ServerAdmin r.secchi@gmail.com
+    DocumentRoot /var/www/planner
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    Options ExecCGI Includes MultiViews Indexes SymLinksIfOwnerMatch
+    AddHandler cgi-script .py
+
+</VirtualHost>
+```
+
 
 
 
