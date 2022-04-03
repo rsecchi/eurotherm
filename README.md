@@ -39,4 +39,9 @@ ln -s $PWD/web_frontend /var/www/eurotherm
 ln -s $PWD/cgi-bin /var/www/cgi-bin/eurotherm
 ```
 
+> Note that ExecGCI and FollowSymlinks should be allowed in the main configuration, in
+in the site configuration and in .htaccess if present in the CGI directory.
+
+* Edit the file cgi-bin/conf.py to point the CGI bin directory, the web directory and the temp dire
+ctory to point to the chosen directories
 
