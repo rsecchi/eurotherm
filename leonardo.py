@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/local/bin/python3 -u
 
 import ezdxf
 from ezdxf.addons import Importer
@@ -1635,7 +1635,7 @@ class Model(threading.Thread):
 		# allocating panels in room	
 		self.output.print("Processing Room:")
 		for room in self.processed:
-			self.output.print("%d " % room.pindex)
+			self.output.print("%d" % room.pindex)
 			room.alloc_panels()
 		self.output.print("\n")
 
@@ -2324,6 +2324,7 @@ class Iface:
 		_create_model(self)
 
 	def print(self, text):
+		print("<p>")
 		print(text)
 
 

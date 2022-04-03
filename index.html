@@ -1,27 +1,38 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="it">
 
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Eurotherm Leonardo Planner</title>
+	<link rel="icon" href="tab_logo.png">
+	<link href="style.css" rel="stylesheet">
 </head>
 
 
 <body>
-	<h1>Leonardo Planner</h1>
+
+	<div class="header">
+		<div class="container">
+			<h1>
+			<img src="logo.png" alt="">
+			LEONARDO PLANNER</h1>
+		</div>
+	</div>
+
+	<h3>Compila i campi sottostanti per il soffitto radiante Leonardo</h3>
+
 
 	<form action="/cgi-bin/eurotherm/save_file.py" 
 		  method="post" 
 		  enctype="multipart/form-data">
 
-	<div>
-		<h2>1. Seleziona il file formato DXF</h2>
-		<label for="filename">Select a file:</label>
-		<input type="file" id="dxfinput" name="filename">
-	</div>
-	<div>
-		<h2>2. Seleziona unit&agrave; di misura</h2>
+	<div class="section">
+		<h4>1. Carica il file formato DXF </h4>
+		<p><label for="filename" id="sel1">Seleziona un file:</label>
+		<input type="file" id="dxfinput" name="filename" value="Ciao" /> </p>
 
-		<label for="units">unit&agrave; di misura:</label>
+		<p><label for="units">Unit&agrave; di misura:</label>
 		<select name="units">
     		<option value="auto">auto</option>
   			<option value="mm">millimetri</option>
@@ -30,11 +41,31 @@
 		</select>
 
 	</div>
-	<div>
-		<h2>3. Carica</h2>
-		<button type="submit">Calcola</button>
+	<div class="section">
+		<h4>2. Seleziona dettagli impianto</h4>
+			<p id="ra"><input type="radio" checked="yes" name="head" value="heat" /> Solo riscaldamento
+  			<p id="ra"><input type="radio" checked="no" name="head" value="heat" /> Solo riscaldamento
+		<p id="ra">
+		<label for="regulator">Regolazione:</label>
+		<select name="regulator">
+    		<option value="L55">Leonardo 5,5</option>
+  			<option value="L35">Leonardo 3,5</option>
+  			<option value="L35p">Leonardo 3, 5 plus</option>
+		</select>
+	</div>
+	<div class="section">
+		<h4>3. Tipo di regolazione</h4>
+
+		<label for="regulator">Regolazione:</label>
+		<select name="regulator">
+    		<option value="None">Senza regolazione</option>
+  			<option value="SPT">SmartPoint T + Testine 230 V, 2 fili</option>
+  			<option value="SPTU">SmartPoint T/U + Testing 230 V, 2 fili</option>
+  			<option value="head">Testine 230 V, 2 fili</option>
+		</select>
 	</div>
 
+	<button id="submit" type="submit">Calcola</button>
 	</form>
 
 </body>
