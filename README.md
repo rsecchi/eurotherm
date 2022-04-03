@@ -8,10 +8,6 @@ where the filename is the DXF inputs and units it is the units used in the DXF i
 
 # Installing the web interface
 
->The directory web\_frontend should be used as DocumentRoot
-
->The directory cgi-bin should be linked into the CGI directory
-
 >Example of Apache configuration
 
 ```
@@ -33,6 +29,10 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 
 </VirtualHost>
 ```
+
+* The directory web\_frontend should be used as DocumentRoot
+* The directory cgi-bin should be linked into the CGI directory
+
 
 ```
 ln -s $PWD/web_frontend /var/www/eurotherm
