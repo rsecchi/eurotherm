@@ -34,6 +34,8 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 </VirtualHost>
 ```
 
-
+```
+ln -s $PWD/web_frontend /var/www/eurotherm
+```
 
 
