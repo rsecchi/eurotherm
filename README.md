@@ -12,6 +12,7 @@ Maini Python script executing the calculation. It can be called as a command lin
 # web interface
 
 >The directory web\_frontend should be used as DocumentRoot
+
 >The directory cgi-bin should be linked to the CGI directory
 
 >Example of Apache configuration
