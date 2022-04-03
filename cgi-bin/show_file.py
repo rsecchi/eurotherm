@@ -16,11 +16,13 @@ if os.path.exists(lock_name):
 
 	if os.path.exists(logfile):
 		flog = open(logfile, "r")
+		print("<pre>")
 		print(flog.read())	
+		print("</pre>")
 	
 else:
 	if os.path.exists(web_file):
-		print("<p>")
+		print("<p>", lock_name)
 		print('<a href="' + web_output + '" download>Scarica DXF</a>')
 		print("</p>")
 

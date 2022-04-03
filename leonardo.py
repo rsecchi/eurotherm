@@ -1635,7 +1635,7 @@ class Model(threading.Thread):
 		# allocating panels in room	
 		self.output.print("Processing Room:")
 		for room in self.processed:
-			self.output.print("%d" % room.pindex)
+			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
 		self.output.print("\n")
 
@@ -2324,10 +2324,7 @@ class Iface:
 		_create_model(self)
 
 	def print(self, text):
-		print("<p>")
-		print(text)
-
-
+		print(text, end='')
 
 
 if (web_version):
@@ -2341,6 +2338,9 @@ if (web_version):
 		os.remove(lock_name)
 	
 	if not os.path.exists(lock_name):
+
+		script_dir = os.path.dirname(os.path.realpath(__file__))
+		os.chdir(script_dir)
 
 		# Acquire lock 
 		open(lock_name, "w")	

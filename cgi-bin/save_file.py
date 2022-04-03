@@ -13,7 +13,6 @@ cgitb.enable()
 form = cgi.FieldStorage()
 
 
-
 ####### schedule command ####################
 def schedule_script(fname, units):
 	cmd = "at now <<< '%s %s %s > %s 2> %s'" % (script, fname, units, logfile, logfile) 
