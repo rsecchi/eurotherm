@@ -1,9 +1,4 @@
-# eurotherm
-Eurotherm script
-
-Installing the web interface
-
-leonardo.py:  
+# Eurotherm Planner
 
 Maini Python script executing the calculation. It can be called as a command line as follow:
 ```
@@ -11,7 +6,7 @@ Maini Python script executing the calculation. It can be called as a command lin
 ```
 where the filename is the DXF inputs and units it is the units used in the DXF in cm or "auto"
 
-# web interface
+# Installing the web interface
 
 >The directory web\_frontend should be used as DocumentRoot
 
