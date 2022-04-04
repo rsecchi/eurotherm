@@ -8,13 +8,18 @@ where the filename is the DXF inputs and units it is the units used in the DXF i
 
 # Installing the web interface
 
-> We assume to extract the  
+> We assume to extract the files in /usr/local/scr 
 ```
 cd /usr/local/src
 git clone https://github.com/rsecchi/eurotherm.git
 ```
 
-> 
+> The following Virtual Host is added to the Apache configuration: 
+
+* The directory /www is used as DocumentRoot
+* The directory /cgi-bin is used as CGI directory
+* The apache user (www-data) should have access to the spool directort (/var/spool/eurotherm)
+
 
 ```
 ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
@@ -36,11 +41,6 @@ ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
 
 </VirtualHost>
 ```
-
-* The directory /www is used as DocumentRoot
-* The directory /cgi-bin is used as CGI directory
-* The apache user (www-data) should have access to the spool directort (/var/spool/eurotherm)
-
 
 > Note that ExecGCI and FollowSymlinks should be allowed in the main configuration, in
 in the site configuration and in .htaccess if present in the CGI directory.
