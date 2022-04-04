@@ -2340,13 +2340,12 @@ if (web_version):
 	lock_name = "/var/apache_tmp/eurotherm.lock"
 
 	def remove_lock():
-		print("Goodbye lock")
 		os.remove(lock_name)
 	
 	if not os.path.exists(lock_name):
 
-		script_dir = os.path.dirname(os.path.realpath(__file__))
-		os.chdir(script_dir)
+		local_dir = os.path.dirname(os.path.realpath(__file__))
+		os.chdir(local_dir)
 
 		# Acquire lock 
 		open(lock_name, "w")	

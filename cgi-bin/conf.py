@@ -1,6 +1,4 @@
 tmp          = "/var/spool/eurotherm/"
-cgi_root     = "/var/www/cgi-bin/eurotherm/"
-web_root     = "/var/www/eurotherm/"
 
 web_filename = tmp + "input.dxf"
 web_file     = tmp + "input_leo.dxf"
@@ -8,10 +6,8 @@ web_xls      = tmp + "input.xlsx"
 lock_name    = tmp + "eurotherm.lock"
 logfile      = tmp + "log"
 
-script       = cgi_root + "../leonardo.py"
-load_page    = web_root + "loading.html"
-done_page    = web_root + "done.html"
 
-web_output   = "http://eurotherm.ddns.net/output/input_leo.dxf"
-xls_output   = "http://eurotherm.ddns.net/output/input.xlsx"
+load_page    = local_dir + "www/loading.html"
+done_page    = local_dir + "www/done.html"
+
 

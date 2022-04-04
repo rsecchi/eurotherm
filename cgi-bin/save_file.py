@@ -6,6 +6,8 @@ import time
 import subprocess
 import fcntl
 
+
+local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 from conf import *
 
 print("Content-Type: text/html\n")
