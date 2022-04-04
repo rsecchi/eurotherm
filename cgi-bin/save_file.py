@@ -13,7 +13,7 @@ form = cgi.FieldStorage()
 
 
 local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
-from conf import *
+from cgi-bin/conf.py import *
 
 
 ####### schedule command ####################
