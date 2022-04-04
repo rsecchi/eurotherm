@@ -5,9 +5,8 @@ import cgitb
 import time
 import subprocess
 
-
+local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 from conf import *
-
 
 if os.path.exists(lock_name):
 	print("Content-Type: text/html\n")

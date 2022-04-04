@@ -2337,7 +2337,6 @@ if (web_version):
 
 	import atexit
 
-	lock_name = "/var/apache_tmp/eurotherm.lock"
 
 	def remove_lock():
 		os.remove(lock_name)
@@ -2346,6 +2345,7 @@ if (web_version):
 
 		local_dir = os.path.dirname(os.path.realpath(__file__))
 		os.chdir(local_dir)
+		from cgi/conf.py import *
 
 		# Acquire lock 
 		open(lock_name, "w")	
