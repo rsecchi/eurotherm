@@ -27,3 +27,15 @@ else:
 	print("Content-Type: text/html\n")
 	ff = open(done_page, "r")
 	print(ff.read())
+
+	if os.path.exists(logfile):
+		flog = open(logfile, "r")
+		print('<div class="section">')
+		print("<pre>")
+		print(flog.read())	
+		print("</pre>")
+		print("</div>")
+
+	print("</body>")
+	print("</html>")
+
