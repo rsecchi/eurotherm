@@ -1,6 +1,6 @@
 # Eurotherm Planner
 
-Maini Python script executing the calculation. It can be called as a command line as follow:
+Main Python script executing the calculation. It can be called as a command line as follow:
 ```
 ./leonardo.py <filename> <units>
 ```
@@ -18,7 +18,7 @@ git clone https://github.com/rsecchi/eurotherm.git
 
 * The directory /www is used as DocumentRoot
 * The directory /cgi-bin is used as CGI directory
-* The apache user (www-data) should have access to the spool directort (/var/spool/eurotherm)
+* The apache user (www-data) should be allowed to writhe in the spool directory (/var/spool/eurotherm)
 
 
 ```
