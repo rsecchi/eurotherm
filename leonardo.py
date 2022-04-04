@@ -2337,15 +2337,16 @@ if (web_version):
 
 	import atexit
 
+	local_dir = os.path.dirname(os.path.realpath(__file__))
+	os.chdir(local_dir)
+	sys.path.append(local_dir + "/cgi-bin")
+
+	from conf import *
 
 	def remove_lock():
 		os.remove(lock_name)
 	
 	if not os.path.exists(lock_name):
-
-		local_dir = os.path.dirname(os.path.realpath(__file__))
-		os.chdir(local_dir)
-		from cgi/conf.py import *
 
 		# Acquire lock 
 		open(lock_name, "w")	

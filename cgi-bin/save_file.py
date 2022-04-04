@@ -11,9 +11,7 @@ print("Content-Type: text/html\n")
 cgitb.enable()
 form = cgi.FieldStorage()
 
-
-local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
-from cgi-bin/conf.py import *
+from conf import *
 
 
 ####### schedule command ####################
