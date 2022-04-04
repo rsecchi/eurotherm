@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = True
+web_version = False 
 
 # block names
 block_blue_120x100  = "Leo 55_120"
