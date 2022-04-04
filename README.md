@@ -22,16 +22,17 @@ git clone https://github.com/rsecchi/eurotherm.git
 
 
 ```
-ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
-<Directory /var/www/cgi-bin>
-    Options ExecCGI
-    SetHandler cgi-script
-</Directory>
 
 <VirtualHost *:80>
     ServerAdmin r.secchi@gmail.com
     DocumentRoot /usr/local/src/eurotherm
     Alias /output/ /var/spool/eurotherm/
+
+	ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
+	<Directory /var/www/cgi-bin>
+	    Options ExecCGI
+    	SetHandler cgi-script
+	</Directory>
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
@@ -42,9 +43,10 @@ ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
 </VirtualHost>
 ```
 
-> Note that ExecGCI and FollowSymlinks should be allowed in the main configuration, in
-in the site configuration and in .htaccess if present in the CGI directory.
+> Note that access to the above directories should be allowed the main configuration.
 
-* Edit the file cgi-bin/conf.py to point the CGI bin directory, the web directory and the temp dire
-ctory to point to the chosen directories
+> Edit the file cgi-bin/conf.py to point to the directories:
+
+* The temporary spool directory is referenced by "tmp"
+* The package directory is referenced by "local_dir"
 
