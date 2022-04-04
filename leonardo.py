@@ -1634,9 +1634,15 @@ class Model(threading.Thread):
 
 		# allocating panels in room	
 		self.output.print("Processing Room:")
+		count = 4
 		for room in self.processed:
 			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
+			count += 1
+			if (count == 20):
+				self.output.print("\n")
+				count = 0
+
 		self.output.print("\n")
 
 		print("Panels arranged")

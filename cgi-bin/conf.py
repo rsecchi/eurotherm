@@ -11,6 +11,7 @@ logfile      = tmp + "log"
 
 script       = cgi_root + "../leonardo.py"
 load_page    = web_root + "loading.html"
+done_page    = web_root + "done.html"
 
 web_output   = "http://eurotherm.ddns.net/output/input_leo.dxf"
 xls_output   = "http://eurotherm.ddns.net/output/input.xlsx"
