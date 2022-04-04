@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = True
+web_version = False
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -1325,7 +1325,7 @@ class Model(threading.Thread):
 
 			root = collector.contained_in
 			if (not root):
-				print("collector at ", collector.pos, " outside rooms")
+				#print("collector at ", collector.pos, " outside rooms")
 				continue
 
 			root.walk = 0
@@ -1462,8 +1462,6 @@ class Model(threading.Thread):
 		for poly in query:
 			tot += Room(poly, self.output).area
 			n += 1
-
-		print(sqrt(tot/n))
 
 		scale = pow(10, ceil(log10(sqrt(n/tot))))
 		self.output.print("Autoscale: 1 unit = %d cm\n" % scale)
@@ -1624,7 +1622,6 @@ class Model(threading.Thread):
 			return
 
 		#self.draw_uplinks()
-		print("Room connected")
 		#self.draw_trees(self.collectors[3])
 
 		# Determine which side is collector in each room
@@ -1634,18 +1631,16 @@ class Model(threading.Thread):
 
 		# allocating panels in room	
 		self.output.print("Processing Room:")
-		count = 4
+		count = 5
 		for room in self.processed:
 			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
 			count += 1
-			if (count == 20):
+			if (count == 19):
 				self.output.print("\n")
 				count = 0
 
 		self.output.print("\n")
-
-		print("Panels arranged")
 
 		# find attachment points of dorsals
 		self.dorsals = list()
@@ -1726,11 +1721,9 @@ class Model(threading.Thread):
 		for room in self.processed:
 			room.draw(self.msp)
 
-		print("Room done")
 
 		## drawing connections
 		self.draw_links2()
-		print("Links completed")
 
 		#for collector in self.collectors:
 		#	self.draw_trees(collector)
@@ -2042,7 +2035,7 @@ class Model(threading.Thread):
 			ws.row_dimensions[3].height = 32
 
 			# header
-			for i in range(66,77):
+			for i in range(66,85):
 				ws.column_dimensions[chr(i)].width = 8
 				ws[chr(i)+'3'].alignment = \
 					Alignment(wrapText=True, 
@@ -2063,8 +2056,22 @@ class Model(threading.Thread):
 			ws['J3'] = "Panels\n200x60"
 			ws['K3'] = "Panels\n100x120"
 			ws['L3'] = "Panels\n100x60"
+				
+			ws.column_dimensions['M'].width = 2
 
-			set_border(ws, '3', "BCDEFGHIJKL")
+			ws['O2'] = 'heating'
+			ws['N3'] = "Q, yield\n[W]"
+			ws['O3'] = "Q, tot\n[W]"
+			ws['P3'] = "Flow\n[kg/h]"
+
+			ws.column_dimensions['Q'].width = 2
+
+			ws['S2'] = 'cooling'
+			ws['R3'] = "Q, yield\n[W]"
+			ws['S3'] = "Q, tot\n[W]"
+			ws['T3'] = "Flow\n[kg/h]"
+
+			set_border(ws, '3', "BCDEFGHIJKLNOPRST")
 
 			self.processed.sort(key=lambda x: 
 				(x.collector.zone_num, x.collector.number, x.pindex))
@@ -2082,7 +2089,7 @@ class Model(threading.Thread):
 				
 				if (room.collector.number != number):
 					number = room.collector.number
-					set_border(ws, str(index), "CDEFGHIJKL")
+					set_border(ws, str(index), "CDEFGHIJKLNOPRST")
 
 				pos = 'C' + str(index)
 				ws[pos] = room.collector.name
@@ -2126,6 +2133,34 @@ class Model(threading.Thread):
 				if (room.panels_100x60>0):
 					pos = 'L' + str(index)
 					ws[pos] = room.panels_100x60
+
+
+				# heating 
+				pos = 'N' + str(index)
+				ws[pos] = radiated = room.active_m2 * 85
+				ws[pos].number_format = "0"
+
+				pos = 'O' + str(index)
+				ws[pos] = output = radiated * 1.1
+				ws[pos].number_format = "0"
+
+				pos = 'P' + str(index)
+				ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
+				ws[pos].number_format = "0"
+
+				# cooling
+				pos = 'R' + str(index)
+				ws[pos] = absorbed = room.active_m2 * 44
+				ws[pos].number_format = "0"
+
+				pos = 'S' + str(index)
+				ws[pos] = output = absorbed * 1.1
+				ws[pos].number_format = "0"
+
+				pos = 'T' + str(index)
+				ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
+				ws[pos].number_format = "0"
+
 
 				#ws[pos_area].number_format = "0.00"
 				index += 1
@@ -2283,7 +2318,6 @@ class App:
 
 
 def _create_model(iface):
-	print("Called Interface")
 
 	# create model and initialise it
 	iface.model = Model(iface)
