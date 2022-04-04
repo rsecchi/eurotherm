@@ -9,6 +9,8 @@ local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 from conf import *
 
 if os.path.exists(lock_name):
+
+	# Show progress of calculation
 	print("Content-Type: text/html\n")
 	ff = open(load_page, "r")
 	print(ff.read())
@@ -20,15 +22,8 @@ if os.path.exists(lock_name):
 		print("</pre>")
 	
 else:
-	print("Content-Type: text/html\n")
-	#print("Location: http://eurotherm.ddns.net/done.html\n")
 
+	# Show webpage with results
+	print("Content-Type: text/html\n")
 	ff = open(done_page, "r")
 	print(ff.read())
-	if os.path.exists(web_file):
-		print('<p><a href="' + web_output + '" download>Scarica DXF</a></p>')
-
-	if os.path.exists(web_xls):
-		print('<p><a href="' + xls_output + '" download>Scarica XLS</a></p>')
-
-	print("</div></body></html>")
