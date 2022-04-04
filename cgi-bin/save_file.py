@@ -7,12 +7,13 @@ import subprocess
 import fcntl
 
 
-local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
-from conf import *
-
 print("Content-Type: text/html\n")
 cgitb.enable()
 form = cgi.FieldStorage()
+
+
+local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
+from conf import *
 
 
 ####### schedule command ####################
