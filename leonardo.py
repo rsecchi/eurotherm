@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = False
+web_version = True
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -2367,6 +2367,9 @@ class Iface:
 		print(text, end='')
 
 
+	def insert(self, pos, text):
+		print(text, end='')
+
 if (web_version):
 
 	import atexit
@@ -2389,6 +2392,7 @@ if (web_version):
 		# Get command line parameters
 		filename = sys.argv[1] 
 		units = sys.argv[2]	
+
 		Iface(filename, units)
 	else:
 		print("resource busy")
