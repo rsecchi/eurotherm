@@ -20,6 +20,7 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 <VirtualHost *:80>
     ServerAdmin r.secchi@gmail.com
     DocumentRoot /var/www/eurotherm
+    Alias /output/ /var/spool/eurotherm/
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
@@ -32,7 +33,7 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 
 * The directory web\_frontend should be used as DocumentRoot
 * The directory cgi-bin should be linked into the CGI directory
-
+* The apache user (www-data) should have access to the spool directort (/var/spool/eurotherm)
 
 ```
 ln -s $PWD/web_frontend /var/www/eurotherm

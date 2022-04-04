@@ -1,7 +1,6 @@
-tmp          = "/var/apache_tmp/"
+tmp          = "/var/spool/eurotherm/"
 cgi_root     = "/var/www/cgi-bin/eurotherm/"
 web_root     = "/var/www/eurotherm/"
-
 
 web_filename = tmp + "input.dxf"
 web_file     = tmp + "input_leo.dxf"
