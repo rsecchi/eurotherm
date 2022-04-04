@@ -8,10 +8,16 @@ where the filename is the DXF inputs and units it is the units used in the DXF i
 
 # Installing the web interface
 
->Example of Apache configuration
+> We assume to extract the  
+```
+cd /usr/local/src
+git clone https://github.com/rsecchi/eurotherm.git
+```
+
+> 
 
 ```
-ScriptAlias /cgi-bin/ /var/www/cgi-bin/
+ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
 <Directory /var/www/cgi-bin>
     Options ExecCGI
     SetHandler cgi-script
@@ -19,7 +25,7 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 
 <VirtualHost *:80>
     ServerAdmin r.secchi@gmail.com
-    DocumentRoot /var/www/eurotherm
+    DocumentRoot /usr/local/src/eurotherm
     Alias /output/ /var/spool/eurotherm/
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
@@ -31,14 +37,10 @@ ScriptAlias /cgi-bin/ /var/www/cgi-bin/
 </VirtualHost>
 ```
 
-* The directory web\_frontend should be used as DocumentRoot
-* The directory cgi-bin should be linked into the CGI directory
+* The directory /www is used as DocumentRoot
+* The directory /cgi-bin is used as CGI directory
 * The apache user (www-data) should have access to the spool directort (/var/spool/eurotherm)
 
-```
-ln -s $PWD/web_frontend /var/www/eurotherm
-ln -s $PWD/cgi-bin /var/www/cgi-bin/eurotherm
-```
 
 > Note that ExecGCI and FollowSymlinks should be allowed in the main configuration, in
 in the site configuration and in .htaccess if present in the CGI directory.
