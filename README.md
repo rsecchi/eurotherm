@@ -25,7 +25,7 @@ git clone https://github.com/rsecchi/eurotherm.git
 
 <VirtualHost *:80>
     ServerAdmin r.secchi@gmail.com
-    DocumentRoot /usr/local/src/eurotherm
+    DocumentRoot /usr/local/src/eurotherm/www
     Alias /output/ /var/spool/eurotherm/
 
 	ScriptAlias /cgi-bin/ /usr/local/src/eurotherm/cgi-bin/
