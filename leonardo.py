@@ -1464,7 +1464,7 @@ class Model(threading.Thread):
 			n += 1
 
 		scale = pow(10, ceil(log10(sqrt(n/tot))))
-		self.output.print("Autoscale: 1 unit = %d cm\n" % scale)
+		self.output.print("Autoscale: 1 unit = %g cm\n" % scale)
 
 
 	def run(self):
@@ -2043,33 +2043,33 @@ class Model(threading.Thread):
 						horizontal ='center')
 
 
-			ws['B3'] = "Zone"
-			ws['C3'] = "Collector"
-			ws['D3'] = "Room"
+			ws['B3'] = "Zona"
+			ws['C3'] = "Collettore"
+			ws['D3'] = "Stanza"
 
-			ws['E3'] = "Active\n[m2]"
+			ws['E3'] = "Attiva\n[m2]"
 			ws['F3'] = "Area\n[m2]"
-			ws['G3'] = "% cover"
-			ws['H3'] = "lines"
+			ws['G3'] = "% copertura"
+			ws['H3'] = "linee"
 
-			ws['I3'] = "Panels\n200x120"
-			ws['J3'] = "Panels\n200x60"
-			ws['K3'] = "Panels\n100x120"
-			ws['L3'] = "Panels\n100x60"
+			ws['I3'] = "Pannelli\n200x120"
+			ws['J3'] = "Pannelli\n200x60"
+			ws['K3'] = "Pannelli\n100x120"
+			ws['L3'] = "Pannelli\n100x60"
 				
 			ws.column_dimensions['M'].width = 2
 
-			ws['O2'] = 'heating'
-			ws['N3'] = "Q, yield\n[W]"
+			ws['O2'] = 'Riscaldamento'
+			ws['N3'] = "Q, resa\n[W]"
 			ws['O3'] = "Q, tot\n[W]"
-			ws['P3'] = "Flow\n[kg/h]"
+			ws['P3'] = "Portata\n[kg/h]"
 
 			ws.column_dimensions['Q'].width = 2
 
-			ws['S2'] = 'cooling'
-			ws['R3'] = "Q, yield\n[W]"
+			ws['S2'] = 'Raffrescamento'
+			ws['R3'] = "Q, resa\n[W]"
 			ws['S3'] = "Q, tot\n[W]"
-			ws['T3'] = "Flow\n[kg/h]"
+			ws['T3'] = "Portata\n[kg/h]"
 
 			set_border(ws, '3', "BCDEFGHIJKLNOPRST")
 
