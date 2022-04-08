@@ -1049,6 +1049,8 @@ class Room:
 	
 			self.arrangement.mode += 1  
 
+		self.bounding_box()
+
 
 	def is_point_inside(self, point):
 
@@ -1711,14 +1713,13 @@ class Model(threading.Thread):
 			bx = max([c.bx for c in clt.zone_rooms]) + 2*min_dist
 			by = max([c.by for c in clt.zone_rooms]) + 2*min_dist
 			
-			#pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
-			pline = [(ay,ax),(by,ax),(by,bx),(ay,bx),(ay,ax)]
+			pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 			pl = self.msp.add_lwpolyline(pline)
 			pl.dxf.layer = layer_panel
 			pl.dxf.color = 4
 			pl.dxf.linetype = 'CONTINUOUS'
 
-			write_text(self.msp, "Zone %d" % clt.zone_num, (ay,bx+min_dist), 
+			write_text(self.msp, "Zone %d" % clt.zone_num, (ax, min_dist+by), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
 
 		# Collectors
@@ -2060,7 +2061,7 @@ class Model(threading.Thread):
 
 			ws['E3'] = "Attiva\n[m2]"
 			ws['F3'] = "Area\n[m2]"
-			ws['G3'] = "% copertura"
+			ws['G3'] = "% cop."
 			ws['H3'] = "linee"
 
 			ws['I3'] = "Pannelli\n200x120"
