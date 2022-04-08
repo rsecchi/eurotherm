@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = False 
+web_version = True 
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -2291,7 +2291,7 @@ class App:
 			if (layer == default_input_layer):
 				sel = default_input_layer
 				break
-
+		
 		self.opt.destroy()
 		self.var.set(sel)
 		self.opt = OptionMenu(self.ctl,self.var,*layers)
@@ -2338,6 +2338,12 @@ def _create_model(iface):
 	importer = Importer(iface.doc, iface.model.doc)
 	ents = iface.doc.modelspace().query('*[layer=="%s"]' 
 			% iface.model.inputlayer)
+
+	if (len(ents) == 0):
+		iface.textinfo.print('Layer "%s" not available or empty'
+			% iface.inputlayer)
+		return
+
 	importer.import_entities(ents)
 	importer.finalize()
 
