@@ -67,6 +67,7 @@ layer_link   = 'Eurotherm_link'
 text_color = 7
 box_color = 8
 collector_color = 1
+disabled_room_color = 6
 ask_for_write = False
 
 MAX_COST = 1000000
@@ -1639,6 +1640,9 @@ class Model(threading.Thread):
 		self.output.print("Processing Room:")
 		count = 5
 		for room in self.processed:
+			if (room.color == disabled_room_color):
+				continue
+
 			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
 			count += 1
