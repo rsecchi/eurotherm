@@ -19,7 +19,8 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = True 
+web_version = False 
+debug = False
 
 # block names
 block_blue_120x100  = "Leo 55_120"
@@ -604,6 +605,7 @@ class Dorsal:
 				if (m[i,j] and m[i,j+1] and
 					(not m[i+1,j]) and (not m[i+1,j+1])):
 					self.new_panel(m[i,j],(2,1))
+					self.cost += 0.1
 					continue
 
 				# half panels vertical
@@ -635,6 +637,7 @@ class Dorsal:
 				if (m[i+1,j] and m[i+1,j+1] and
 					(not m[i,j]) and (not m[i,j+1])):
 					self.new_panel(m[i+1,j],(2,1))
+					self.cost += 0.1
 					continue
 
 				# half panels vertical
@@ -1237,15 +1240,17 @@ class Room:
 
 
 	def draw(self, msp):
-		
-		self.arrangement.draw_grid(msp)
+	
+		if (debug):
+			self.arrangement.draw_grid(msp)
 
 		write_text(msp, "Room %d (%d)" % 
 			(self.pindex, self.actual_feeds), self.pos)
 
 		for panel in self.panels:
 			panel.draw(msp)
-			panel.draw_profile(msp)
+			if (debug):
+				panel.draw_profile(msp)
 
 
 class Model(threading.Thread):
@@ -1264,9 +1269,10 @@ class Model(threading.Thread):
 
 	def create_layers(self):
 		self.new_layer(layer_text, text_color)
-		self.new_layer(layer_box, box_color)
 		self.new_layer(layer_panel, 0)
-		self.new_layer(layer_panelp, 0)
+		if (debug):
+			self.new_layer(layer_panelp, 0)
+			self.new_layer(layer_box, box_color)
 		self.new_layer(layer_link, 0)
 
 	def find_gates(self):
@@ -1674,8 +1680,9 @@ class Model(threading.Thread):
 		self.draw()
 		##############################################################
 
-		self.doc.layers.get(layer_box).off()
-		self.doc.layers.get(layer_panelp).off()
+		if (debug):
+			self.doc.layers.get(layer_box).off()
+			self.doc.layers.get(layer_panelp).off()
 
 		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
