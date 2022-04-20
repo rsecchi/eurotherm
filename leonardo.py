@@ -1978,11 +1978,11 @@ class Model(threading.Thread):
 		p2x2_spr = abs(p1x2_r-p1x2_l)
 		smtxt += "  %d panels %dx%d, \n" % (p2x2_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_cut, p2x2_spr)
-		p1x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
-		self.panels_200x60 = p1x1_tot = p1x1 + p1x1_cut 
+		p2x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
+		self.panels_200x60 = p2x1_tot = p2x1 + p2x1_cut 
 		p1x1_spr = abs(p1x1_r-p1x1_l)
-		smtxt += "  %d panels %dx%d, \n" % (p1x1_tot, 2*w, 2*h)
-		smtxt += "    of which %d to cut and %d halves spares\n" % (p1x1_cut, p1x1_spr) 
+		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, 2*h)
+		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_cut, p1x1_spr) 
 
 		return smtxt + txt
 
