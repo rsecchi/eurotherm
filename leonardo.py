@@ -27,6 +27,7 @@ block_blue_120x100  = "Leo 55_120"
 block_blue_60x100   = "Leo 55_60"
 block_green_120x100 = "Leo 55_120 idro"
 block_green_60x100  = "Leo 55_60 idro"
+block_collector     = "collettore"
 
 
 # Parameter settings (values in cm)
@@ -51,6 +52,7 @@ default_panel_width = 100
 default_panel_height = 60
 default_hatch_width = 12
 default_hatch_height = 20
+default_collector_size = 60
 
 default_search_tol = 5
 default_min_dist = 20
@@ -1424,6 +1426,7 @@ class Model(threading.Thread):
 		global default_search_tol
 		global default_hatch_width
 		global default_hatch_height
+		global default_collector_size
 		global default_min_dist
 		global default_min_dist2
 		global default_wall_depth
@@ -1433,6 +1436,7 @@ class Model(threading.Thread):
 		global search_tol 
 		global hatch_width
 		global hatch_height
+		global collector_size
 		global min_dist
 		global min_dist2
 		global wall_depth
@@ -1446,6 +1450,7 @@ class Model(threading.Thread):
 		search_tol = default_search_tol/scale
 		hatch_width = default_hatch_width/scale
 		hatch_height = default_hatch_height/scale
+		collector_size = default_collector_size/scale
 		min_dist = default_min_dist/scale
 		min_dist2 = default_min_dist2/scale
 		wall_depth = default_wall_depth/scale
@@ -1703,6 +1708,7 @@ class Model(threading.Thread):
 		print("DONE")
 
 	def draw(self):
+		global collector_size
 
 		# Box zones
 		for clt in self.collectors:
@@ -1729,6 +1735,15 @@ class Model(threading.Thread):
 				feeds += room.actual_feeds
 			txt = collector.name + " (%d)" % feeds
 			write_text(self.msp, txt, collector.pos)
+
+			xs, ys = 0.1/scale, 0.1/scale
+			cs = collector_size
+			orig = collector.pos[0] - cs/2, collector.pos[1] - cs/2
+
+			block = self.msp.add_blockref(block_collector, orig, 
+				dxfattribs={'xscale': xs, 'yscale': ys})
+
+			block.dxf.layer = layer_panel
 
 		for room in self.processed:
 			room.draw(self.msp)
@@ -2366,6 +2381,7 @@ def _create_model(iface):
 	importer.import_block(block_blue_60x100)
 	importer.import_block(block_green_120x100)
 	importer.import_block(block_green_60x100)
+	importer.import_block(block_collector)
 	importer.finalize()
 
 	iface.model.start()
