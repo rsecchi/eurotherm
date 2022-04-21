@@ -18,18 +18,32 @@ from conf import *
 def schedule_script(fname, units):
 	cmd = "at now <<< '%s %s %s > %s 2> %s'" % (script, fname, units, logfile, logfile) 
 	subprocess.Popen(['/bin/bash', '-c', cmd])
-
 #############################################
 
+
+def get_filename(fid):
+	bname = fid[:-4]
+	for i in range(1,100):
+		ff = tmp + bname + "_leo_%02d.dxf" % i
+		if (not os.path.exists(ff)):
+			return ff
+
+
 if not os.path.exists(lock_name):
+
+	fid = form.getvalue("file")
+	web_filename = get_filename(fid)
 
 	fileitem =  form['filename']
 	units = form.getvalue('units')
 	outfile = open(web_filename, 'wb')
 	outfile.write(fileitem.file.read())
-	schedule_script(web_filename, units)
+	schedule_script('"'+web_filename+'"', units)
 
 
 ff = open(load_page, "r")
 print(ff.read())
+
+
+#print(os.path.basename(form.getvalue("file")))
 

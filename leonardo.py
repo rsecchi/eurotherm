@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = False 
+web_version = True
 debug = False
 
 # block names
@@ -1683,7 +1683,7 @@ class Model(threading.Thread):
 		# self.output.clear()
 		summary = self.print_report()
 		self.output.print(summary)
-		f = open(self.outname+".txt", "w")
+		f = open(self.outname[:-4]+".txt", "w")
 		print(summary, file = f)
 
 		##############################################################
@@ -2192,8 +2192,11 @@ class Model(threading.Thread):
 				#ws[pos_area].number_format = "0.00"
 				index += 1
 
-
-		out = self.filename[:-4] + ".xlsx"	
+		if (web_version):
+			out = self.outname[:-4] + ".xlsx"
+		else:
+			out = self.filename[:-4] + ".xlsx"	
+		
 		wb.save(out)
 
 
@@ -2389,11 +2392,11 @@ def _create_model(iface):
 	
 class Iface:
 	def __init__(self, infile, units):
-		self.filename = infile
+		self.filename = web_filename
 		self.scale = units
 		self.inputlayer = default_input_layer
 		self.textinfo = self
-		self.outname = infile[:-4]+"_leo.dxf"
+		self.outname = infile
 		
 		_create_model(self)
 
@@ -2427,6 +2430,8 @@ if (web_version):
 		filename = sys.argv[1] 
 		units = sys.argv[2]	
 
+		os.rename(filename, web_filename)
+		
 		Iface(filename, units)
 	else:
 		print("resource busy")

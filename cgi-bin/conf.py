@@ -2,8 +2,6 @@ tmp          = "/var/spool/eurotherm/"
 local_dir    = "/usr/local/src/eurotherm/"
 
 web_filename = tmp + "input.dxf"
-web_file     = tmp + "input_leo.dxf"
-web_xls      = tmp + "input.xlsx"
 
 out_text     = tmp + ""
 
