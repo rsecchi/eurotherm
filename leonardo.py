@@ -1701,6 +1701,12 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
+		if (web_version):
+			slink = os.path.dirname(self.outname) + "/output.dxf"
+			if (os.path.exists(slink)):
+				os.remove(slink)
+			os.symlink(self.outname, slink)
+
 		##############################################################
 		# save data in XLS
 		self.save_in_xls()
@@ -2198,6 +2204,12 @@ class Model(threading.Thread):
 			out = self.filename[:-4] + ".xlsx"	
 		
 		wb.save(out)
+
+		if (web_version):
+			slink = os.path.dirname(out) + "/output.xlsx"
+			if (os.path.exists(slink)):
+				os.remove(slink)
+			os.symlink(out, slink)
 
 
 class App:

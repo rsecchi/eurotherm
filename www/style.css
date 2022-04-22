@@ -55,9 +55,8 @@ h3 {
 
 .section elem{
 	display: inline-block;
-	color: #7d4646; 
-	font-size: 18px;
-	width: 200px;
+	font-size: 12px;
+	width: 240px;
 }
 
 .section filetag {
@@ -73,7 +72,7 @@ h3 {
 
 .section refs{
 	display: inline-block;
-	width: 140px;
+	width: 120px;
 }
 
 .section ref{

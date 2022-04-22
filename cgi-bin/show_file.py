@@ -38,9 +38,9 @@ else:
 		strval = form.getvalue("delete")
 		del_file = tmp + strval[1:-1]
 		if (os.path.exists(del_file)):
-			print("file exists!!")
 			os.remove(del_file)
 			os.remove(del_file[:-4] + ".txt")
+			os.remove(del_file[:-4] + ".xlsx")
 
 	print("</p>");
 
@@ -58,14 +58,18 @@ else:
 		href_dxf = '"/output/' + f + '"'
 		href_xls = '"/output/' + f[:-4] + '.xlsx"'
 		href_log = '"/output/' + f[:-4] + '.txt"'
-		rule = re.compile("^.*_leo")
-		fname = rule.match(f).group(0)
-		rule = re.search("_leo_.*",f)
-			
-		tag = rule.group(0)
+
+		#rule = re.compile("^.*_leo")
+		#fname = rule.match(f).group(0)
+		#rule = re.search("_leo_.*",f)			
+		#tag = rule.group(0)
+
+		if (len(f) > 30):
+			fname = f[:15]+"..."+f[-15:]
+
 		print('<li>')
-		print('<elem>', fname[:-4], '</elem>')
-		print('<filetag>', tag[5:7], '</filetag>')
+		print('<elem>', fname, '</elem>')
+		#print('<filetag>', tag[5:7], '</filetag>')
 		print('<refs>')
 		print('<ref><a href=',href_dxf,' download>[DXF]</a></ref>')
 		print('<ref><a href=',href_xls,' download>[XLS]</a></ref>')
