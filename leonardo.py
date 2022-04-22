@@ -19,7 +19,7 @@ from tkinter.messagebox import askyesno
 
 dxf_version = "AC1032"
 
-web_version = True
+web_version = False
 debug = False
 
 # block names
