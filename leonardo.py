@@ -16,15 +16,13 @@ from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
-import getpass
 
 dxf_version = "AC1032"
 
 web_version = False
 debug = False
 
-print(getpass.getuser())
-if getpass.getuser() == 'www-data':
+if len(sys.argv) > 1 :
 	web_version = True
 
 # block names
