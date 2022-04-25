@@ -1,7 +1,9 @@
 #!/usr/local/bin/python3 -u
 
 import ezdxf
+import sys
 from ezdxf.addons import Importer
+
 
 import openpyxl
 from openpyxl.styles import Alignment
