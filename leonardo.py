@@ -16,11 +16,16 @@ from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
+import getpass
 
 dxf_version = "AC1032"
 
 web_version = False
 debug = False
+
+print(getpass.getuser())
+if getpass.getuser() == 'www-data':
+	web_version = True
 
 # block names
 block_blue_120x100  = "Leo 55_120"
