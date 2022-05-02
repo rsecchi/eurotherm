@@ -66,6 +66,8 @@ else:
 
 		if (len(f) > 30):
 			fname = f[:15]+"..."+f[-15:]
+		else:
+			fname = f
 
 		print('<li>')
 		print('<elem>', fname, '</elem>')
