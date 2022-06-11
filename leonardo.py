@@ -27,13 +27,38 @@ debug = False
 if len(sys.argv) > 1 :
 	web_version = True
 
-# block names
-block_blue_120x100  = "Leo 55_120"
-block_blue_60x100   = "Leo 55_60"
-block_green_120x100 = "Leo 55_120 idro"
-block_green_60x100  = "Leo 55_60 idro"
+# block names (defaults)
+block_blue_120x100  = "leo_55_120"
+block_blue_60x100   = "leo_55_60"
+block_green_120x100 = "leo_55_120_idro"
+block_green_60x100  = "leo_55_60_idro"
 block_collector     = "collettore"
 
+# Panel types
+panel_types = [
+    {
+        "full_name"  : "Leonardo 5,5",
+        "handler"    : "55",
+        "rings"      : 10,
+        "panels"     : 5,
+        "flow_line"  : 280,
+        "flow_ring"  : 28,
+        "flow_panel" : 56
+    },
+    {
+        "full_name"  : "Leonardo 3,5",
+        "handler"    : "35",
+        "rings"      : 9,
+        "panels"     : 4.5,
+        "flow_line"  : 252,
+        "flow_ring"  : 28,
+        "flow_panel" : 56
+    }
+]
+
+#names = [panel['full_name'] for panel in panel_types]
+#print(names)
+#exit()
 
 # Parameter settings (values in cm)
 default_scale = 1  # scale=100 if the drawing is in m
@@ -1691,9 +1716,14 @@ class Model(threading.Thread):
 		f = open(self.outname[:-4]+".txt", "w")
 		print(summary, file = f)
 
+		print("SUMMARY DONE")
+
 		##############################################################
 
 		self.draw()
+
+		print("DRAW DONE")
+
 		##############################################################
 
 		if (debug):
@@ -1716,7 +1746,7 @@ class Model(threading.Thread):
 		# save data in XLS
 		self.save_in_xls()
 
-		print("DONE")
+		print("ALL DONE")
 
 	def draw(self):
 		global collector_size
@@ -1792,14 +1822,22 @@ class Model(threading.Thread):
 
 	def draw_links2(self):	
 		# draw connections
+
 		for collector, items in self.best_list:
 
 			for room in items:
 				if (len(room.panels) == 0):
 					continue
 
+				time_to_live = 16
+
 				pos = room.pos
 				while (room != collector.contained_in):
+					time_to_live = time_to_live - 1
+					if (time_to_live == 0):
+						print("Uplink error in room", room.index)
+						break
+
 					med = room.pos
 					pline = (pos, med)
 					pl = self.msp.add_lwpolyline(pline)
@@ -2255,7 +2293,14 @@ class App:
 		self.var = StringVar() # variable for select layer menu
 
 		self.button1 = Button(ctl, text="Build", width=5, command=self.create_model, pady=5)
-		self.button1.grid(row=3, column=1, pady=(30,10))
+		self.button1.grid(row=4, column=1, pady=(30,10))
+
+		self.type = StringVar()
+		names = [panel['full_name'] for panel in panel_types]
+		self.type.set(names[0])
+		self.typemenu = OptionMenu(self.ctl, self.type,*names)
+		self.typemenu.config(width=26)
+		self.typemenu.grid(row=4, column=0, padx=(10,40), sticky="w")
 
 		# Parameters section
 		parname = Label(root, text="Settings")
@@ -2366,6 +2411,12 @@ class App:
 
 def _create_model(iface):
 
+	global block_blue_120x100 
+	global block_blue_60x100 
+	global block_green_120x100
+	global block_green_60x100
+	global block_collector
+
 	# create model and initialise it
 	iface.model = Model(iface)
 
@@ -2397,6 +2448,17 @@ def _create_model(iface):
 	## copy blocks from panels
 	source_dxf = ezdxf.readfile("panels.dxf")
 	importer = Importer(source_dxf, iface.model.doc)
+
+	ctype = iface.type.get()
+	
+	for ptype in panel_types:
+		if (ctype == ptype['full_name']):
+			handler = "leo_" + ptype['handler'] + "_"
+			block_blue_120x100 = handler + "120"
+			block_blue_60x100 = handler + "60"
+			block_green_120x100 = handler + "120_idro"
+			block_green_60x100 = handler + "60_idro"			
+
 	importer.import_block(block_blue_120x100)
 	importer.import_block(block_blue_60x100)
 	importer.import_block(block_green_120x100)
