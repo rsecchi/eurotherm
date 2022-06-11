@@ -15,8 +15,8 @@ from conf import *
 
 
 ####### schedule command ####################
-def schedule_script(fname, units):
-	cmd = "at now <<< '%s %s %s > %s 2> %s'" % (script, fname, units, logfile, logfile) 
+def schedule_script(fname, units, ptype):
+	cmd = "at now <<< '%s %s %s %s > %s 2> %s'" % (script, fname, units, ptype, logfile, logfile)
 	subprocess.Popen(['/bin/bash', '-c', cmd])
 #############################################
 
@@ -34,11 +34,14 @@ if not os.path.exists(lock_name):
 	fid = form.getvalue("file")
 	web_filename = get_filename(fid)
 
+	# Receive settings
 	fileitem =  form['filename']
 	units = form.getvalue('units')
+	ptype = form.getvalue('ptype')
+
 	outfile = open(web_filename, 'wb')
 	outfile.write(fileitem.file.read())
-	schedule_script('"'+web_filename+'"', units)
+	schedule_script('"'+web_filename+'"', units, ptype)
 
 
 ff = open(load_page, "r")

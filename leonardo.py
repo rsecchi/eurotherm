@@ -2449,7 +2449,10 @@ def _create_model(iface):
 	source_dxf = ezdxf.readfile("panels.dxf")
 	importer = Importer(source_dxf, iface.model.doc)
 
-	ctype = iface.type.get()
+	if (not web_version):
+		ctype = iface.type.get()
+	else:
+		ctype = iface.type
 	
 	for ptype in panel_types:
 		if (ctype == ptype['full_name']):
@@ -2470,13 +2473,17 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self, infile, units):
+	def __init__(self, infile, units, ptype):
 		self.filename = web_filename
 		self.scale = units
 		self.inputlayer = default_input_layer
 		self.textinfo = self
 		self.outname = infile
-		
+
+		for	ctype in panel_types:
+			if (ctype['handler'] == ptype):
+				self.type = ctype['full_name']
+
 		_create_model(self)
 
 	def print(self, text):
@@ -2508,10 +2515,11 @@ if (web_version):
 		# Get command line parameters
 		filename = sys.argv[1] 
 		units = sys.argv[2]	
+		ptype = sys.argv[3]
 
 		os.rename(filename, web_filename)
 		
-		Iface(filename, units)
+		Iface(filename, units, ptype)
 	else:
 		print("resource busy")
 
