@@ -115,7 +115,12 @@ sheet_template_1 = 'LEONARDO 5.5'
 sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
-sheet_breakdown = 'Room Breakdown'
+sheet_breakdown = [
+	('Breakdown L55', 44), 
+	('Breakdown L35', 62),
+	('Breakdown 30p', 79)
+]
+
 show_panel_list = True
 
 alphabet = {
@@ -2106,140 +2111,141 @@ class Model(threading.Thread):
 		ws3['I3'] = ws3['I4'] = no_collectors 
 
 		if show_panel_list:
-			ws = wb.create_sheet(sheet_breakdown)
+			for sheet, cool_coef in sheet_breakdown:
+				ws = wb.create_sheet(sheet)
 
-			ws.row_dimensions[3].height = 32
+				ws.row_dimensions[3].height = 32
 
-			# header
-			for i in range(66,85):
-				ws.column_dimensions[chr(i)].width = 8
-				ws[chr(i)+'3'].alignment = \
-					Alignment(wrapText=True, 
-						vertical ='center',
-						horizontal ='center')
+				# header
+				for i in range(66,85):
+					ws.column_dimensions[chr(i)].width = 8
+					ws[chr(i)+'3'].alignment = \
+						Alignment(wrapText=True, 
+							vertical ='center',
+							horizontal ='center')
 
 
-			ws['B3'] = "Zona"
-			ws['C3'] = "Collettore"
-			ws['D3'] = "Stanza"
+				ws['B3'] = "Zona"
+				ws['C3'] = "Collettore"
+				ws['D3'] = "Stanza"
 
-			ws['E3'] = "Attiva\n[m2]"
-			ws['F3'] = "Area\n[m2]"
-			ws['G3'] = "% cop."
-			ws['H3'] = "linee"
+				ws['E3'] = "Attiva\n[m2]"
+				ws['F3'] = "Area\n[m2]"
+				ws['G3'] = "% cop."
+				ws['H3'] = "linee"
 
-			ws['I3'] = "Pannelli\n200x120"
-			ws['J3'] = "Pannelli\n200x60"
-			ws['K3'] = "Pannelli\n100x120"
-			ws['L3'] = "Pannelli\n100x60"
-				
-			ws.column_dimensions['M'].width = 2
+				ws['I3'] = "Pannelli\n200x120"
+				ws['J3'] = "Pannelli\n200x60"
+				ws['K3'] = "Pannelli\n100x120"
+				ws['L3'] = "Pannelli\n100x60"
+					
+				ws.column_dimensions['M'].width = 2
 
-			ws['O2'] = 'Riscaldamento'
-			ws['N3'] = "Q, resa\n[W]"
-			ws['O3'] = "Q, tot\n[W]"
-			ws['P3'] = "Portata\n[kg/h]"
+				ws['O2'] = 'Riscaldamento'
+				ws['N3'] = "Q, resa\n[W]"
+				ws['O3'] = "Q, tot\n[W]"
+				ws['P3'] = "Portata\n[kg/h]"
 
-			ws.column_dimensions['Q'].width = 2
+				ws.column_dimensions['Q'].width = 2
 
-			ws['S2'] = 'Raffrescamento'
-			ws['R3'] = "Q, resa\n[W]"
-			ws['S3'] = "Q, tot\n[W]"
-			ws['T3'] = "Portata\n[kg/h]"
+				ws['S2'] = 'Raffrescamento'
+				ws['R3'] = "Q, resa\n[W]"
+				ws['S3'] = "Q, tot\n[W]"
+				ws['T3'] = "Portata\n[kg/h]"
 
-			set_border(ws, '3', "BCDEFGHIJKLNOPRST")
+				set_border(ws, '3', "BCDEFGHIJKLNOPRST")
 
-			self.processed.sort(key=lambda x: 
-				(x.collector.zone_num, x.collector.number, x.pindex))
+				self.processed.sort(key=lambda x: 
+					(x.collector.zone_num, x.collector.number, x.pindex))
 
-			zone = 0
-			index = 4
-			number = -1
-			for room in self.processed:
+				zone = 0
+				index = 4
+				number = -1
+				for room in self.processed:
 
-				while (room.collector.zone_num>zone):
-					zone += 1
-					pos = 'B' + str(index)
-					ws[pos] = "Zone %d" % zone
-					set_border(ws,str(index), 'B')
-				
-				if (room.collector.number != number):
-					number = room.collector.number
-					set_border(ws, str(index), "CDEFGHIJKLNOPRST")
+					while (room.collector.zone_num>zone):
+						zone += 1
+						pos = 'B' + str(index)
+						ws[pos] = "Zone %d" % zone
+						set_border(ws,str(index), 'B')
+					
+					if (room.collector.number != number):
+						number = room.collector.number
+						set_border(ws, str(index), "CDEFGHIJKLNOPRST")
 
-				pos = 'C' + str(index)
-				ws[pos] = room.collector.name
-				ws[pos].alignment = Alignment(horizontal='center')
-				
-				pos = 'D' + str(index)
-				ws[pos] = room.pindex
-				ws[pos].alignment = Alignment(horizontal='center')
+					pos = 'C' + str(index)
+					ws[pos] = room.collector.name
+					ws[pos].alignment = Alignment(horizontal='center')
+					
+					pos = 'D' + str(index)
+					ws[pos] = room.pindex
+					ws[pos].alignment = Alignment(horizontal='center')
 
-				pos = 'F' + str(index)
-				ws[pos] = room.area_m2
-				ws[pos].number_format = "0.0"
+					pos = 'F' + str(index)
+					ws[pos] = room.area_m2
+					ws[pos].number_format = "0.0"
 
-				if (room.active_m2==0):
+					if (room.active_m2==0):
+						index += 1
+						continue
+
+					pos = 'E' + str(index)
+					ws[pos] = room.active_m2
+					ws[pos].number_format = "0.0"
+
+					pos = 'G' + str(index)
+					ws[pos] = room.ratio
+					ws[pos].number_format = "0.0"
+
+					pos = 'H' + str(index)
+					ws[pos] = room.actual_feeds
+
+					if (room.panels_200x120>0):
+						pos = 'I' + str(index)
+						ws[pos] = room.panels_200x120
+
+					if (room.panels_200x60>0):
+						pos = 'J' + str(index)
+						ws[pos] = room.panels_200x60
+
+					if (room.panels_100x120>0):
+						pos = 'K' + str(index)
+						ws[pos] = room.panels_100x120
+
+					if (room.panels_100x60>0):
+						pos = 'L' + str(index)
+						ws[pos] = room.panels_100x60
+
+
+					# heating 
+					pos = 'N' + str(index)
+					ws[pos] = radiated = room.active_m2 * 85
+					ws[pos].number_format = "0"
+
+					pos = 'O' + str(index)
+					ws[pos] = output = radiated * 1.1
+					ws[pos].number_format = "0"
+
+					pos = 'P' + str(index)
+					ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
+					ws[pos].number_format = "0"
+
+					# cooling
+					pos = 'R' + str(index)
+					ws[pos] = absorbed = room.active_m2 * cool_coef
+					ws[pos].number_format = "0"
+
+					pos = 'S' + str(index)
+					ws[pos] = output = absorbed * 1.1
+					ws[pos].number_format = "0"
+
+					pos = 'T' + str(index)
+					ws[pos] = 3.6*output/(4.186*ws1['M4'].value)
+					ws[pos].number_format = "0"
+
+
+					#ws[pos_area].number_format = "0.00"
 					index += 1
-					continue
-
-				pos = 'E' + str(index)
-				ws[pos] = room.active_m2
-				ws[pos].number_format = "0.0"
-
-				pos = 'G' + str(index)
-				ws[pos] = room.ratio
-				ws[pos].number_format = "0.0"
-
-				pos = 'H' + str(index)
-				ws[pos] = room.actual_feeds
-
-				if (room.panels_200x120>0):
-					pos = 'I' + str(index)
-					ws[pos] = room.panels_200x120
-
-				if (room.panels_200x60>0):
-					pos = 'J' + str(index)
-					ws[pos] = room.panels_200x60
-
-				if (room.panels_100x120>0):
-					pos = 'K' + str(index)
-					ws[pos] = room.panels_100x120
-
-				if (room.panels_100x60>0):
-					pos = 'L' + str(index)
-					ws[pos] = room.panels_100x60
-
-
-				# heating 
-				pos = 'N' + str(index)
-				ws[pos] = radiated = room.active_m2 * 85
-				ws[pos].number_format = "0"
-
-				pos = 'O' + str(index)
-				ws[pos] = output = radiated * 1.1
-				ws[pos].number_format = "0"
-
-				pos = 'P' + str(index)
-				ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
-				ws[pos].number_format = "0"
-
-				# cooling
-				pos = 'R' + str(index)
-				ws[pos] = absorbed = room.active_m2 * 44
-				ws[pos].number_format = "0"
-
-				pos = 'S' + str(index)
-				ws[pos] = output = absorbed * 1.1
-				ws[pos].number_format = "0"
-
-				pos = 'T' + str(index)
-				ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
-				ws[pos].number_format = "0"
-
-
-				#ws[pos_area].number_format = "0.00"
-				index += 1
 
 		if (web_version):
 			out = self.outname[:-4] + ".xlsx"
