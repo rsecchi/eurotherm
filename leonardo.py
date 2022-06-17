@@ -22,7 +22,7 @@ from tkinter.messagebox import askyesno
 dxf_version = "AC1032"
 
 web_version = False
-debug = False
+debug = True
 
 if len(sys.argv) > 1 :
 	web_version = True
@@ -866,11 +866,25 @@ class PanelArrangement:
 			bottomdorsal = Dorsal(self.grid, init_pos, 0)
 			bottomdorsal.room = self.room
 			bottomdorsal.make_dorsal()
+			if (bottomdorsal.lost>0):
+				bottomdorsal2 = Dorsal(self.grid, init_pos, 1)
+				bottomdorsal2.room = self.room
+				bottomdorsal2.make_dorsal()
+				if (bottomdorsal2.lost < bottomdorsal.lost):
+					bottomdorsal = bottomdorsal2
+					bottomdorsal.cost += 0.5
 
 			init_pos = (i+2, pos[1]) 
 			topdorsal = Dorsal(self.grid, init_pos, 1)
 			topdorsal.room = self.room
 			topdorsal.make_dorsal()
+			if (topdorsal.lost>0):
+				topdorsal2 = Dorsal(self.grid, init_pos, 0)
+				topdorsal2.room = self.room
+				topdorsal2.make_dorsal()
+				if (topdorsal2.lost < topdorsal.lost):
+					topdorsal = topdorsal2
+					topdorsal.cost += 0.5
 
 			if (not dorsals.add(topdorsal) or
 			    not dorsals.add(bottomdorsal)):
@@ -882,8 +896,18 @@ class PanelArrangement:
 	
 	def alloc_panels(self, origin):
 
+
 		if (not self.make_grid(origin)):
 			return
+
+		#print("alloc_panels", origin, self.grid.shape, self.rows, self.cols)
+		#for i in range(self.rows):
+		#	for j in range(self.cols):
+		#		if (self.grid[i,j]):
+		#			print('x',end='')
+		#		else:
+		#			print('.', end='')
+		#	print()
 
 		for j in range(0,2):
 			for i in range(0,4):
