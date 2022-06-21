@@ -71,9 +71,11 @@ max_room_area = 500
 default_max_clt_distance = 1500
 max_clt_break = 5
 
-feeds_per_collector = 10
+feeds_per_collector = 13
 area_per_feed_m2 = 12
+flow_per_m2 = 23.33
 target_eff = 0.7
+flow_per_collector = 1700
 
 default_font_size = 10
 
@@ -1446,6 +1448,7 @@ class Model(threading.Thread):
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
+			collector.freeflow = flow_per_collector
 			collector.items = list()
 
 		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
@@ -1587,8 +1590,7 @@ class Model(threading.Thread):
 					self.output.print(wstr)
 					room.errorstr = wstr
 					room.error = True
-	
-			
+
 
 		# get valid rooms
 		self.valid_rooms = list()
@@ -1648,6 +1650,7 @@ class Model(threading.Thread):
 
 		# Check if enough collectors
 		tot_area = feeds_eff = feeds_max = 0
+		flow_eff = flow_max = 0
 		for room in self.processed:
 			area = scale * scale * room.area
 			room.feeds_eff = ceil(area/area_per_feed_m2*target_eff)
@@ -1656,18 +1659,30 @@ class Model(threading.Thread):
 			feeds_max += room.feeds_max
 			# connect room based on max allocation
 			room.feeds = room.feeds_max
+			room.flow_eff = area*target_eff*flow_per_m2
+			room.flow_max = area*flow_per_m2
+			flow_eff += room.flow_eff
+			flow_max += room.flow_max
+			room.flow = room.flow_eff
+			#self.output.print("Room%3d   lines:%2d  flow:%6.2lf l/h\n" % 
+			#	(room.pindex, room.feeds, room.flow_eff))
 			tot_area += area
 
 		available_feeds = feeds_per_collector * len(self.collectors)
+		available_flow  = flow_per_collector * len(self.collectors)
 		self.output.print("Available pipes %g\n" % available_feeds)
 		self.output.print("Estimated pipes for %d%% cover: %d\n" % 
 				(100*target_eff, feeds_eff))
 		self.output.print("Estimated pipes for 100%% cover: %d\n" % feeds_max)
-		if (feeds_eff > available_feeds):
+		self.output.print("Available flow %g l/h\n" % available_flow)
+		self.output.print("Estimated flow for %d%% cover: %d l/h\n" % 
+				(100*target_eff, flow_eff))
+		self.output.print("Estimated flow for 100%% cover: %d l/h\n" % flow_max)
+		if (feeds_eff > available_feeds or flow_eff > available_flow):
 			self.output.print("ABORT: Too few collectors\n")
 			return
 
-		if (feeds_max > available_feeds):
+		if (feeds_max > available_feeds or flow_max > available_flow):
 			self.output.print("WARNING: Possible insufficient collectors\n")
 
 		################################################################
@@ -1992,14 +2007,17 @@ class Model(threading.Thread):
 			collector, room_dist, uplink = link
 			new_partial = partial + room_dist
 			if (new_partial+room.bound<self.best_dist and 
-				collector.freespace>=room.feeds):
+				collector.freespace>=room.feeds and
+				collector.freeflow>=room.flow):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
+				collector.freeflow  -= room.flow
 				room._uplink = uplink
 				room._collector = collector
 				self.connect_rooms(copy(room_iter), new_partial)
 				collector.items.remove(room)
 				collector.freespace += room.feeds
+				collector.freeflow += room.flow
 					
 	def print_report(self):
 		
@@ -2446,6 +2464,7 @@ def _create_model(iface):
 	global block_green_120x100
 	global block_green_60x100
 	global block_collector
+	global area_per_feed_m2
 
 	# create model and initialise it
 	iface.model = Model(iface)
@@ -2491,6 +2510,10 @@ def _create_model(iface):
 			block_blue_60x100 = handler + "60"
 			block_green_120x100 = handler + "120_idro"
 			block_green_60x100 = handler + "60_idro"			
+			area_per_feed_m2 = ptype['panels'] * 2.4
+			flow_per_m2 = ptype['flow_panel'] / 2.4
+			iface.print('Area/line = %g m2\n' % area_per_feed_m2)
+			iface.print('Flow_per_m2 = %g l/m2\n' % flow_per_m2)
 
 	importer.import_block(block_blue_120x100)
 	importer.import_block(block_blue_60x100)
