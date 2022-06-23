@@ -3,6 +3,7 @@
 import ezdxf
 import sys
 from ezdxf.addons import Importer
+from ezdxf.math import Vec2, intersection_line_line_2d
 
 
 import openpyxl
@@ -97,11 +98,16 @@ layer_box    = 'Eurotherm_box'
 layer_panel  = 'Eurotherm_panel'
 layer_panelp = 'Eurotherm_prof'
 layer_link   = 'Eurotherm_link'
+layer_error  = 'Eurotherm_error'
 
 text_color = 7
-box_color = 8
-collector_color = 1
-disabled_room_color = 6
+box_color = 8               ;# cyan
+collector_color = 1         ;# red
+disabled_room_color = 6     ;# magenta
+valid_room_color = 5        ;# blue
+bathroom_color = 3          ;# green
+obstacle_color = 2          ;# yellow
+
 ask_for_write = False
 
 MAX_COST = 1000000
@@ -939,6 +945,7 @@ class Room:
 
 	def __init__(self, poly, output):
 
+		self.poly = poly
 		self.index = Room.index
 		Room.index = Room.index + 1
 		self.output = output
@@ -1217,6 +1224,33 @@ class Room:
 
 		return False
 
+
+	def collides_with(self, room):
+
+		# check if BBs overlap
+		if (self.ax > room.bx or
+			self.bx < room.ax or
+			self.ay > room.by or
+			self.by < room.ay):
+			return False
+
+		# check if room contains self or is contained
+		if (room.contains(self) or self.contains(room)):
+			return True
+
+		# check if polylines cross each other
+		p = self.points
+		q = room.points
+		for i in range(0, len(p)-1):
+			line1 = (Vec2(p[i]), Vec2(p[i+1]))
+			for j in range(0, len(q)-1):
+				line2 = (Vec2(q[j]), Vec2(q[j+1]))
+				if (intersection_line_line_2d(line1, line2, virtual=False)):
+					return True
+
+		return False
+		
+
 	def add_gates(self, room):
 		
 		p1 = self.points
@@ -1304,14 +1338,16 @@ class Room:
 		return (txt, area, active_area, 
 			(p2x2,p2x1,p1x2,p1x1,p1x1_l,p1x1_r,p1x2_l,p1x2_r))
 
+	def draw_label(self, msp):
+
+		write_text(msp, "Room %d" % self.pindex, self.pos)
 
 	def draw(self, msp):
 	
 		if (debug):
 			self.arrangement.draw_grid(msp)
 
-		write_text(msp, "Room %d (%d)" % 
-			(self.pindex, self.actual_feeds), self.pos)
+		self.draw_label(msp)
 
 		for panel in self.panels:
 			panel.draw(msp)
@@ -1324,6 +1360,9 @@ class Model(threading.Thread):
 		super(Model, self).__init__()
 		self.rooms = list()
 		self.collectors = list()
+		self.valid_rooms = list()
+		self.processed = list()
+		self.obstacles = list()
 		self.zone = list()
 		self.output = output
 		self.best_list = list()
@@ -1336,6 +1375,7 @@ class Model(threading.Thread):
 	def create_layers(self):
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_panel, 0)
+		self.new_layer(layer_error, 0)
 		if (debug):
 			self.new_layer(layer_panelp, 0)
 			self.new_layer(layer_box, box_color)
@@ -1542,6 +1582,20 @@ class Model(threading.Thread):
 		scale = pow(10, ceil(log10(sqrt(n/tot))))
 		self.output.print("Autoscale: 1 unit = %g cm\n" % scale)
 
+	def check_polyline_color(self, poly):
+
+		if (poly.dxf.color == 256):
+			# BYLAYER poly color
+			poly.dxf.color = self.layer_color
+
+		if (not (poly.dxf.color == collector_color or
+				 poly.dxf.color == obstacle_color or
+				 poly.dxf.color == bathroom_color or
+				 poly.dxf.color == valid_room_color or
+				 poly.dxf.color == disabled_room_color)):
+			return False
+		return True
+
 
 	def run(self):
  
@@ -1567,21 +1621,32 @@ class Model(threading.Thread):
 				self.textinfo.insert(END, wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
-		query = self.msp.query(searchstr)
-		if (len(query) == 0):
+		self.query = self.msp.query(searchstr)
+		if (len(self.query) == 0):
 			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
 			self.output.print(wstr)
 
 
-		# Create list of rooms
-		for poly in query:
+		# Create list of rooms, obstacles and collectors
+		for poly in self.query:
+
+			# check if poly color is allowed
+			if (not self.check_polyline_color(poly)):
+				wstr = "ABORT: Polyline color %d not allowed" % poly.dxf.color
+				self.output.print(wstr)
+				return
+
 			room = Room(poly, self.output)
 			self.rooms.append(room)
-			room.error = False
+
 			if (len(room.errorstr)>0):
-				self.textinfo.insert(END,room.errorstr)
+				# Invalid polyline
 				room.error = True
+				self.textinfo.insert(END,room.errorstr)
 			else:
+
+				# Valid polyline, classify room
+				room.error = False
 				area = scale * scale * room.area
 				if (area > max_room_area):
 					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
@@ -1590,60 +1655,84 @@ class Model(threading.Thread):
 					self.output.print(wstr)
 					room.errorstr = wstr
 					room.error = True
+					continue
 
+				if (room.color == collector_color):
+					self.collectors.append(room)
+					room.is_collector = True
+					continue
 
-		# get valid rooms
-		self.valid_rooms = list()
-		for room in self.rooms:
-			if (not room.error):
-				self.valid_rooms.append(room)
-			if (room.color == collector_color):
-				self.collectors.append(room)
-				room.is_collector = True
+				if (room.color == valid_room_color or
+				   room.color == bathroom_color):
+					self.valid_rooms.append(room)
+
+				if (room.color == obstacle_color):
+					self.obstacles.append(room)
+
+	
+		# check if the room is too small to be processed
+		pindex = 1
+		for room in self.valid_rooms:
+			area = scale * scale * room.area
+			if  (area < min_room_area):
+				wstr = "WARNING: area less than %d m2: " % min_room_area
+				wstr += "Consider changing scale!\n"
+				self.output.print(wstr)
+				room.errorstr = wstr
+				room.error = True
 			else:
-				room.is_collector = False
-					
-		# check if collectors exist
-		if (not self.collectors):
-			wstr = "ABORT: No collectors found"
-			self.output.print(wstr)
-			return
+				room.pindex = pindex
+				pindex += 1
+				self.processed.append(room)
 
-		# check if an area is contained in a room
+
+		# check if every collector is in a room
+		for collector in self.collectors:
+
+			collector.contained_in = False
+			for room in self.processed:
+
+				if (room.contains(collector)):
+					collector.contained_in = room
+					break
+
+			if (not collector.contained_in):
+				wstr = "ABORT: Collector outside room"
+				self.output.print(wstr)
+				return
+			
+
+		# assign obstacles to rooms
+		for obs in self.obstacles:
+			for room in self.processed:
+				if (obs.collides_with(room)):
+					room.obstacles.append(obs)
+					obs.contained_in = room
+
+		# check if two rooms collide
 		self.valid_rooms.sort(key=lambda room: room.ax)	
 		room = self.valid_rooms
 		for i in range(len(room)):
 			j=i+1
 			while (j<len(room) and room[j].ax < room[i].bx):
-				if (room[i].contains(room[j]) or 
-					room[j].contains(room[i])):
+				if (room[i].collides_with(room[j])):
+					wstr = "ABORT: Collision between Room %d" % room[i].pindex
+					wstr += " and Room %d \n" % room[j].pindex
+					wstr += "Check output drawing to visualize errors"
+					room[i].poly.dxf.layer = layer_error
+					room[j].poly.dxf.layer = layer_error
+					self.output.print(wstr)
+					self.output_error()
+					return
 
-					if (room[i].area > room[j].area):
-						room[i].obstacles.append(room[j])
-						room[j].contained_in = room[i]
-					else:
-						room[j].obstacles.append(room[i])
-						room[i].contained_in = room[j]
+					#if (room[i].area > room[j].area):
+					#	room[i].obstacles.append(room[j])
+					#	room[j].contained_in = room[i]
+					#else:
+					#	room[j].obstacles.append(room[i])
+					#	room[i].contained_in = room[j]
 				j += 1
 	
-		# check if the room is too small to be processed
-		self.processed = list()
-		pindex = 1
-		for room in self.valid_rooms:
-			area = scale * scale * room.area
-			if (room.contained_in == None):
-				if  (area < min_room_area):
-					wstr = "WARNING: area less than %d m2: " % min_room_area
-					wstr += "Consider changing scale!\n"
-					self.output.print(wstr)
-					room.errorstr = wstr
-					room.error = True
-				else:
-					if (not room.is_collector):
-						room.pindex = pindex
-						pindex += 1
-						self.processed.append(room)
-
 	
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
@@ -1680,10 +1769,14 @@ class Model(threading.Thread):
 		self.output.print("Estimated flow for 100%% cover: %d l/h\n" % flow_max)
 		if (feeds_eff > available_feeds or flow_eff > available_flow):
 			self.output.print("ABORT: Too few collectors\n")
+			self.output.print("Please insert at least %d collectors\n" %
+				ceil(flow_eff/flow_per_collector))
 			return
 
 		if (feeds_max > available_feeds or flow_max > available_flow):
 			self.output.print("WARNING: Possible insufficient collectors\n")
+			self.output.print("WARNING: suggested %d collectors\n" %
+				ceil(flow_eff/flow_per_collector))
 
 		################################################################
 		self.create_trees()
@@ -1759,20 +1852,29 @@ class Model(threading.Thread):
 		self.output.print(summary)
 		f = open(self.outname[:-4]+".txt", "w")
 		print(summary, file = f)
-
 		print("SUMMARY DONE")
 
 		##############################################################
 
 		self.draw()
 
-		print("DRAW DONE")
 
 		##############################################################
+		# save data in XLS
+		self.save_in_xls()
 
+		print("ALL DONE")
+
+	def output_error(self):
+		print("Showing the errors")
+		self.doc.layers.remove(layer_panel)
+		self.doc.layers.remove(layer_link)
 		if (debug):
-			self.doc.layers.get(layer_box).off()
-			self.doc.layers.get(layer_panelp).off()
+			self.doc.layers.remove(layer_box)
+			self.doc.layers.remove(layer_panelp)
+
+		for room in self.processed:
+			room.draw_label(self.msp)
 
 		if (os.path.isfile(self.outname) and ask_for_write==True):
 			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
@@ -1786,11 +1888,7 @@ class Model(threading.Thread):
 				os.remove(slink)
 			os.symlink(self.outname, slink)
 
-		##############################################################
-		# save data in XLS
-		self.save_in_xls()
-
-		print("ALL DONE")
+		print("DRAW DONE")
 
 	def draw(self):
 		global collector_size
@@ -1840,6 +1938,27 @@ class Model(threading.Thread):
 		#for collector in self.collectors:
 		#	self.draw_trees(collector)
 		# self.draw_gates()
+
+		##############################################################
+
+		if (debug):
+			self.doc.layers.get(layer_box).off()
+			self.doc.layers.get(layer_panelp).off()
+
+		if (os.path.isfile(self.outname) and ask_for_write==True):
+			if askyesno("Warning", "File 'leo' already exists: Overwrite?"):
+				self.doc.saveas(self.outname)
+		else:
+			self.doc.saveas(self.outname)
+
+		if (web_version):
+			slink = os.path.dirname(self.outname) + "/output.dxf"
+			if (os.path.exists(slink)):
+				os.remove(slink)
+			os.symlink(self.outname, slink)
+
+		print("DRAW DONE")
+
 
 	def draw_links(self):	
 		# draw connections
@@ -2431,7 +2550,7 @@ class App:
 			if (layer == default_input_layer):
 				sel = default_input_layer
 				break
-		
+
 		self.opt.destroy()
 		self.var.set(sel)
 		self.opt = OptionMenu(self.ctl,self.var,*layers)
@@ -2485,6 +2604,10 @@ def _create_model(iface):
 	importer = Importer(iface.doc, iface.model.doc)
 	ents = iface.doc.modelspace().query('*[layer=="%s"]' 
 			% iface.model.inputlayer)
+
+	for layer in iface.doc.layers:
+		if (layer.dxf.name == iface.model.inputlayer):
+			iface.model.layer_color = layer.dxf.color
 
 	if (len(ents) == 0):
 		iface.textinfo.print('Layer "%s" not available or empty'
