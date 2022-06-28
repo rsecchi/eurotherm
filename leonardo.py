@@ -638,6 +638,8 @@ class Dorsal:
 		i = self.pos[0]
 
 		side = self.side
+		self.first_of_line = True
+		self.last_panel_cut = False
 
 		while(j<m.shape[1]-3):
 
@@ -711,6 +713,11 @@ class Dorsal:
 						self.new_panel(m[i+1,j+1],(1,1),1)
 						self.cost += 1
 
+		# Now assign costs based on gaps
+		if (self.last_panel_cut and self.room.clt_xside == RIGHT):
+			self.cost += 0.01
+
+
 	# handside 0=left, 1=right
 	def new_panel(self, cell, size, handside=0):
 
@@ -738,7 +745,17 @@ class Dorsal:
 			    self.attach[0] < rgt[0]):
 				self.attach = rgt
 
+		if (size!=(2,2)):
+			self.last_panel_cut = False
+		else:
+			self.last_panel_cut = True
+
+		if (self.first_of_line and size!=(2,2) and
+			  self.room.clt_xside==RIGHT):
+			self.cost += 0.01
+
 		self.panels.append(panel)
+		self.first_of_line = False
 
 		if (panel.gapl < self.gapl):
 			self.gapl = panel.gapl
@@ -861,6 +878,15 @@ class PanelArrangement:
 		for cell in self.cells:
 			m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
 
+		#print()
+		#for row in range(self.rows):
+		#	for col in range(self.cols):
+		#		if (m[row,col]):
+		#			print("X", end="")
+		#		else:
+		#			print(".", end="")
+		#	print()
+
 		return True
 
 	def build_dorsals(self, pos):
@@ -868,37 +894,38 @@ class PanelArrangement:
 		dorsals = Dorsals(self.room)
 
 		i = pos[0]
-		while(i<self.rows-3):
-			init_pos = (i, pos[1]) 
-
-			bottomdorsal = Dorsal(self.grid, init_pos, 0)
-			bottomdorsal.room = self.room
-			bottomdorsal.make_dorsal()
-			if (bottomdorsal.lost>0):
-				bottomdorsal2 = Dorsal(self.grid, init_pos, 1)
-				bottomdorsal2.room = self.room
-				bottomdorsal2.make_dorsal()
-				if (bottomdorsal2.lost < bottomdorsal.lost):
-					bottomdorsal = bottomdorsal2
-					bottomdorsal.cost += 0.5
-
-			init_pos = (i+2, pos[1]) 
-			topdorsal = Dorsal(self.grid, init_pos, 1)
-			topdorsal.room = self.room
-			topdorsal.make_dorsal()
-			if (topdorsal.lost>0):
-				topdorsal2 = Dorsal(self.grid, init_pos, 0)
-				topdorsal2.room = self.room
-				topdorsal2.make_dorsal()
-				if (topdorsal2.lost < topdorsal.lost):
-					topdorsal = topdorsal2
-					topdorsal.cost += 0.5
-
-			if (not dorsals.add(topdorsal) or
-			    not dorsals.add(bottomdorsal)):
-				return None
-				
-			i += 4
+		for j in (0,1):
+			while(i<self.rows-3):
+				init_pos = (i, j) 
+	
+				bottomdorsal = Dorsal(self.grid, init_pos, 0)
+				bottomdorsal.room = self.room
+				bottomdorsal.make_dorsal()
+				if (bottomdorsal.lost>0):
+					bottomdorsal2 = Dorsal(self.grid, init_pos, 1)
+					bottomdorsal2.room = self.room
+					bottomdorsal2.make_dorsal()
+					if (bottomdorsal2.lost < bottomdorsal.lost):
+						bottomdorsal = bottomdorsal2
+						bottomdorsal.cost += 0.5
+	
+				init_pos = (i+2, pos[1]) 
+				topdorsal = Dorsal(self.grid, init_pos, 1)
+				topdorsal.room = self.room
+				topdorsal.make_dorsal()
+				if (topdorsal.lost>0):
+					topdorsal2 = Dorsal(self.grid, init_pos, 0)
+					topdorsal2.room = self.room
+					topdorsal2.make_dorsal()
+					if (topdorsal2.lost < topdorsal.lost):
+						topdorsal = topdorsal2
+						topdorsal.cost += 0.5
+	
+				if (not dorsals.add(topdorsal) or
+				    not dorsals.add(bottomdorsal)):
+					return None
+					
+				i += 4
 
 		return dorsals
 	
@@ -917,21 +944,21 @@ class PanelArrangement:
 		#			print('.', end='')
 		#	print()
 
-		for j in range(0,2):
-			for i in range(0,4):
-				# set origin of dorsals
-				pos = (i, j)
-				trial_dorsals = self.build_dorsals(pos)
-				if ((not trial_dorsals == None ) and
-					((trial_dorsals.elems > self.dorsals.elems) or
-					(trial_dorsals.elems == self.dorsals.elems and
-					 trial_dorsals.cost < self.dorsals.cost) or
-					(trial_dorsals.elems == self.dorsals.elems and
-					 trial_dorsals.cost == self.dorsals.cost and
-					 trial_dorsals.gap > self.dorsals.gap))):
-						self.dorsals = trial_dorsals
-						self.best_grid = self.cells
-						self.alloc_mode = self.mode
+		#for j in range(0,2):
+		for i in range(0,4):
+			# set origin of dorsals
+			pos = (i, 0)
+			trial_dorsals = self.build_dorsals(pos)
+			if ((not trial_dorsals == None ) and
+				((trial_dorsals.elems > self.dorsals.elems) or
+				(trial_dorsals.elems == self.dorsals.elems and
+				 trial_dorsals.cost < self.dorsals.cost) or
+				(trial_dorsals.elems == self.dorsals.elems and
+				 trial_dorsals.cost == self.dorsals.cost and
+				 trial_dorsals.gap > self.dorsals.gap))):
+					self.dorsals = trial_dorsals
+					self.best_grid = self.cells
+					self.alloc_mode = self.mode
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
@@ -1694,6 +1721,7 @@ class Model(threading.Thread):
 
 				if (room.contains(collector)):
 					collector.contained_in = room
+					room.obstacles.append(collector)
 					break
 
 			if (not collector.contained_in):
