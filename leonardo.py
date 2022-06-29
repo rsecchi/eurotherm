@@ -14,7 +14,7 @@ import threading
 import numpy as np
 from openpyxl.styles.borders import Border, Side
 import os.path
-from math import ceil, floor, sqrt, log10
+from math import ceil, floor, sqrt, log10, atan2, pi
 from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
@@ -409,6 +409,14 @@ def is_gate(line, target):
 	return (False, (None, None))
 
 
+
+def rotate(point, orig, uv):
+
+	(ax, ay) = (orig[0] - point[0], orig[1] - point[1])
+	bx =  ax*uv[0] + ay*uv[1]
+	by = -ax*uv[1] + ay*uv[0]
+	return (orig[0]+bx , orig[1]+by)
+
 def set_border(ws, row, cols):
 
 #	thin_border = Border(left=Side(style='thin'), 
@@ -476,6 +484,15 @@ class Panel:
 				rot1, xs1, ys1 = 0, -0.1, -0.1
 				rot2, xs2, ys2 = 0, -0.1, 0.1
 
+		if (self.cell.room.vector):
+			room = self.cell.room
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			orig1 = rotate(orig1, room.rot_orig, uv)
+			orig2 = rotate(orig2, room.rot_orig, uv)
+			rot1 += room.rot_angle
+			rot2 += room.rot_angle
+
 		xs1, ys1 = xs1/scale, ys1/scale
 		xs2, ys2 = xs2/scale, ys2/scale
 
@@ -524,6 +541,13 @@ class Panel:
 
 		if (self.mode==1):
 			orig = (orig[1], orig[0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			orig = rotate(orig, room.rot_orig, uv)
+			rot += room.rot_angle
 
 		xs, ys = xs/scale, ys/scale
 
@@ -586,6 +610,14 @@ class Panel:
 		if (self.mode==1):
 			for i in range(0,len(pline)):
 				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
 
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_panelp
@@ -813,10 +845,20 @@ class Cell:
 		box = self.box
 		ax = box[0]; bx = box[1]
 		ay = box[2]; by = box[3]
+
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 		if (self.mode==1):
 			for i in range(0,len(pline)):
 				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.room.vector):
+			room = self.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
+
 		pl = msp.add_lwpolyline(pline)
 		pl.dxf.layer = layer_box
 
@@ -931,18 +973,8 @@ class PanelArrangement:
 	
 	def alloc_panels(self, origin):
 
-
 		if (not self.make_grid(origin)):
 			return
-
-		#print("alloc_panels", origin, self.grid.shape, self.rows, self.cols)
-		#for i in range(self.rows):
-		#	for j in range(self.cols):
-		#		if (self.grid[i,j]):
-		#			print('x',end='')
-		#		else:
-		#			print('.', end='')
-		#	print()
 
 		#for j in range(0,2):
 		for i in range(0,4):
@@ -959,6 +991,7 @@ class PanelArrangement:
 					self.dorsals = trial_dorsals
 					self.best_grid = self.cells
 					self.alloc_mode = self.mode
+
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
@@ -988,6 +1021,7 @@ class Room:
 		self.coord = list()
 
 		self.points = list(poly.vertices())	
+		self.vector = None
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -1016,9 +1050,6 @@ class Room:
 			else:
 				p[0] = p[n]
 
-		# Projections of coordinates on x and y
-		self.xcoord = sorted(set([p[0] for p in self.points]))	
-		self.ycoord = sorted(set([p[1] for p in self.points]))	
 
 		self.color = poly.dxf.color
 		self.arrangement = PanelArrangement(self)
@@ -1072,6 +1103,11 @@ class Room:
 			return (0, 0)
 
 	def bounding_box(self):
+
+		# Projections of coordinates on x and y
+		self.xcoord = sorted(set([p[0] for p in self.points]))	
+		self.ycoord = sorted(set([p[1] for p in self.points]))	
+
 		self.ax = min(self.xcoord)
 		self.bx = max(self.xcoord)
 		self.ay = min(self.ycoord)
@@ -1118,6 +1154,20 @@ class Room:
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
 
+		# Rotate according to vector
+		if (self.vector):
+			p = self.points
+			rot = self.rot_orig
+			uv = self.uvector
+
+			for i in range(len(p)):
+				p[i] = rotate(p[i], rot, uv)
+
+			for obs in self.obstacles:
+				for i in range(len(obs.points)):
+					obs.points[i] = rotate(obs.points[i], rot, uv)
+
+
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
 			self.bounding_box()
@@ -1145,6 +1195,18 @@ class Room:
 			(self.clt_xside,self.clt_yside) = (self.clt_yside,self.clt_xside) 
 	
 			self.arrangement.mode += 1  
+
+		# Rotate back according to vector
+		if (self.vector):
+			p = self.points
+			uv = self.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(p)):
+				p[i] = rotate(p[i], rot, uv)
+
+			for obs in self.obstacles:
+				for i in range(len(obs.points)):
+					obs.points[i] = rotate(obs.points[i], rot, uv)
 
 		self.bounding_box()
 
@@ -1310,6 +1372,13 @@ class Room:
 			next_room = queue.pop(0)
 			next_room.set_as_root(queue, collector)
 
+	def contains_vector(self, v):
+		p1 = (v.dxf.start[0], v.dxf.start[1])
+		p2 = (v.dxf.end[0], v.dxf.end[1])
+		if (p1 == p2):
+			return False
+		return self.is_point_inside(p1) and self.is_point_inside(p2)
+
 	# Reporting Room
 	def report(self):
 		txt = ""
@@ -1386,6 +1455,7 @@ class Model(threading.Thread):
 	def __init__(self, output):
 		super(Model, self).__init__()
 		self.rooms = list()
+		self.vectors = list()
 		self.collectors = list()
 		self.valid_rooms = list()
 		self.processed = list()
@@ -1589,6 +1659,8 @@ class Model(threading.Thread):
 		global scale
 		
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
+			if (e.dxftype() == 'LINE'):
+				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
 				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
 				self.textinfo.insert(END, wstr)
@@ -1643,6 +1715,10 @@ class Model(threading.Thread):
 		self.create_layers()
 
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
+			if (e.dxftype() == 'LINE'):
+				self.vectors.append(e)
+				continue
+
 			if (e.dxftype() != 'LWPOLYLINE'):
 				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
 				self.textinfo.insert(END, wstr)
@@ -1746,7 +1822,8 @@ class Model(threading.Thread):
 				if (room[i].collides_with(room[j])):
 					wstr = "ABORT: Collision between Room %d" % room[i].pindex
 					wstr += " and Room %d \n" % room[j].pindex
-					wstr += "Check output drawing to visualize errors"
+					wstr += ("Check %s in output drawing" % layer_error +
+					 " to visualize errors")
 					room[i].poly.dxf.layer = layer_error
 					room[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
@@ -1760,8 +1837,30 @@ class Model(threading.Thread):
 					#	room[j].obstacles.append(room[i])
 					#	room[i].contained_in = room[j]
 				j += 1
+
 	
-	
+		# check if vector is in room
+		for v in self.vectors:
+			for room in self.processed:
+				if (room.contains_vector(v)):
+					# Allocate vector
+					room.vector = v
+					p1 = (v.dxf.start[0], v.dxf.start[1])
+					p2 = (v.dxf.end[0], v.dxf.end[1])
+					norm = dist(p1, p2)
+					uv = room.uvector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
+					room.rot_orig = p1
+					room.rot_angle = -atan2(uv[1], -uv[0])*180/pi
+					break
+			else:
+				wstr = "ABORT: Vector outside room\n"
+				wstr += ("Check %s layer" % layer_error + 
+					" to visualize errors")
+				v.dxf.layer = layer_error
+				self.output.print(wstr)
+				self.output_error()
+				return
+				
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
 
