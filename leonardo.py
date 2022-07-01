@@ -23,7 +23,7 @@ from tkinter.messagebox import askyesno
 dxf_version = "AC1032"
 
 web_version = False
-debug = True
+debug = False
 
 if len(sys.argv) > 1 :
 	web_version = True
@@ -54,6 +54,15 @@ panel_types = [
         "flow_line"  : 252,
         "flow_ring"  : 28,
         "flow_panel" : 56
+    },
+    {
+        "full_name"  : "Leonardo 3,0 plus",
+        "handler"    : "30",
+        "rings"      : 9,
+        "panels"     : 4.5,
+        "flow_line"  : 265,
+        "flow_ring"  : 29.4,
+        "flow_panel" : 58.9
     }
 ]
 
@@ -93,12 +102,13 @@ default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 50
 
 default_input_layer = 'AREE LEONARDO'
-layer_text   = 'Eurotherm_text'
-layer_box    = 'Eurotherm_box'
-layer_panel  = 'Eurotherm_panel'
-layer_panelp = 'Eurotherm_prof'
-layer_link   = 'Eurotherm_link'
-layer_error  = 'Eurotherm_error'
+layer_text      = 'Eurotherm_text'
+layer_box       = 'Eurotherm_box'
+layer_panel     = 'Pannelli Leonardo'
+layer_panelp    = 'Eurotherm_prof'
+layer_link      = 'Eurotherm_link'
+layer_error     = 'Eurotherm_error'
+layer_collector = 'Collettori'
 
 text_color = 7
 box_color = 8               ;# cyan
@@ -196,14 +206,15 @@ def writedxf(msp, strn, pos, scale):
 		pos = (pos[0]+scale[0]*3, pos[1])
 
 def write_text(msp, strn, pos, 
-	align=ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER):
+	align=ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER, zoom=1, col=text_color):
 	
 	text = msp.add_mtext(strn, 
 		dxfattribs={"style": "Arial"})
 	text.dxf.insert = pos
 	text.dxf.attachment_point = align
-	text.dxf.char_height = font_size
+	text.dxf.char_height = font_size*zoom
 	text.dxf.layer = layer_text
+	text.dxf.color = col
 	
 
 def spread(a,b,size):
@@ -650,18 +661,16 @@ class Panel:
 			self.gapr = min(obs.hdist_from_poly(rgt), self.gapr)
 
 class Dorsal:
-	def __init__(self, grid, pos, side):
+	def __init__(self, grid, pos, side, room):
 		self.panels = list()
 		self.pos = pos
 		self.grid = grid
 		self.side = side
+		self.room = room
 		self.elems = 0
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
 		self.gap = 0
-
-	# (row, start)  is the position of the top-left element
-	def make_dorsal(self):
 
 		m = self.grid
 		self.cost = 0
@@ -796,9 +805,11 @@ class Dorsal:
 			self.gapr = panel.gapr
 
 
+
 class Dorsals(list):
 	def __init__(self, room):
 		self.cost = 0 
+		self.lost = 0
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
 		self.gap = 0
@@ -831,6 +842,13 @@ class Dorsals(list):
 				self.gap = self.gapr
 
 		return True
+
+	def __lt__(self, dorsals):
+		if (self.lost<dorsals.lost):
+			return True
+		if (self.cost<dorsals.cost):
+			return True
+		return False
 
 # Cell of the grid over which panels are laid out
 class Cell:
@@ -920,14 +938,6 @@ class PanelArrangement:
 		for cell in self.cells:
 			m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
 
-		#print()
-		#for row in range(self.rows):
-		#	for col in range(self.cols):
-		#		if (m[row,col]):
-		#			print("X", end="")
-		#		else:
-		#			print(".", end="")
-		#	print()
 
 		return True
 
@@ -936,38 +946,49 @@ class PanelArrangement:
 		dorsals = Dorsals(self.room)
 
 		i = pos[0]
-		for j in (0,1):
-			while(i<self.rows-3):
-				init_pos = (i, j) 
+		while(i<self.rows-3):
+
+			bu0 = Dorsal(self.grid, (i,0), 0, self.room)
+			bu1 = Dorsal(self.grid, (i,1), 0, self.room)
+			td0 = Dorsal(self.grid, (i+2,0), 1, self.room)
+			td1 = Dorsal(self.grid, (i+2,1), 1, self.room)
+
+			b_dors = bu0
+			t_dors = td0
+			lost = b_dors.lost + t_dors.lost
+			cost = b_dors.cost + t_dors.cost
+			
+			nlost = bu1.lost + td0.lost
+			ncost = bu1.cost + td1.cost 
+			
+			if (nlost < lost or (nlost==lost and ncost<cost)):
+				b_dors = bu1
+				t_dors = td1
+				cost = ncost
+				lost = nlost
+
+			if (lost>0):
+
+				bd0 = Dorsal(self.grid, (i,0), 1, self.room)
+				bd1 = Dorsal(self.grid, (i,1), 1, self.room)
+				tu0 = Dorsal(self.grid, (i+2,0), 0, self.room)
+				tu1 = Dorsal(self.grid, (i+2,1), 0, self.room)
+
+				bd = sorted([bu0, bu1, bd0, bd1], key=lambda x: (x.lost,x.cost))
+				td = sorted([tu0, tu1, td0, td1], key=lambda x: (x.lost,x.cost))
+
+				nlost = bd[0].lost + td[0].lost
+				ncost = bd[0].cost + td[0].cost 
+			
+				if (nlost < lost):
+					b_dors = bu1
+					t_dors = td1
+					b_dors.cost += 0.5
 	
-				bottomdorsal = Dorsal(self.grid, init_pos, 0)
-				bottomdorsal.room = self.room
-				bottomdorsal.make_dorsal()
-				if (bottomdorsal.lost>0):
-					bottomdorsal2 = Dorsal(self.grid, init_pos, 1)
-					bottomdorsal2.room = self.room
-					bottomdorsal2.make_dorsal()
-					if (bottomdorsal2.lost < bottomdorsal.lost):
-						bottomdorsal = bottomdorsal2
-						bottomdorsal.cost += 0.5
-	
-				init_pos = (i+2, pos[1]) 
-				topdorsal = Dorsal(self.grid, init_pos, 1)
-				topdorsal.room = self.room
-				topdorsal.make_dorsal()
-				if (topdorsal.lost>0):
-					topdorsal2 = Dorsal(self.grid, init_pos, 0)
-					topdorsal2.room = self.room
-					topdorsal2.make_dorsal()
-					if (topdorsal2.lost < topdorsal.lost):
-						topdorsal = topdorsal2
-						topdorsal.cost += 0.5
-	
-				if (not dorsals.add(topdorsal) or
-				    not dorsals.add(bottomdorsal)):
-					return None
+			if (not dorsals.add(b_dors) or not dorsals.add(t_dors)):
+				return None
 					
-				i += 4
+			i += 4
 
 		return dorsals
 	
@@ -976,11 +997,32 @@ class PanelArrangement:
 		if (not self.make_grid(origin)):
 			return
 
+		#print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
+	
+		#print("room", self.room.pindex, self.mode, end="")
+		#if (self.room.clt_xside==LEFT):
+		#	print(" LEFT ",end="")
+		#else:
+		#	print(" RIGHT ",end="")
+		#if (self.room.clt_yside==TOP):
+		#	print("TOP")
+		#else:
+		#	print("BOTTOM")
+
+		#for row in range(self.rows):
+		#	for col in range(self.cols):
+		#		if (self.grid[row,col]):
+		#			print("X", end="")
+		#		else:
+		#			print(".", end="")
+		#	print()
+
 		#for j in range(0,2):
 		for i in range(0,4):
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
+		
 			if ((not trial_dorsals == None ) and
 				((trial_dorsals.elems > self.dorsals.elems) or
 				(trial_dorsals.elems == self.dorsals.elems and
@@ -991,7 +1033,6 @@ class PanelArrangement:
 					self.dorsals = trial_dorsals
 					self.best_grid = self.cells
 					self.alloc_mode = self.mode
-
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
@@ -1436,7 +1477,7 @@ class Room:
 
 	def draw_label(self, msp):
 
-		write_text(msp, "Room %d" % self.pindex, self.pos)
+		write_text(msp, "Room %d" % self.pindex, self.pos, zoom=2)
 
 	def draw(self, msp):
 	
@@ -1838,6 +1879,18 @@ class Model(threading.Thread):
 					#	room[i].contained_in = room[j]
 				j += 1
 
+		# check if two collectors collide
+		for i in range(len(self.collectors)-1):
+			for j in range(i+1, len(self.collectors)):
+				if (self.collectors[i].collides_with(self.collectors[j])):
+					wstr = "ABORT: Collision between collectors\n"
+					wstr += ("Check %s layer " % layer_error +
+					 "to visualize errors")
+					self.collectors[i].poly.dxf.layer = layer_error
+					self.collectors[j].poly.dxf.layer = layer_error
+					self.output.print(wstr)
+					self.output_error()
+					return
 	
 		# check if vector is in room
 		for v in self.vectors:
@@ -2018,7 +2071,7 @@ class Model(threading.Thread):
 		print("DRAW DONE")
 
 	def draw(self):
-		global collector_size
+		global collector_size, search_tol
 
 		# Box zones
 		for clt in self.collectors:
@@ -2043,12 +2096,16 @@ class Model(threading.Thread):
 			feeds = 0
 			for room in items:
 				feeds += room.actual_feeds
-			txt = collector.name + " (%d)" % feeds
-			write_text(self.msp, txt, collector.pos)
-
-			xs, ys = 0.1/scale, 0.1/scale
+			txt = collector.name + " (%d+%d)" % (feeds, feeds)
+			xc, yc = collector.pos[0], collector.pos[1]
 			cs = collector_size
-			orig = collector.pos[0] - cs/2, collector.pos[1] - cs/2
+
+			write_text(self.msp, txt, (xc-cs/2, yc+cs/2+search_tol), 
+				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT,
+				zoom=0.6,
+				col=collector_color)
+			xs, ys = 0.1/scale, 0.1/scale
+			orig = xc - cs/2, yc - cs/2
 
 			block = self.msp.add_blockref(block_collector, orig, 
 				dxfattribs={'xscale': xs, 'yscale': ys})
@@ -2772,6 +2829,8 @@ def _create_model(iface):
 	importer.import_block(block_collector)
 	importer.finalize()
 
+
+	iface.model.doc.layers.remove("Pannelli Leonardo")
 	iface.model.start()
 
 	
