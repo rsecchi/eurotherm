@@ -3,7 +3,7 @@
 import ezdxf
 import sys
 from ezdxf.addons import Importer
-from ezdxf.math import Vec2, intersection_line_line_2d
+from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 
 
 import openpyxl
@@ -120,8 +120,9 @@ obstacle_color = 2          ;# yellow
 
 ask_for_write = False
 
-MAX_COST = 1000000
-MAX_DIST = 1e20
+MAX_COST  = 1000000
+MAX_DIST  = 1e20
+MAX_DIST2 = 1e20
 
 RIGHT = 1
 LEFT = 0
@@ -1191,6 +1192,48 @@ class Room:
 			if (room==nroom):
 				return nwall
 
+	def orient_room(self):
+		global max_room_area
+
+		vtx = [(p[0],p[1],0) for p in self.points]
+		conv_hull = convex_hull_2d(vtx)
+		ch = [(s.x, s.y) for s in conv_hull]
+		ch = [*ch, ch[0]]
+
+		max_area = MAX_DIST2
+		max_uv = (1,0)
+		for i in range(len(ch)-1):
+			p0, p1 = ch[i], ch[i+1]
+			norm_uv = dist(p0, p1)
+			if (norm_uv == 0):
+				continue
+			uvx, uvy = uv = (p1[0]-p0[0])/norm_uv, (p1[1]-p0[1])/norm_uv
+			bxm = bxM = 0; by = 0
+			for p in ch[:-1]:
+				px =  uvx*(p[0]-p0[0]) + uvy*(p[1]-p0[1])
+				py = abs(-uvy*(p[0]-p0[0]) + uvx*(p[1]-p0[1]))
+				if (py > by):
+					by = py
+
+				if (px < bxm):
+					bxm = px
+				if (px > bxM):
+					bxM = px
+
+			Ar = (bxM - bxm)*by
+			if ( Ar < max_area ):
+				max_area = Ar
+				max_uv = uv
+				max_rot_orig = p0
+
+		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
+		if (angle > 0.01):
+			self.vector = True
+			self.uvector = max_uv
+			self.rot_orig = max_rot_orig
+			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
+				
+
 	# Building Room
 	def alloc_panels(self):
 		global panel_height, panel_width, search_tol
@@ -1913,7 +1956,12 @@ class Model(threading.Thread):
 				self.output.print(wstr)
 				self.output_error()
 				return
-				
+		
+		# orient room without vector
+		for room in self.processed:
+			if (not room.vector):
+				room.orient_room()	
+	
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
 
