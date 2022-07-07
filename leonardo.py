@@ -2909,7 +2909,7 @@ if (web_version):
 
 	local_dir = os.path.dirname(os.path.realpath(__file__))
 	os.chdir(local_dir)
-	sys.path.append(local_dir + "/cgi-bin")
+	sys.path.append(local_dir + "/www/cgi-bin")
 
 	from conf import *
 
