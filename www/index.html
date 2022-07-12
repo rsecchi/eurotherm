@@ -27,8 +27,6 @@
 
 <body>
 
-
-
 	<div class="header">
 		<div class="container">
 			<h1>
@@ -37,8 +35,17 @@
 		</div>
 	</div>
 
-	<h3>Compila i campi sottostanti per il soffitto radiante Leonardo</h3>
+	<div class="navmenu">
+		<ul>
+    		<li><a href="index.html">Home</a></li>
+			<li><a href="cgi-bin/show_file.py">Risultati</a></li>
+    		<li><a href="cgi-bin/archive.py">Archivio</a></li>
+    		<li><a href="contacts.html">Contatti</a></li>
+		</ul>
+	</div>
 
+
+	<h3>Compila i campi sottostanti per il soffitto radiante Leonardo</h3>
 
 	<form action="cgi-bin/save_file.py" 
 		  method="post" 
@@ -73,7 +80,7 @@
 		</select>
 	</div>
 	<div class="section" style="display:none" id="reg">
-		<h4>3. Tipo di regolazione</h4>
+		<h4>3. Trattamento Aria</h4>
 
 		<!--label for="regulator">Regolazione:</label>
 		<select name="regulator">
@@ -84,11 +91,19 @@
 		</select-->
 
 		<p id="rg">
-		<label for="aircond">Tipo di regolazione:</label>
+		<!--label for="aircond">Tipo di regolazione:</label-->
 		<select name="regulator">
     		<option value="dehum">Solo deumidificazione</option>
   			<option value="dehum_int">Deumidificazione e integrazione</option>
   			<option value="dehum_int_ren">Deumidificazione, integrazione e rinnovo</option>
+		</select>
+		</p>
+
+		<p id=rg">
+		<label for="inst">Installazione:</label>
+		<select name="inst">
+    		<option value="vert">Verticale</option>
+  			<option value="horz">Orizzontale</option>
 		</select>
 		</p>
 
@@ -101,7 +116,6 @@
 
 	<button id="submit" type="submit">Calcola</button>
 	</form>
-	<p><a href="cgi-bin/show_file.py">Risultati precedenti</a></p>
 
 	<script>
 

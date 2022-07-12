@@ -3,6 +3,32 @@ body{
     width: 750px;
 }
 
+
+div.navmenu  {
+	display: block;
+	height: 20px;
+	background: navajowhite;
+	padding: 5px;
+	margin: 2px;
+}
+
+
+.navmenu ul {
+	padding: 0px;
+	margin: 0px;
+}
+.navmenu li {
+	display: inline;
+	float: left;
+	margin-left: 5px;
+
+}
+
+.navmenu a {
+	display: block;
+	width: 100px;
+}
+
 button#submit {
     margin-left: 50px;
 }
@@ -107,10 +133,7 @@ label, input, p#ra {
 }
 
 
-h1 {
-    text-align: left;
-    margin-left: 10px;
-}
+h1 
 
 h3 {
     padding: 0px;
