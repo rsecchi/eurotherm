@@ -24,6 +24,10 @@ div.navmenu  {
 
 }
 
+.navmenu li:hover {
+	background: lightsalmon;
+}
+
 .navmenu a {
 	display: block;
 	width: 100px;
@@ -82,7 +86,7 @@ h3 {
 .section elem{
 	display: inline-block;
 	font-size: 12px;
-	width: 240px;
+	width: 300px;
 }
 
 .section filetag {
@@ -103,6 +107,18 @@ h3 {
 
 .section ref{
 	font-size: 12px;
+}
+
+.section li {
+	list-style: none;
+}
+
+.section li:hover {
+	background: navajowhite;
+}
+
+.section ul {
+	padding-left: 20px;
 }
 
 

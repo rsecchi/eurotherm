@@ -52,9 +52,8 @@ if not os.path.exists(lock_name):
 	outfile.write(fileitem.file.read())
 	schedule_script('"'+web_filename+'"', units, ptype, mtype, height)
 
-
 ff = open(load_page, "r")
-print(ff.read())
+print(ff.read() % os.path.basename(web_filename))
 
 
 #print(os.path.basename(form.getvalue("file")))

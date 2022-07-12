@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -u
 
 import cgi, os, sys
+import glob
 import cgitb
 import time
 import subprocess
@@ -47,53 +48,38 @@ else:
 	print('<div class="section">')
 	print('<h4>File dispobili sul server</h4>')
 	print('<ul>')
-	floc = os.listdir(tmp)
-	rule = re.compile(".*_leo_.*dxf$")
-	files = list(filter(rule.match, floc))
-	files.sort()
+
+	files = list(filter(os.path.isfile, glob.glob(tmp + "*.dxf")))
+	files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+
 
 	for f in files:
-		path = tmp + f
-		t = os.path.getmtime(path)
+		t = os.path.getmtime(f)
 		href_dxf = '"/output/' + f + '"'
 		href_xls = '"/output/' + f[:-4] + '.xlsx"'
 		href_log = '"/output/' + f[:-4] + '.txt"'
 
-		#rule = re.compile("^.*_leo")
-		#fname = rule.match(f).group(0)
-		#rule = re.search("_leo_.*",f)			
-		#tag = rule.group(0)
 
-		if (len(f) > 30):
-			fname = f[:15]+"..."+f[-15:]
-		else:
-			fname = f
+		fname = os.path.basename(f)
 
-		print('<li>')
-		print('<elem>', fname, '</elem>')
-		#print('<filetag>', tag[5:7], '</filetag>')
+		if (fname == "input.dxf" or fname == "output.dxf"):
+			continue
+
+		print('<li onclick="show_selected(this)">')
+		print('<elem>'+fname+'</elem>')
 		print('<refs>')
-		print('<ref><a href=',href_dxf,' download>[DXF]</a></ref>')
-		print('<ref><a href=',href_xls,' download>[XLS]</a></ref>')
-		print('<ref><a href=',href_log,' download>[LOG]</a></ref>')
+		print('<ref><a href='+href_dxf+' download>[DXF]</a></ref>')
+		print('<ref><a href='+href_xls+' download>[XLS]</a></ref>')
+		print('<ref><a href='+href_log+' download>[LOG]</a></ref>')
 		print('</refs>')
 		print('<date>', time.ctime(t),'</date>')
-		print('<ref><a href="/cgi-bin/show_file.py?delete=\''+f, end='')
+		print('<ref><a href="archive.py?delete=\''+fname, end='')
 		print('\'">[x]</a><ref>')
 
 		print('</li>')
 
 	print('</ul>')
 	print('</div>')
-
-	#if os.path.exists(logfile):
-	#	flog = open(logfile, "r")
-	#	print('<div class="section">')
-	#	print('<h4>Log file</h4>')
-	#	print("<pre>")
-	#	print(flog.read())	
-	#	print("</pre>")
-	#	print("</div>")
 
 
 	print("</body>")

@@ -2080,7 +2080,7 @@ class Model(threading.Thread):
 
 		summary = self.output_html()
 		summary += '<div class="section">'
-		summary += '<h4>Relazione ultimo calcolo</h4>'
+		summary += '<h4>Relazione calcolo</h4>'
 		summary += '<pre>'
 		summary += report
 		summary += '</pre></div>'
@@ -2089,11 +2089,11 @@ class Model(threading.Thread):
 		f = open(out, "w")
 		print(summary, file = f)
 
-		if (web_version):
-			slink = os.path.dirname(out) + "/output.txt"
-			if (os.path.exists(slink)):
-				os.remove(slink)
-			os.symlink(out, slink)
+		#if (web_version):
+		#	slink = os.path.dirname(out) + "/output.txt"
+		#	if (os.path.exists(slink)):
+		#		os.remove(slink)
+		#	os.symlink(out, slink)
 
 		print("SUMMARY DONE")
 
@@ -2125,11 +2125,11 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
-		if (web_version):
-			slink = os.path.dirname(self.outname) + "/output.dxf"
-			if (os.path.exists(slink)):
-				os.remove(slink)
-			os.symlink(self.outname, slink)
+		#if (web_version):
+		#	slink = os.path.dirname(self.outname) + "/output.dxf"
+		#	if (os.path.exists(slink)):
+		#		os.remove(slink)
+		#	os.symlink(self.outname, slink)
 
 		print("DRAW DONE")
 
@@ -2211,11 +2211,11 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
-		if (web_version):
-			slink = os.path.dirname(self.outname) + "/output.dxf"
-			if (os.path.exists(slink)):
-				os.remove(slink)
-			os.symlink(self.outname, slink)
+		#if (web_version):
+		#	slink = os.path.dirname(self.outname) + "/output.dxf"
+		#	if (os.path.exists(slink)):
+		#		os.remove(slink)
+		#	os.symlink(self.outname, slink)
 
 		print("DRAW DONE")
 
@@ -2675,11 +2675,11 @@ class Model(threading.Thread):
 		
 		wb.save(out)
 
-		if (web_version):
-			slink = os.path.dirname(out) + "/output.xlsx"
-			if (os.path.exists(slink)):
-				os.remove(slink)
-			os.symlink(out, slink)
+		#if (web_version):
+		#	slink = os.path.dirname(out) + "/output.xlsx"
+		#	if (os.path.exists(slink)):
+		#		os.remove(slink)
+		#	os.symlink(out, slink)
 
 
 class App:
