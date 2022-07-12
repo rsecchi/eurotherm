@@ -8,9 +8,26 @@
 	<link rel="icon" href="tab_logo.png">
 	<link href="style.css" rel="stylesheet">
 
+	<script>
+
+		function hide_div()
+		{
+			var mydiv = document.getElementById("reg");
+			mydiv.style.display = 'none';
+		}
+
+		function show_div()
+		{
+			var mydiv = document.getElementById("reg");
+			mydiv.style.display = 'block';
+		}
+
+	</script>
 </head>
 
 <body>
+
+
 
 	<div class="header">
 		<div class="container">
@@ -45,8 +62,8 @@
 	</div>
 	<div class="section">
 		<h4>2. Seleziona dettagli impianto</h4>
-			<p id="ra"><input type="radio" checked="yes" name="head" value="heat" /> Solo riscaldamento
-  			<p id="ra"><input type="radio" checked="no" name="head" value="heat" /> Riscaldamento/raffrescamento 
+			<p id="ra"><input type="radio" checked="yes" name="head" value="warm" onchange="hide_div()"/> Solo riscaldamento
+  			<p id="ra"><input type="radio" name="head" value="cold" onchange="show_div()" /> Riscaldamento/raffrescamento 
 		<p id="ra">
 		<label for="ptype">Tipologia:</label>
 		<select name="ptype">
@@ -55,16 +72,31 @@
   			<option value="30">Leonardo 3,0 plus</option>
 		</select>
 	</div>
-	<div class="section">
+	<div class="section" style="display:none" id="reg">
 		<h4>3. Tipo di regolazione</h4>
 
-		<label for="regulator">Regolazione:</label>
+		<!--label for="regulator">Regolazione:</label>
 		<select name="regulator">
     		<option value="None">Senza regolazione</option>
   			<option value="SPT">SmartPoint T + Testine 230 V, 2 fili</option>
   			<option value="SPTU">SmartPoint T/U + Testing 230 V, 2 fili</option>
   			<option value="head">Testine 230 V, 2 fili</option>
+		</select-->
+
+		<p id="rg">
+		<label for="aircond">Tipo di regolazione:</label>
+		<select name="regulator">
+    		<option value="dehum">Solo deumidificazione</option>
+  			<option value="dehum_int">Deumidificazione e integrazione</option>
+  			<option value="dehum_int_ren">Deumidificazione, integrazione e rinnovo</option>
 		</select>
+		</p>
+
+		<p id=rg">
+		<label for="height">Altezza media in metri:</label>
+		<input type="text" id="height" name="height" value="2.4">
+		</p>
+
 	</div>
 
 	<button id="submit" type="submit">Calcola</button>

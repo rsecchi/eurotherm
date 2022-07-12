@@ -33,6 +33,9 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
+	fin = open(tmp + "output.txt", "r")
+	print(fin.read())
+
 	print("<p>");
 	if "delete" in form.keys():
 		strval = form.getvalue("delete")
@@ -89,7 +92,7 @@ else:
 	if os.path.exists(logfile):
 		flog = open(logfile, "r")
 		print('<div class="section">')
-		print('<h4>Relazione ultimo calcolo</h4>')
+		print('<h4>Log file</h4>')
 		print("<pre>")
 		print(flog.read())	
 		print("</pre>")

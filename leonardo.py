@@ -2076,10 +2076,25 @@ class Model(threading.Thread):
 		##############################################################
 		# summary
 		# self.output.clear()
-		summary = self.print_report()
-		self.output.print(summary)
-		f = open(self.outname[:-4]+".txt", "w")
+		report = self.print_report()
+
+		summary = self.output_html()
+		summary += '<div class="section">'
+		summary += '<h4>Relazione ultimo calcolo</h4>'
+		summary += '<pre>'
+		summary += report
+		summary += '</pre></div>'
+		#self.output.print(summary)
+		out = self.outname[:-4]+".txt"
+		f = open(out, "w")
 		print(summary, file = f)
+
+		if (web_version):
+			slink = os.path.dirname(out) + "/output.txt"
+			if (os.path.exists(slink)):
+				os.remove(slink)
+			os.symlink(out, slink)
+
 		print("SUMMARY DONE")
 
 		##############################################################
@@ -2117,6 +2132,19 @@ class Model(threading.Thread):
 			os.symlink(self.outname, slink)
 
 		print("DRAW DONE")
+
+	def output_html(self):
+		#if (self.mtype == "warm"):
+		#	return ""
+
+		volume = float(self.height) * self.area 
+
+		html = '<div class="section">'
+		html += '<p style="font-size:12px">Volume=%.2f m3</p>' % volume
+		html += '<p style="font-size:12px">Si consiglia ... </p>'
+		html += '</div>'
+		
+		return html
 
 	def draw(self):
 		global collector_size, search_tol
@@ -2832,6 +2860,9 @@ def _create_model(iface):
 	iface.model.outname = iface.outname
 	iface.model.filename = iface.filename
 
+	iface.model.mtype = iface.mtype
+	iface.model.height = iface.height
+
 	# copy input layer from source
 	importer = Importer(iface.doc, iface.model.doc)
 	ents = iface.doc.modelspace().query('*[layer=="%s"]' 
@@ -2883,9 +2914,11 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self, infile, units, ptype):
+	def __init__(self, infile, units, ptype, mtype, height):
 		self.filename = web_filename
 		self.scale = units
+		self.mtype = mtype
+		self.height = height
 		self.inputlayer = default_input_layer
 		self.textinfo = self
 		self.outname = infile
@@ -2926,10 +2959,12 @@ if (web_version):
 		filename = sys.argv[1] 
 		units = sys.argv[2]	
 		ptype = sys.argv[3]
+		mtype = sys.argv[4]
+		height = sys.argv[5]
 
 		os.rename(filename, web_filename)
 		
-		Iface(filename, units, ptype)
+		Iface(filename, units, ptype, mtype, height)
 	else:
 		print("resource busy")
 

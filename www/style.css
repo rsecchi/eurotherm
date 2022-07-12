@@ -15,10 +15,10 @@ input#dxfinput {
 label {
     display: block;
     float: left;
-    width: 150px;
+    width: 170px;
 }
 
-label, input, p#ra {
+label, input, p#ra, p#rg, p#out {
     margin: 3px;
     font-size: 12px;
 }
