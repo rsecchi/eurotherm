@@ -41,12 +41,13 @@ if not os.path.exists(lock_name):
 	ptype = form.getvalue('ptype')
 	
 	mtype = form.getvalue('head')
+	mnt   = form.getvalue('inst')
 	
 	regtype = form.getvalue('regulator')
 	height = form.getvalue('height')
 
 	if (mtype=='cold'):
-		mtype = regtype
+		mtype = regtype + "_" + mnt
 
 	outfile = open(web_filename, 'wb')
 	outfile.write(fileitem.file.read())

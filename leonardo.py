@@ -66,6 +66,157 @@ panel_types = [
     }
 ]
 
+air_conditioners = [
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 581 DC",
+		"mount": "O",
+		"width_mm": [756],
+		"height_mm": [260],
+		"depth_mm": [803],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 901 DC",
+		"mount": "O",
+		"width_mm": [706],
+		"height_mm": [309],
+		"depth_mm": [936],
+		"flow_m3h": 580
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 320 DI (incasso)",
+		"mount": "V",
+		"width_mm": [402],
+		"height_mm": [637],
+		"depth_mm": [203],
+		"flow_m3h": 200
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 581 DI (incasso)",
+		"mount": "V",
+		"width_mm": [732],
+		"height_mm": [732],
+		"depth_mm": [203],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 582 DCC",
+		"mount": "O",
+		"width_mm": [756],
+		"depth_mm": [260],
+		"height_mm": [803],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 901 DCC",
+		"mount": "O",
+		"width_mm": [706],
+		"height_mm": [309],
+		"depth_mm": [936],
+		"flow_m3h": 580
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 581 DCI (incasso)",
+		"mount": "V",
+		"width_mm": [732],
+		"height_mm": [732],
+		"depth_mm": [203],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300S",
+		"mount": "O",
+		"width_mm": [1204.4],
+		"height_mm": [979.5],
+		"depth_mm": [244],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 500S",
+		"mount": "O",
+		"width_mm": [1254.4],
+		"height_mm": [810.5],
+		"depth_mm": [294],
+		"flow_m3h": 500
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300V",
+		"mount": "V",
+		"width_mm": [1391.7],
+		"height_mm": [700],
+		"depth_mm": [342.3],
+		"flow_m3h": 300
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 500V",
+		"mount": "V",
+		"width_mm": [1696.7],
+		"height_mm": [700],
+		"depth_mm": [421],
+		"flow_m3h": 500
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEU-CLIMATIZZATORE DCR 1000",
+		"mount": "O",
+		"width_mm": [805,1097],
+		"height_mm": [691,723],
+		"depth_mm": [350.5,350.5],
+		"flow_m3h": 1000
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEU-CLIMATIZZATORE DCR 2000",
+		"mount": "O",
+		"width_mm": [950.5,1097],
+		"height_mm": [691,723],
+		"depth_mm": [350.5,350.5],
+		"flow_m3h": 2000
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300SY",
+		"mount": "O",
+		"width_mm": [1070],
+		"height_mm": [880],
+		"depth_mm": [251],
+		"flow_m3h": 300
+	},
+]
+
+ac_label = {
+	"dehum":         "Deumidificatore",
+	"dehum_int":     "Deuclimatizzatore",
+	"dehum_int_ren": "Deuclima VMC"
+}
+
+
+
 #names = [panel['full_name'] for panel in panel_types]
 #print(names)
 #exit()
@@ -2078,7 +2229,9 @@ class Model(threading.Thread):
 		# self.output.clear()
 		report = self.print_report()
 
-		summary = self.output_html()
+		summary = ""
+		if (not self.mtype == "warm"):
+			summary += self.output_html()
 		summary += '<div class="section">'
 		summary += '<h4>Relazione calcolo</h4>'
 		summary += '<pre>'
@@ -2139,9 +2292,20 @@ class Model(threading.Thread):
 
 		volume = float(self.height) * self.area 
 
-		html = '<div class="section">'
-		html += '<p style="font-size:12px">Volume=%.2f m3</p>' % volume
-		html += '<p style="font-size:12px">Si consiglia ... </p>'
+		mtype = self.mtype[:-5]
+		mtype_label = ac_label[mtype]
+		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
+		mount_label = 'verticale' if self.mtype[-4:] == "vert" else 'orizzontale'
+
+		html =  '<div class="section" >'
+		html += '<h4>Eurotherm consiglia</h4>'
+		html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
+		html += 'per un portata di %.2f m3/h:</p>' % volume
+
+		for ac in air_conditioners:
+			if (mtype == ac['type'] and mount == ac['mount']):
+				html += '<p id="mtype">'+ac['model']+'</p>'
+
 		html += '</div>'
 		
 		return html

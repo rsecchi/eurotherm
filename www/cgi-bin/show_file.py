@@ -71,8 +71,9 @@ else:
 		% (filename_xls, filename_xls))
 	print('</ul></div>')
 
-	fin = open(output_txt, "r")
-	print(fin.read())
+	if (os.path.exists(output_txt)):
+		fin = open(output_txt, "r")
+		print(fin.read())
 
 
 	if os.path.exists(logfile):
