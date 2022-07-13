@@ -2300,7 +2300,7 @@ class Model(threading.Thread):
 		html =  '<div class="section" >'
 		html += '<h4>Eurotherm consiglia</h4>'
 		html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
-		html += 'per un portata di %.2f m3/h:</p>' % volume
+		html += 'per una portata di %.2f m3/h:</p>' % volume
 
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):

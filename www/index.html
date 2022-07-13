@@ -22,10 +22,30 @@
 			mydiv.style.display = 'block';
 		}
 
+		function validate_form()
+		{
+			fname = document.forms["leodata"]["filename"].value
+			if (fname=="") {
+				window.alert("File non inserito")
+				return false
+			}
+			mtype = document.forms["leodata"]["head"].value
+			if (mtype=="cold") {
+				height = document.forms["leodata"]["height"].value
+				hval = parseFloat(height.replace(",", "."))
+				if (hval<1 || hval>10 || isNaN(hval)) {
+					window.alert("Altezza media non valida")
+					return false
+				}
+			}
+			return true
+		}
+
 	</script>
 </head>
 
 <body>
+
 
 	<div class="header">
 		<div class="container">
@@ -49,6 +69,9 @@
 
 	<form action="cgi-bin/save_file.py" 
 		  method="post" 
+		  name="leodata"
+		  autocomplete="off"
+		  onsubmit="return validate_form()"
 		  enctype="multipart/form-data">
 
 	<input name="file" id="fileid" hidden/>
@@ -69,9 +92,8 @@
 	</div>
 	<div class="section">
 		<h4>2. Seleziona dettagli impianto</h4>
-			<p id="ra"><input type="radio" checked="yes" name="head" value="warm" onchange="hide_div()"/> Solo riscaldamento
-  			<p id="ra"><input type="radio" name="head" value="cold" onchange="show_div()" /> Riscaldamento/raffrescamento 
-		<p id="ra">
+			<p id="ra"><input type="radio" checked="yes" name="head" value="warm" onchange="hide_div()"/>Solo riscaldamento</p>
+  			<p id="ra"><input type="radio"  name="head" value="cold" onchange="show_div()"/>Riscaldamento/raffrescamento </p>
 		<label for="ptype">Tipologia:</label>
 		<select name="ptype">
     		<option value="55">Leonardo 5,5</option>
@@ -116,6 +138,7 @@
 
 	<button id="submit" type="submit">Calcola</button>
 	</form>
+
 
 	<script>
 
