@@ -34,7 +34,6 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	print("<p>");
 	if "delete" in form.keys():
 		strval = form.getvalue("delete")
 		del_file = tmp + strval[1:-1]
@@ -43,7 +42,6 @@ else:
 			os.remove(del_file[:-4] + ".txt")
 			os.remove(del_file[:-4] + ".xlsx")
 
-	print("</p>");
 
 	print('<div class="section">')
 	print('<h4>File dispobili sul server</h4>')
@@ -66,15 +64,15 @@ else:
 			continue
 
 		print('<li onclick="show_selected(this)">')
-		print('<elem>'+fname+'</elem>')
-		print('<refs>')
-		print('<ref><a href='+href_dxf+' download>[DXF]</a></ref>')
-		print('<ref><a href='+href_xls+' download>[XLS]</a></ref>')
-		print('<ref><a href='+href_log+' download>[LOG]</a></ref>')
-		print('</refs>')
-		print('<date>', time.ctime(t),'</date>')
 		print('<ref><a href="archive.py?delete=\''+fname, end='')
 		print('\'">[x]</a><ref>')
+		print('<elem>'+fname+'</elem>')
+		#print('<refs>')
+		#print('<ref><a href='+href_dxf+' download>[DXF]</a></ref>')
+		#print('<ref><a href='+href_xls+' download>[XLS]</a></ref>')
+		#print('<ref><a href='+href_log+' download>[LOG]</a></ref>')
+		#print('</refs>')
+		print('<date>', time.ctime(t),'</date>')
 
 		print('</li>')
 

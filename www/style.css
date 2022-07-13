@@ -86,7 +86,8 @@ h3 {
 .section elem{
 	display: inline-block;
 	font-size: 12px;
-	width: 300px;
+	padding-left: 10px;
+	width: 320px;
 }
 
 .section filetag {
@@ -107,6 +108,7 @@ h3 {
 
 .section ref{
 	font-size: 12px;
+	margin-left: 20px;
 }
 
 .section li {
