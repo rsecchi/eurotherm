@@ -2237,7 +2237,9 @@ class Model(threading.Thread):
 		summary += '<pre>'
 		summary += report
 		summary += '</pre></div>'
-		#self.output.print(summary)
+
+		if (not web_version):
+			self.output.print(summary)
 		out = self.outname[:-4]+".txt"
 		f = open(out, "w")
 		print(summary, file = f)
