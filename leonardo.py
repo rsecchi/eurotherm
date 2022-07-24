@@ -2304,12 +2304,35 @@ class Model(threading.Thread):
 		html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
 		html += 'per una portata di %.2f m3/h:</p>' % volume
 
+		cnd = list()
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
+				cnd.append(ac)
 				html += '<p id="mtype">'+ac['model']+'</p>'
-
 		html += '</div>'
 		
+		#l = len(cnd)
+		#num_ac = [0]*l
+		#cnd.sort(key= lambda x: x["flow_m3h"]);
+		#max_ac = ceil(volume/cnd[0]["flow_m3h"])
+		#num_tot = l*max_ac
+		#print(ac)
+		#print(l, max_ac)
+		#for i in range((max_ac+1) ** l):
+		#	count = i
+		#	ntot = 0
+		#	flowtot = 0
+		#	for k in range(l):
+		#		val = count % max_ac
+		#		count = count//max_ac
+		#		ntot += val
+		#		flowtot += val * cnd[k]["flow_m3h"]
+		#		print(" ", val, cnd[k]["flow_m3h"], end="")
+		#	print("=>", ntot, flowtot)
+
+		#for ac in cnd:
+		#	html += '<p id="mtype">'+ac['model']+'</p>'
+		#html += '</div>'
 		return html
 
 	def draw(self):
