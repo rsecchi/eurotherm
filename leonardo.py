@@ -1133,13 +1133,13 @@ class PanelArrangement:
 				ncost = bd[0].cost + td[0].cost 
 			
 				if (nlost < lost):
-					b_dors = bu1
-					t_dors = td1
+					b_dors = bd[0]
+					t_dors = td[0]
 					b_dors.cost += 0.5
-	
+
 			if (not dorsals.add(b_dors) or not dorsals.add(t_dors)):
 				return None
-					
+
 			i += 4
 
 		return dorsals
@@ -1148,6 +1148,7 @@ class PanelArrangement:
 
 		if (not self.make_grid(origin)):
 			return
+
 
 		#print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
 	
@@ -1174,7 +1175,6 @@ class PanelArrangement:
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
-		
 			if ((not trial_dorsals == None ) and
 				((trial_dorsals.elems > self.dorsals.elems) or
 				(trial_dorsals.elems == self.dorsals.elems and
@@ -2996,6 +2996,8 @@ class App:
 
 		self.scale = self.entry1.get()
 		self.inputlayer = self.var.get()
+		self.mtype = "warm"
+		self.height = 2.7
 
 		_create_model(self)
 
