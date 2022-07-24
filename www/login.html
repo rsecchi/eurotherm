@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+<html lang="it">
+
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Eurotherm Leonardo Planner</title>
+	<link rel="icon" href="tab_logo.png">
+
+	<style>
+
+	body {
+		font-family: Arial;
+		width: 750px;
+	}
+
+	.header {
+		background: black;
+		color: white;
+		padding-bottom: 6px;
+	}
+
+	.loginbox {
+		border: 3px solid #7d4646;
+		border-radius: 5px;
+		padding: 10px;
+		margin: 20px;
+		margin-left: 150px;
+		margin-top: 80px;
+		width: 400px;
+	}
+
+	.loginbox label {
+		width: 100px;
+		margin-left: 40px;
+		display: inline-block;	
+	}
+
+	.loginbox input#login {
+		margin-left: 300px;
+	}
+
+	</style>
+
+</head>
+
+<body>
+
+
+	<div class="header">
+		<div class="container">
+			<h1>
+			<img src="logo.png" alt="">
+			LEONARDO PLANNER</h1>
+		</div>
+	</div>
+
+	<div class="loginbox">
+		<form method="POST" action="">
+			<p id="user">
+				<label>username:</label>
+				<input type="text" name="httpd_username" value="" />
+			</p>
+			<p id="passwd">
+				<label>password: </label>
+				<input type="password" name="httpd_password" value="" />
+			</p>
+			<input id="login" type="submit" name="login" value="Login" />
+		</form>
+	<div>
+
+
+</body>
+
+</html>
