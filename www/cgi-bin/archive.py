@@ -41,6 +41,8 @@ else:
 			os.remove(del_file)
 			os.remove(del_file[:-4] + ".txt")
 			os.remove(del_file[:-4] + ".xlsx")
+			os.remove(del_file[:-4] + ".dat")
+			os.remove(del_file[:-4] + ".doc")
 
 
 	print('<div class="section">')

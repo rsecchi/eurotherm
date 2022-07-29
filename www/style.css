@@ -83,6 +83,11 @@ h3 {
     margin-top: 20px;
     margin-bottom: 20px;
 }
+.section span {
+	width: 150px;
+	display: inline-block;
+	margin: 2px;
+}
 
 .section elem{
 	display: inline-block;

@@ -7,6 +7,7 @@ from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 
 
 import openpyxl
+import docx
 from openpyxl.styles import Alignment
 import queue
 import bisect
@@ -2260,6 +2261,8 @@ class Model(threading.Thread):
 		##############################################################
 		# save data in XLS
 		self.save_in_xls()
+		self.save_navision()
+		self.save_in_word()
 
 		print("ALL DONE")
 
@@ -2870,6 +2873,64 @@ class Model(threading.Thread):
 		#		os.remove(slink)
 		#	os.symlink(out, slink)
 
+	def save_navision(self):
+
+		if (web_version):
+			out = self.outname[:-4] + ".dat"
+		else:
+			out = self.filename[:-4] + ".dat"	
+		
+		f = open(out, "w")
+		print("This will contain a Navision", file = f)
+
+	def save_in_word(self):
+
+		document = docx.Document()
+
+		document.add_heading('Document Title', 0)
+
+		p = document.add_paragraph('A plain paragraph having some ')
+		p.add_run('bold').bold = True
+		p.add_run(' and some ')
+		p.add_run('italic.').italic = True
+		
+		document.add_heading('Heading, level 1', level=1)
+		document.add_paragraph('Intense quote', style='Intense Quote')
+		
+		document.add_paragraph(
+		    'first item in unordered list', style='List Bullet'
+		)
+		document.add_paragraph(
+		    'first item in ordered list', style='List Number'
+		)
+		
+		
+		records = (
+		    (3, '101', 'Spam'),
+		    (7, '422', 'Eggs'),
+		    (4, '631', 'Spam, spam, eggs, and spam')
+		)
+		
+		table = document.add_table(rows=1, cols=3)
+		hdr_cells = table.rows[0].cells
+		hdr_cells[0].text = 'Qty'
+		hdr_cells[1].text = 'Id'
+		hdr_cells[2].text = 'Desc'
+		for qty, id, desc in records:
+		    row_cells = table.add_row().cells
+		    row_cells[0].text = str(qty)
+		    row_cells[1].text = id
+		    row_cells[2].text = desc
+		
+		document.add_page_break()
+		
+
+		if (web_version):
+			out = self.outname[:-4] + ".doc"
+		else:
+			out = self.filename[:-4] + ".doc"	
+
+		document.save(out)
 
 class App:
 

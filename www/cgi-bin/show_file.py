@@ -6,6 +6,18 @@ import time
 import subprocess
 import re
 
+
+def update_link(basename, ftype):
+	global tmp
+
+	output_ftype = tmp + "output." + ftype
+	filename_ftype = tmp + basename + "." + ftype
+
+	if (os.path.islink(output_ftype)):
+		os.unlink(output_ftype)
+	os.symlink(filename_ftype, output_ftype)
+
+
 cgitb.enable()
 
 local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
@@ -34,45 +46,30 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	output_dxf = tmp + "output.dxf"
-	output_xls = tmp + "output.xlsx"
-	output_txt = tmp + "output.txt"
+	ftypes = ["dxf", "txt", "xlsx", "dat", "doc"]
+
+	output = {}
+	for ftype in ftypes:
+		output[ftype] = tmp + "output." + ftype
 
 	if (not filename == None):
-		# Creates new dynamic links if a filename is passed
-		filename_dxf = tmp + filename
-		filename_xls = tmp + filename[:-4] + ".xlsx"
-		filename_txt = tmp + filename[:-4] + ".txt"
-
-		if (os.path.islink(output_dxf)):
-			os.unlink(output_dxf)
-
-		if (os.path.islink(output_xls)):
-			os.unlink(output_xls)
-
-		if (os.path.islink(output_txt)):
-			os.unlink(output_txt)
-
-		os.symlink(filename_dxf, output_dxf)
-		os.symlink(filename_xls, output_xls)
-		os.symlink(filename_txt, output_txt)
-		
-	filename_dxf = os.path.basename(os.readlink(output_dxf))
-	filename_xls = os.path.basename(os.readlink(output_xls))
-	filename_txt = os.path.basename(os.readlink(output_txt))
+		basename = filename[:-4]
+		for ftype in ftypes:
+			update_link(basename, ftype)
 
 
-	# Now show the outputs
 	print('<div class="section">')
 	print('<h4>Risultati calcolo tecnico</h4><ul>')
-	print('    <li>Scarica DXF elaborato [<a href="/output/%s" download>%s</a>]</li>' 
-		% (filename_dxf, filename_dxf))
-	print('    <li>Scarica XLS elaborato [<a href="/output/%s" download>%s</a>]</li>' 
-		% (filename_xls, filename_xls))
+	fname = {}
+	for ftype in ftypes:
+		ff = os.path.basename(os.readlink(output[ftype]))
+		print('\t<li><span>Scarica file %s</span>' % ftype, end="")
+		print('[<a href="/output/%s" download>%s</a>]</li>' % (ff, ff)) 
+
 	print('</ul></div>')
 
-	if (os.path.exists(output_txt)):
-		fin = open(output_txt, "r")
+	if (os.path.exists(output["txt"])):
+		fin = open(output["txt"], "r")
 		print(fin.read())
 
 
