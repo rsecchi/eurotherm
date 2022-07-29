@@ -26,6 +26,10 @@ dxf_version = "AC1032"
 web_version = False
 debug = False
 
+if ezdxf.version == (0, 14, 2, 'release'):
+    poly_class = ezdxf.entities.lwpolyline.LWPolyline
+    poly_class.is_closed = poly_class.close
+
 if len(sys.argv) > 1 :
 	web_version = True
 
