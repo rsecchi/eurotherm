@@ -1148,6 +1148,8 @@ class PanelArrangement:
 			i += 4
 
 		return dorsals
+
+
 	
 	def alloc_panels(self, origin):
 
@@ -2196,6 +2198,7 @@ class Model(threading.Thread):
 
 		# allocating panels in room	
 		self.output.print("Processing Room:")
+		self.processed.sort(key = lambda x: x.pindex)
 		count = 5
 		for room in self.processed:
 			if (room.color == disabled_room_color):
@@ -2209,6 +2212,23 @@ class Model(threading.Thread):
 				count = 0
 
 		self.output.print("\n")
+
+		# find bindings
+		for room in self.processed:
+			print("Room:", room.pindex)
+			dorsals = room.arrangement.dorsals
+			for i, dorsal in enumerate(dorsals):
+				print("Dorsal", i)
+				for p in dorsal.panels:
+					pos = p.cell.pos
+					print("\t",end="")
+					print("side=", p.side, end="")
+					print("w=", p.width, end="")
+					print("h=", p.height, end="")
+					print("size=", p.size, end="")
+					print("pos=", pos)
+			print()
+
 
 		# find attachment points of dorsals
 		self.dorsals = list()
