@@ -2,6 +2,7 @@
 
 import ezdxf
 import sys
+from pprint import pprint
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 
@@ -273,6 +274,7 @@ disabled_room_color = 6     ;# magenta
 valid_room_color = 5        ;# blue
 bathroom_color = 3          ;# green
 obstacle_color = 2          ;# yellow
+stripe_color = 1             ;# red
 
 ask_for_write = False
 
@@ -615,6 +617,7 @@ class Panel:
 		self.color = cell.color
 		self.mode = cell.mode
 		self.pos = (self.xcoord, self.ycoord)
+		self.stripe = False
 
 
 	def draw_whole(self, msp):
@@ -743,6 +746,33 @@ class Panel:
 		else:
 			self.draw_half(msp)
 
+		if (self.stripe):
+			self.draw_stripe(msp)
+
+
+	def draw_stripe(self, msp):
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord + self.height * 0.65 
+		by = ay + self.height * 0.25 / self.size[1]
+
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		
+		if (self.mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
+
+		pl = msp.add_lwpolyline(pline)
+		pl.dxf.layer = layer_panelp
+		pl.dxf.color = stripe_color
+		
 
 	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -828,6 +858,7 @@ class Dorsal:
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
 		self.gap = 0
+		self.coupled = True
 
 		m = self.grid
 		self.cost = 0
@@ -1124,6 +1155,10 @@ class PanelArrangement:
 				cost = ncost
 				lost = nlost
 
+			if (b_dors.elems == 0 or t_dors.elems==0):
+				b_dors.coupled = t_dors.coupled = False
+
+
 			if (lost>0):
 
 				bd0 = Dorsal(self.grid, (i,0), 1, self.room)
@@ -1134,12 +1169,14 @@ class PanelArrangement:
 				bd = sorted([bu0, bu1, bd0, bd1], key=lambda x: (x.lost,x.cost))
 				td = sorted([tu0, tu1, td0, td1], key=lambda x: (x.lost,x.cost))
 
+
 				nlost = bd[0].lost + td[0].lost
 				ncost = bd[0].cost + td[0].cost 
 			
 				if (nlost < lost):
 					b_dors = bd[0]
 					t_dors = td[0]
+					b_dors.coupled = t_dors.coupled = False
 					b_dors.cost += 0.5
 
 			if (not dorsals.add(b_dors) or not dorsals.add(t_dors)):
@@ -1192,10 +1229,75 @@ class PanelArrangement:
 					self.dorsals = trial_dorsals
 					self.best_grid = self.cells
 					self.alloc_mode = self.mode
+					self.alloc_clt_xside = self.room.clt_xside
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
 			cell.draw(msp)
+
+
+class Coupling:
+	pass
+
+class Circuit:
+	def __init__(self, room):
+		self.room = room
+		self.couplings = list()
+
+	def add_coupling(self, cpl):
+		self.couplings.append(cpl)
+
+	def is_double(self):
+
+		first_cpl = self.couplings[0]
+		first_fit = first_cpl[0]['dorsal']
+
+		for cpl in self.couplings:
+			for fit in cpl:
+				if (fit['dorsal'] != first_fit):
+					return True
+
+		return False
+
+	def add_stripe(self):
+
+		for cpl in self.couplings:
+			for fit in cpl:
+				fit['panel'].stripe = True
+		
+
+	def fittings(self):
+		
+		for cpl in self.couplings:
+			l = len(cpl)
+			if (l==1):
+				print("single fitting")
+
+			if (l==2):
+				if cpl[0]['dorsal'] == cpl[1]['dorsal']:
+					print("double linear fitting")
+				else:
+					print("double T-shape fitting")
+
+			if (l==3):
+				print("triple fitting")
+
+			if (l==4):
+				print("quadruple fitting")
+
+				
+	def print(self):
+
+		if (self.is_double()):
+			print("Double:", end="")
+		else:
+			print("Single:", end="")
+
+		for cp in self.couplings:
+			print(cp[0]['pos'], len(cp), end="")
+			print(", ", end="")
+		print()
+
 
 # This class represents the rrom described by a 
 # polyline
@@ -2213,22 +2315,79 @@ class Model(threading.Thread):
 
 		self.output.print("\n")
 
-		# find bindings
+		# find couplings
 		for room in self.processed:
-			print("Room:", room.pindex)
-			dorsals = room.arrangement.dorsals
-			for i, dorsal in enumerate(dorsals):
-				print("Dorsal", i)
-				for p in dorsal.panels:
-					pos = p.cell.pos
-					print("\t",end="")
-					print("side=", p.side, end="")
-					print("w=", p.width, end="")
-					print("h=", p.height, end="")
-					print("size=", p.size, end="")
-					print("pos=", pos)
-			print()
+			arrangement = room.arrangement
+			cside = arrangement.alloc_clt_xside
+			cpl = arrangement.couplings = list()
 
+			dorsals = arrangement.dorsals
+
+			for dorsal in dorsals:
+
+				cpl0 = list()
+				for p in dorsal.panels:
+
+					y, x = p.cell.pos
+					w = p.size[0]; h = p.size[1]
+					btm = (1 - p.side % 2)
+					lft = p.side//2
+
+					cpos = x + w*lft, y + h*btm
+					cpl0.append([{'pos': cpos,
+								'side': p.side,
+								'dorsal': dorsal,
+								'panel': p,
+						  		'last': False }])
+
+					if (p.size[0]==2):
+						cpos = x + w*(1-lft), y + h*btm
+						cpl0.append([{'pos': cpos,
+									  'side': p.side,
+									  'dorsal': dorsal,
+									  'panel': p,
+								      'last': False }])
+
+				cpl0.sort(key=lambda x: x[0]['pos'])
+
+				if (cside==0):
+					cpl0[-1][0]["last"] = True
+				else:
+					cpl0[0][0]["last"] = True
+
+				cpl += cpl0
+
+			for j, cp in enumerate(cpl):
+				cp[0]['merged'] = False
+				for k in range(j):
+					cv = cpl[k]
+					if (not cv[0]['merged'] and 
+						cv[0]['pos'] == cp[0]['pos']):
+						cv.append(cp[0])
+						cp[0]['merged'] = True
+
+			cpl = list(filter(lambda x: not x[0]['merged'], cpl))
+				
+
+			# form circuits
+			cirs = room.circuits = []
+			ypos = -1
+			for cp in cpl:
+				if (cp[0]['pos'][1] > ypos):
+					ypos = cp[0]['pos'][1]
+					cirs.append(Circuit(room))
+				cirs[-1].add_coupling(cp)
+
+			print("circuits")
+			for cir in cirs:
+				cir.print()
+				# calculate fittinglate fittingss
+				cir.fittings()
+				# add red stripe
+				if (not cir.is_double()):
+					cir.add_stripe()
+
+				
 
 		# find attachment points of dorsals
 		self.dorsals = list()
