@@ -50,7 +50,15 @@ panel_types = [
         "panels"     : 5,
         "flow_line"  : 280,
         "flow_ring"  : 28,
-        "flow_panel" : 56
+        "flow_panel" : 56,
+		"code_full"  : "6113010431",
+		"desc_full"  : "LEONARDO 5,5 MS - 1200x2000x50mm",
+		"code_half"  : "6114010432",
+		"desc_half"  : "LEONARDO 5,5 MS - 600x2000x50mm",
+		"code_full_h": "6114010411",
+		"desc_full_h": "LEONARDO 5,5 IDRO MS - 1200x2000x50mm",
+		"code_half_h": "6114010412",
+		"desc_half_h": "LEONARDO 5,5 IDRO MS - 600x2000x50mm",
     },
     {
         "full_name"  : "Leonardo 3,5",
@@ -222,6 +230,45 @@ ac_label = {
 }
 
 
+fittings = {
+	"single_open": {
+		"desc":      "20-10-20",
+		"code":      "6910022007"
+	},
+	"single_end": {
+		"desc":      "20-10",
+		"code":      "6910022107"
+	},
+	"double_tshape_open": {
+		"desc":      "20-10-20-10",
+		"code":      "6910022003"
+	},
+	"double_tshape_end": {
+		"desc":      "10-20-10",
+		"code":      "6910022103"
+	},
+	"double_linear_open": {
+		"desc":      "20-10-10-20",
+		"code":      "6910022008"
+	},
+	"double_linear_end": {
+		"desc":      "20-10-10",
+		"code":      "6910022108"
+	},
+	"triple_end": {
+		"desc":      "10-20-10-10",
+		"code":      "6910022110"
+	},
+	"quadruple_open": {
+		"desc":      "20-10-10-20-10-10",
+		"code":      "6910022004"
+	},
+	"quadruple_end": {
+		"desc":      "10-10-20-10-10",
+		"code":      "6910022104"
+	}
+}
+
 
 #names = [panel['full_name'] for panel in panel_types]
 #print(names)
@@ -293,9 +340,9 @@ sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
 sheet_breakdown = [
-	('Breakdown L55', 44), 
-	('Breakdown L35', 62),
-	('Breakdown 30p', 79)
+	('Dettaglio Stanze L55', 44), 
+	('Dettaglio Stanze L35', 62),
+	('Dettaglio Stanze 30p', 79)
 ]
 
 show_panel_list = True
@@ -341,8 +388,20 @@ alphabet = {
 }
 
 
-max_iterations = 5e6
+def nav_item(qnty, code, desc):
+	if (type(qnty)==int):
+		txt = '%d\r\n' % qnty
+	else:
+		txt = ('%.2f\r\n' % qnty).replace(".", ",")
+	
+	txt += code
+	txt += '      EURO\t'
+	txt += desc + '\r\n'
 
+	return txt
+
+
+max_iterations = 5e6
 
 def pletter(letter,pos,scale):
 	path = alphabet[letter]
@@ -1193,7 +1252,6 @@ class PanelArrangement:
 		if (not self.make_grid(origin)):
 			return
 
-
 		#print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
 	
 		#print("room", self.room.pindex, self.mode, end="")
@@ -1231,13 +1289,122 @@ class PanelArrangement:
 					self.alloc_mode = self.mode
 					self.alloc_clt_xside = self.room.clt_xside
 
+
+	def fittings(self):
+
+		cside = self.alloc_clt_xside
+		fits = self.fittings = list()
+
+		for dorsal in self.dorsals:
+
+			local_fit = list()
+			for p in dorsal.panels:
+
+				y, x = p.cell.pos
+				w = p.size[0]; h = p.size[1]
+				btm = (1 - p.side % 2)
+				lft = p.side//2
+
+				cpos = x + w*lft, y + h*btm
+				local_fit.append([{'pos': cpos,
+							'side': lft,
+							'dorsal': dorsal,
+							'panel': p,
+					  		'last': False }])
+
+				if (p.size[0]==2):
+					cpos = x + w*(1-lft), y + h*btm
+					local_fit.append([{'pos': cpos,
+								  'side': 1-lft,
+								  'dorsal': dorsal,
+								  'panel': p,
+							      'last': False }])
+
+			local_fit.sort(key=lambda x: x[0]['pos'])
+
+			if (cside==0):
+				local_fit[-1][0]["last"] = True
+			else:
+				local_fit[0][0]["last"] = True
+
+			fits += local_fit
+
+		# merge fittings 
+		for j, fit in enumerate(fits):
+			fit[0]['merged'] = False
+			for k in range(j):
+				fitv = fits[k]
+				if (not fitv[0]['merged'] and 
+					fitv[0]['pos'] == fit[0]['pos']):
+					fitv.append(fit[0])
+					fit[0]['merged'] = True
+
+		self._fits = list(filter(lambda x: not x[0]['merged'], fits))
+
+
+	def make_couplings(self):
+
+		# create coupling from merged fittings
+		cpls = self.couplings = list()
+		for fit in self._fits:
+			cpls.append(Coupling(fit))
+
+		# form circuits from couplings
+		# and split couplings
+		cirs = self.circuits = []
+		ypos = -1
+		for cp in cpls:
+			if (cp.ypos > ypos):
+				ypos = cp.ypos
+				cirs.append(Circuit(self.room))
+			cirs[-1].add_coupling(cp)
+
+		for cir in cirs:
+
+			# calculate couplings
+			cir.name_couplings()
+
+			# add red stripe
+			if (not cir.is_double()):
+				cir.add_stripe()
+
+		print("circuits, room", self.room.pindex)
+		for k, cir in enumerate(self.circuits):
+			cir.print()
+		print()
+
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
 			cell.draw(msp)
 
 
 class Coupling:
-	pass
+	def __init__(self, fits):
+		self.fits = fits
+		self.xpos = fits[0]['pos'][0]
+		self.ypos = fits[0]['pos'][1]
+		self.pos = fits[0]['pos']
+		self.num_fits = len(fits)
+
+		self.is_double = False
+		first_fit = fits[0]['dorsal']	
+		for fit in fits:
+			if (fit['dorsal'] != first_fit):
+				self.is_double = True
+
+		self.is_last = True
+		for fit in fits:
+			self.is_last &= fit['last']
+
+	def add_stripe(self):
+		for fit in self.fits:
+			fit['panel'].stripe = True
+
+	def print(self):
+		for fit in self.fits:
+			print(fit['pos'], end=" ")
+		print()
+
 
 class Circuit:
 	def __init__(self, room):
@@ -1249,52 +1416,108 @@ class Circuit:
 
 	def is_double(self):
 
-		first_cpl = self.couplings[0]
-		first_fit = first_cpl[0]['dorsal']
-
 		for cpl in self.couplings:
-			for fit in cpl:
-				if (fit['dorsal'] != first_fit):
-					return True
-
+			if (cpl.is_double):
+				return True
 		return False
 
+
 	def add_stripe(self):
-
 		for cpl in self.couplings:
-			for fit in cpl:
-				fit['panel'].stripe = True
+			cpl.add_stripe()
 		
 
-	def fittings(self):
-		
-		for cpl in self.couplings:
-			l = len(cpl)
-			if (l==1):
-				print("single fitting")
+	def name_couplings(self):	
 
-			if (l==2):
-				if cpl[0]['dorsal'] == cpl[1]['dorsal']:
-					print("double linear fitting")
+		cpls = self.couplings	
+
+		self.xmin = self.xmax = cpls[0].xpos
+		cplmin = cplmax = cpls[0]
+		for cpl in cpls:
+			if (cpl.xpos < self.xmin):
+				self.xmin = cpl.xpos
+				cplmin = cpl
+
+			if (cpl.xpos > self.xmax):
+				self.xmax = cpl.xpos
+				cplmax = cpl
+
+		cplsc = list(cpls)
+		for cpl in cplsc:
+
+			end_flag = False
+			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
+				end_flag = True
+
+			if (cpl.num_fits==1): 
+				if (end_flag):
+					cpl.type = "single_end"
 				else:
-					print("double T-shape fitting")
+					cpl.type = "single_open"
 
-			if (l==3):
-				print("triple fitting")
+			if (cpl.num_fits==2):
 
-			if (l==4):
-				print("quadruple fitting")
+				if (cpl.is_double):
+					f0 = cpl.fits[0]
+					f1 = cpl.fits[1]
+					if f0['side'] != f1['side']:
+						# Double fitting on opposite sides. Split
+						cpls.remove(cpl)
+						cp0 = Coupling([f0])
+						cp1 = Coupling([f1])
+						cpls.append(cp0)
+						cpls.append(cp1)
+						cplsc.append(cp0)
+						cplsc.append(cp1)
+					else:
+						# Double fitting on the same side.
+						if (end_flag):
+							cpl.type = "double_tshape_end"
+						else:
+							cpl.type = "double_tshape_open"
+				else:
+					if (end_flag):
+						cpl.type = "double_linear_end"
+					else:
+						cpl.type = "double_linear_open"
+
+			if (cpl.num_fits==3):
+				if (end_flag):
+					cpl.type = "triple_end"
+				else:
+					# Split if not an ending
+					cpls.remove(cpl)
+					f0 = cpl.fits[0]
+					f1 = cpl.fits[1]
+					f2 = cpl.fits[2]
+					cpls.remove(cpl)
+					if f0['side'] == f1['side']:
+						cp0 = Coupling([f0, f1])
+						cp1 = Couplings([f2])
+					else:
+						if f0['side'] == f1['side']:
+							cp0 = Coupling([f0, f2])
+							cp1 = Coupling([f1])
+						else:
+							cp0 = Coupling([f1,f2])
+							cp1 = Coupling([f0])
+
+					cpls.append(cp0)
+					cpls.append(cp1)
+					cplsc.append(cp0)
+					cplsc.append(cp1)
+
+			if (cpl.num_fits==4):
+				if (end_flag):
+					cpl.type = "quadruple_end"
+				else:
+					cpl.type = "quadruple_open"
 
 				
 	def print(self):
 
-		if (self.is_double()):
-			print("Double:", end="")
-		else:
-			print("Single:", end="")
-
 		for cp in self.couplings:
-			print(cp[0]['pos'], len(cp), end="")
+			print(cp.type, end="")
 			print(", ", end="")
 		print()
 
@@ -1775,8 +1998,22 @@ class Room:
 		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
 		txt += " %d left, %d right\n" % (p1x1_r, p1x1_l)
 
-		return (txt, area, active_area, 
-			(p2x2,p2x1,p1x2,p1x1,p1x1_l,p1x1_r,p1x2_l,p1x2_r))
+
+		self.room_rep = {
+			"txt":               txt,
+			"area":              area,
+			"active_area":       active_area,
+			"panels_120x200":    p2x2,
+			"panels_60x200":     p2x1,
+			"panels_120x100":    p1x2,
+			"panels_120x100_l":  p1x2_l,
+			"panels_120x100_r":  p1x2_r,
+			"panels_60x100":     p1x1,
+			"panels_60x100_l":   p1x1_l,
+			"panels_60x100_r":   p1x1_r,
+		}
+
+		return self.room_rep
 
 	def draw_label(self, msp):
 
@@ -1807,6 +2044,7 @@ class Model(threading.Thread):
 		self.zone = list()
 		self.output = output
 		self.best_list = list()
+		self.text_nav = ""
 
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
@@ -2315,78 +2553,92 @@ class Model(threading.Thread):
 
 		self.output.print("\n")
 
-		# find couplings
+		# find fittings 
 		for room in self.processed:
-			arrangement = room.arrangement
-			cside = arrangement.alloc_clt_xside
-			cpl = arrangement.couplings = list()
+			room.arrangement.fittings()
+			room.arrangement.make_couplings()
 
-			dorsals = arrangement.dorsals
+			#arrangement = room.arrangement
+			#cside = arrangement.alloc_clt_xside
+			#fits = arrangement.fittings = list()
 
-			for dorsal in dorsals:
+			#dorsals = arrangement.dorsals
 
-				cpl0 = list()
-				for p in dorsal.panels:
+			#for dorsal in dorsals:
 
-					y, x = p.cell.pos
-					w = p.size[0]; h = p.size[1]
-					btm = (1 - p.side % 2)
-					lft = p.side//2
+			#	local_fit = list()
+			#	for p in dorsal.panels:
 
-					cpos = x + w*lft, y + h*btm
-					cpl0.append([{'pos': cpos,
-								'side': p.side,
-								'dorsal': dorsal,
-								'panel': p,
-						  		'last': False }])
+			#		y, x = p.cell.pos
+			#		w = p.size[0]; h = p.size[1]
+			#		btm = (1 - p.side % 2)
+			#		lft = p.side//2
 
-					if (p.size[0]==2):
-						cpos = x + w*(1-lft), y + h*btm
-						cpl0.append([{'pos': cpos,
-									  'side': p.side,
-									  'dorsal': dorsal,
-									  'panel': p,
-								      'last': False }])
+			#		cpos = x + w*lft, y + h*btm
+			#		local_fit.append([{'pos': cpos,
+			#					'side': lft,
+			#					'dorsal': dorsal,
+			#					'panel': p,
+			#			  		'last': False }])
 
-				cpl0.sort(key=lambda x: x[0]['pos'])
+			#		if (p.size[0]==2):
+			#			cpos = x + w*(1-lft), y + h*btm
+			#			local_fit.append([{'pos': cpos,
+			#						  'side': 1-lft,
+			#						  'dorsal': dorsal,
+			#						  'panel': p,
+			#					      'last': False }])
 
-				if (cside==0):
-					cpl0[-1][0]["last"] = True
-				else:
-					cpl0[0][0]["last"] = True
+			#	local_fit.sort(key=lambda x: x[0]['pos'])
 
-				cpl += cpl0
+			#	if (cside==0):
+			#		local_fit[-1][0]["last"] = True
+			#	else:
+			#		local_fit[0][0]["last"] = True
 
-			for j, cp in enumerate(cpl):
-				cp[0]['merged'] = False
-				for k in range(j):
-					cv = cpl[k]
-					if (not cv[0]['merged'] and 
-						cv[0]['pos'] == cp[0]['pos']):
-						cv.append(cp[0])
-						cp[0]['merged'] = True
+			#	fits += local_fit
 
-			cpl = list(filter(lambda x: not x[0]['merged'], cpl))
+
+			# merge fittings 
+			#for j, fit in enumerate(fits):
+			#	fit[0]['merged'] = False
+			#	for k in range(j):
+			#		fitv = fits[k]
+			#		if (not fitv[0]['merged'] and 
+			#			fitv[0]['pos'] == fit[0]['pos']):
+			#			fitv.append(fit[0])
+			#			fit[0]['merged'] = True
+
+
+			#self._fits = list(filter(lambda x: not x[0]['merged'], fits))
 				
+			# create coupling from merged fittings
+			#cpl = self.couplings = list()
+			#for fit in self._fits:
+			#	cpl.append(Coupling(fit))
 
-			# form circuits
-			cirs = room.circuits = []
-			ypos = -1
-			for cp in cpl:
-				if (cp[0]['pos'][1] > ypos):
-					ypos = cp[0]['pos'][1]
-					cirs.append(Circuit(room))
-				cirs[-1].add_coupling(cp)
+			## form circuits from couplings
+			#cirs = room.circuits = []
+			#ypos = -1
+			#for cp in cpl:
+			#	if (cp.ypos > ypos):
+			#		ypos = cp.ypos
+			#		cirs.append(Circuit(room))
+			#	cirs[-1].add_coupling(cp)
 
-			print("circuits")
-			for cir in cirs:
-				cir.print()
-				# calculate fittinglate fittingss
-				cir.fittings()
-				# add red stripe
-				if (not cir.is_double()):
-					cir.add_stripe()
+			#for cir in cirs:
 
+			#	# calculate couplings
+			#	cir.name_couplings()
+
+			#	# add red stripe
+			#	if (not cir.is_double()):
+			#		cir.add_stripe()
+
+			#print("circuits, room", room.pindex)
+			#for k, cir in enumerate(room.circuits):
+			#	cir.print()
+			#print()
 				
 
 		# find attachment points of dorsals
@@ -2494,31 +2746,35 @@ class Model(threading.Thread):
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
 				cnd.append(ac)
-				html += '<p id="mtype">'+ac['model']+'</p>'
-		html += '</div>'
 		
-		#l = len(cnd)
-		#num_ac = [0]*l
-		#cnd.sort(key= lambda x: x["flow_m3h"]);
-		#max_ac = ceil(volume/cnd[0]["flow_m3h"])
-		#num_tot = l*max_ac
-		#print(ac)
-		#print(l, max_ac)
-		#for i in range((max_ac+1) ** l):
-		#	count = i
-		#	ntot = 0
-		#	flowtot = 0
-		#	for k in range(l):
-		#		val = count % max_ac
-		#		count = count//max_ac
-		#		ntot += val
-		#		flowtot += val * cnd[k]["flow_m3h"]
-		#		print(" ", val, cnd[k]["flow_m3h"], end="")
-		#	print("=>", ntot, flowtot)
+		l = len(cnd)
+		cnd.sort(key= lambda x: x["flow_m3h"]);
+		max_ac = ceil(volume/cnd[0]["flow_m3h"])
+		num_tot = l*max_ac
+		
+		num_ac = [0]*l
+		best_ac = [0]*l
+		best_flow = MAX_COST
+		for i in range((max_ac+1) ** l):
+			flowtot = 0
+			count = i
+			for k in range(l):
+				val = count % (max_ac+1)
+				count = count//(max_ac+1)
+				num_ac[k] = val
+				flowtot += val * cnd[k]["flow_m3h"]
+			if (flowtot >= volume and flowtot < best_flow):
+				best_flow = flowtot
+				for k, val in enumerate(num_ac):
+					best_ac[k] = num_ac[k]
 
-		#for ac in cnd:
-		#	html += '<p id="mtype">'+ac['model']+'</p>'
-		#html += '</div>'
+		for k, ac in enumerate(cnd):
+			if (best_ac[k] > 0):
+				html += '<p id="mtype">%d x ' % best_ac[k] + ac['model'] + '</p>'
+		html += '<p id="suggest">copertura %.2f m3/h,' % best_flow
+		html += 'eccesso %.2f m3/h</p>' % (best_flow-volume)
+		html += '</div>'
+
 		return html
 
 	def draw(self):
@@ -2547,7 +2803,9 @@ class Model(threading.Thread):
 			feeds = 0
 			for room in items:
 				feeds += room.actual_feeds
-			txt = collector.name + " (%d+%d)" % (feeds, feeds)
+			collector.req_feeds = feeds
+			collector.label = " (%d+%d)" % (feeds, feeds)
+			txt = collector.name + collector.label
 			xc, yc = collector.pos[0], collector.pos[1]
 			cs = collector_size
 
@@ -2777,20 +3035,22 @@ class Model(threading.Thread):
 		
 		txt = "\n ------- Room Report ----------\n\n"
 
-		area = 0 
-		active_area = 0 
-		p2x2 = 0
-		p2x1 = 0
-		p1x2 = 0
-		p1x2_l = 0
-		p1x2_r = 0
-		p1x1 = 0
-		p1x1_l = 0
-		p1x1_r = 0
+		self.area = 0 
+		self.active_area = 0 
+
+		p2x2 = 0; p2x2_h = 0
+		p2x1 = 0; p2x1_h = 0
+		p1x2 = 0; p1x2_h = 0
+		p1x2_l = 0; p1x2_h_l = 0
+		p1x2_r = 0; p1x2_h_r = 0
+		p1x1 = 0; p1x1_h = 0
+		p1x1_l = 0; p1x1_h_l = 0
+		p1x1_r = 0; p1x1_h_r = 0
+
 		w = default_panel_width
 		h = default_panel_height
 		failed_rooms = 0
-		feeds = 0
+		self.feeds = 0
 		for room in self.processed:
 
 			if (len(room.errorstr)>0):
@@ -2798,38 +3058,45 @@ class Model(threading.Thread):
 				continue
 
 			txt += "Room %d  --------- \n" % room.pindex
-			roomtxt, rarea, ractive, panel_count = room.report()
-			area += rarea
-			active_area += ractive
-			txt += roomtxt + "\n"
-			p2x2 += panel_count[0]
-			p2x1 += panel_count[1]
-			room.panels_200x120 = panel_count[0]
-			room.panels_200x60 = panel_count[1]
+			rep = room.report()
 
-			p1x2 += panel_count[2]
-			p1x1 += panel_count[3]
-			room.panels_100x120 = panel_count[2]
-			room.panels_100x60 = panel_count[3]
+			self.area += rep['area']
+			self.active_area += rep['active_area']
+			txt += rep['txt'] + "\n"
+			if (room.color == valid_room_color):
+				p2x2 += rep['panels_120x200']
+				p2x1 += rep['panels_60x200']
 
-			p1x1_l += panel_count[4]
-			p1x1_r += panel_count[5]
-			p1x2_l += panel_count[6]
-			p1x2_r += panel_count[7]
+				p1x2 += rep['panels_120x100']
+				p1x1 += rep['panels_60x100']
 
-			room.actual_feeds = ceil(ractive/area_per_feed_m2)
-			feeds += room.actual_feeds
+				p1x1_l += rep['panels_60x100_l']
+				p1x1_r += rep['panels_60x100_r']
+				p1x2_l += rep['panels_120x100_l']
+				p1x2_r += rep['panels_120x100_r']
+			else:
+				p2x2_h += rep['panels_120x200']
+				p2x1_h += rep['panels_60x200']
+
+				p1x2_h += rep['panels_120x100']
+				p1x1_h += rep['panels_60x100']
+
+				p1x1_h_l += rep['panels_60x100_l']
+				p1x1_h_r += rep['panels_60x100_r']
+				p1x2_h_l += rep['panels_120x100_l']
+				p1x2_h_r += rep['panels_120x100_r']
+				
+
+			room.actual_feeds = ceil(rep['active_area']/area_per_feed_m2)
+			self.feeds += room.actual_feeds
 			
-		self.area = area
-		self.active_area = active_area		
-		self.feeds = feeds
 	
 		# Summary of all areas
 		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
 		smtxt += "Total collectors %d\n" % (len(self.collectors))
-		smtxt += "Total area %.5g m2\n" % area
-		smtxt += "Total active area %.5g m2" % active_area
-		smtxt += " (%.4g %%)\n" % (100*active_area/area)
+		smtxt += "Total area %.5g m2\n" % self.area
+		smtxt += "Total active area %.5g m2" % self.active_area
+		smtxt += " (%.4g %%)\n" % (100*self.active_area/self.area)
 		smtxt += "Total pipes %d\n" % self.feeds
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
@@ -2837,19 +3104,43 @@ class Model(threading.Thread):
 		smtxt += "  %d left, %d right\n" % (p1x2_l, p1x2_r)
 		smtxt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
 		smtxt += "  %d left, %d right\n" % (p1x1_l, p1x1_r)
-		smtxt += "\n> requirements:\n"
+		smtxt += "Hydro panels total"
+		smtxt += "  %5d panels %dx%d cm\n" % (p2x2_h, 2*w, 2*h) 
+		smtxt += "  %5d panels %dx%d cm\n" % (p2x1_h, 2*w, h) 
+		smtxt += "  %5d panels %dx%d cm - " % (p1x2_h, w, 2*h)
+		smtxt += "  %d left, %d right\n" % (p1x2_h_l, p1x2_h_r)
+		smtxt += "  %5d panels %dx%d cm - " % (p1x1_h, w, h) 
+		smtxt += "  %d left, %d right\n" % (p1x1_h_l, p1x1_h_r)
+
+		# Requirements normal panels
+		smtxt += "\n> Requirements:\n"
 		p2x2_cut = min(p1x2_r,p1x2_l) + abs(p1x2_r-p1x2_l)
-		self.panels_200x120 = p2x2_tot = p2x2 + p2x2_cut 
+		self.panels_120x200 = p2x2_tot = p2x2 + p2x2_cut 
 		p2x2_spr = abs(p1x2_r-p1x2_l)
 		smtxt += "  %d panels %dx%d, \n" % (p2x2_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_cut, p2x2_spr)
 		p2x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
-		self.panels_200x60 = p2x1_tot = p2x1 + p2x1_cut 
+		self.panels_60x200 = p2x1_tot = p2x1 + p2x1_cut 
 		p1x1_spr = abs(p1x1_r-p1x1_l)
 		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_cut, p1x1_spr) 
 
+		# Requirements normal panels
+		smtxt += "\n> Requirements Hydro:\n"
+		p2x2_h_cut = min(p1x2_h_r,p1x2_h_l) + abs(p1x2_h_r-p1x2_h_l)
+		self.panels_h_120x200 = p2x2_h_tot = p2x2_h + p2x2_h_cut 
+		p2x2_h_spr = abs(p1x2_h_r-p1x2_h_l)
+		smtxt += "  %d panels %dx%d, \n" % (p2x2_h_tot, 2*w, 2*h)
+		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_h_cut, p2x2_h_spr)
+		p2x1_h_cut = min(p1x1_h_r,p1x1_h_l) + abs(p1x1_h_r-p1x1_h_l)
+		self.panels_h_60x200 = p2x1_h_tot = p2x1_h + p2x1_h_cut 
+		p1x1_h_spr = abs(p1x1_h_r-p1x1_h_l)
+		smtxt += "  %d panels %dx%d, \n" % (p2x1_h_tot, 2*w, 2*h)
+		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_h_cut, p1x1_h_spr) 
+
 		return smtxt + txt
+
+
 
 	def save_in_xls(self):
 		wb = openpyxl.load_workbook(xlsx_template)
@@ -2876,19 +3167,19 @@ class Model(threading.Thread):
 		ws3['C4'] = self.active_area
 
 		# copy total panels
-		ws1['F3'] = ws1['F4'] = self.panels_200x120
-		ws1['F3'] = ws1['F4'] = self.panels_200x120
-		ws2['F3'] = ws2['F4'] = self.panels_200x120
-		ws2['F3'] = ws2['F4'] = self.panels_200x120
-		ws3['F3'] = ws3['F4'] = self.panels_200x120
-		ws3['F3'] = ws3['F4'] = self.panels_200x120
+		ws1['F3'] = ws1['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws1['F3'] = ws1['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws2['F3'] = ws2['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws2['F3'] = ws2['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws3['F3'] = ws3['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws3['F3'] = ws3['F4'] = self.panels_120x200 + self.panels_h_120x200
 
-		ws1['G3'] = ws1['G4'] = self.panels_200x60
-		ws1['G3'] = ws1['G4'] = self.panels_200x60
-		ws2['G3'] = ws2['G4'] = self.panels_200x60
-		ws2['G3'] = ws2['G4'] = self.panels_200x60
-		ws3['G3'] = ws3['G4'] = self.panels_200x60
-		ws3['G3'] = ws3['G4'] = self.panels_200x60
+		ws1['G3'] = ws1['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws1['G3'] = ws1['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws2['G3'] = ws2['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws2['G3'] = ws2['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws3['G3'] = ws3['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws3['G3'] = ws3['G4'] = self.panels_60x200 + self.panels_h_60x200
 
 		# copy number of feeds
 		ws1['H3'] = ws1['H4'] = self.feeds
@@ -2996,21 +3287,21 @@ class Model(threading.Thread):
 					pos = 'H' + str(index)
 					ws[pos] = room.actual_feeds
 
-					if (room.panels_200x120>0):
+					if (room.room_rep['panels_120x200']>0):
 						pos = 'I' + str(index)
-						ws[pos] = room.panels_200x120
+						ws[pos] = room.room_rep['panels_120x200']
 
-					if (room.panels_200x60>0):
+					if (room.room_rep['panels_60x200']>0):
 						pos = 'J' + str(index)
-						ws[pos] = room.panels_200x60
+						ws[pos] = room.room_rep['panels_60x200']
 
-					if (room.panels_100x120>0):
+					if (room.room_rep['panels_120x100']>0):
 						pos = 'K' + str(index)
-						ws[pos] = room.panels_100x120
+						ws[pos] = room.room_rep['panels_120x100']
 
-					if (room.panels_100x60>0):
+					if (room.room_rep['panels_60x100']>0):
 						pos = 'L' + str(index)
-						ws[pos] = room.panels_100x60
+						ws[pos] = room.room_rep['panels_60x100']
 
 
 					# heating 
@@ -3058,13 +3349,54 @@ class Model(threading.Thread):
 
 	def save_navision(self):
 
+		# Save panels
+		self.text_nav += nav_item(self.panels_120x200*2.4, 
+				self.ptype['code_full'], self.ptype['desc_full'])
+
+		self.text_nav += nav_item(self.panels_60x200*1.2,
+				self.ptype['code_half'], self.ptype['desc_half'])
+
+		self.text_nav += nav_item(self.panels_h_120x200*2.4, 
+				self.ptype['code_full_h'], self.ptype['desc_full_h'])
+
+		self.text_nav += nav_item(self.panels_h_60x200*1.2, 
+				self.ptype['code_half_h'], self.ptype['desc_half_h'])
+
+		# Save couplings
+		for fit in fittings:
+			(fittings[fit])['count'] = 0 
+
+		for room in self.processed:
+			for cpl in room.arrangement.couplings:
+				(fittings[cpl.type])['count'] += 1
+			
+		for name in fittings:
+			fit = fittings[name]
+			if fit['count']:
+				desc = "RACCORDO LEONARDO " + fit['desc']
+				self.text_nav += nav_item(fit['count'],
+					fit['code'], desc)
+
+		# Save collectors
+		print("save collectors")
+		clt_qnts = [0]*(feeds_per_collector+1)
+		for c in self.collectors:
+			clt_qnts[c.req_feeds] += 1
+
+		for i in range(1,feeds_per_collector+1):
+			if (clt_qnts[i] == 0):
+				continue
+			code = '41200101%02d' % i
+			desc = 'COLLETTORE SL 1" %d+%d COMPLETO' % (i,i)
+			self.text_nav += nav_item(clt_qnts[i],code, desc)
+
 		if (web_version):
 			out = self.outname[:-4] + ".dat"
 		else:
 			out = self.filename[:-4] + ".dat"	
-		
+	
 		f = open(out, "w")
-		print("This will contain a Navision", file = f)
+		print(self.text_nav, file = f, end="")
 
 	def save_in_word(self):
 
@@ -3326,6 +3658,7 @@ def _create_model(iface):
 	
 	for ptype in panel_types:
 		if (ctype == ptype['full_name']):
+			iface.model.ptype = ptype
 			handler = "leo_" + ptype['handler'] + "_"
 			block_blue_120x100 = handler + "120"
 			block_blue_60x100 = handler + "60"
