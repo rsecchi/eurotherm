@@ -233,39 +233,48 @@ ac_label = {
 fittings = {
 	"single_open": {
 		"desc":      "20-10-20",
-		"code":      "6910022007"
+		"code":      "6910022007",
+		"symbol": [[(0,0),(0,5)], [(-10,0),(10,0)]]
 	},
 	"single_end": {
 		"desc":      "20-10",
-		"code":      "6910022107"
+		"code":      "6910022107",
+		"symbol": [[(0,0),(0,5)], [(0,0),(10,0)]]
 	},
 	"double_tshape_open": {
 		"desc":      "20-10-20-10",
-		"code":      "6910022003"
+		"code":      "6910022003",
+		"symbol": [[(0,-5),(0,5)], [(-10,0),(10,0)]]
 	},
 	"double_tshape_end": {
 		"desc":      "10-20-10",
-		"code":      "6910022103"
+		"code":      "6910022103",
+		"symbol": [[(0,-5),(0,5)], [(0,0),(10,0)]]
 	},
 	"double_linear_open": {
 		"desc":      "20-10-10-20",
-		"code":      "6910022008"
+		"code":      "6910022008",
+		"symbol": [[(3,0),(3,5)], [(-10,0),(10,0)], [(-3,0),(-3,5)]]
 	},
 	"double_linear_end": {
 		"desc":      "20-10-10",
-		"code":      "6910022108"
+		"code":      "6910022108",
+		"symbol": [[(3,0),(3,5)], [(-3,0),(10,0)], [(-3,0),(-3,5)]]
 	},
 	"triple_end": {
 		"desc":      "10-20-10-10",
-		"code":      "6910022110"
+		"code":      "6910022110",
+		"symbol": [[(3,0),(3,5)], [(-3,0),(10,0)], [(-3,0),(-3,5)]]
 	},
 	"quadruple_open": {
 		"desc":      "20-10-10-20-10-10",
-		"code":      "6910022004"
+		"code":      "6910022004",
+		"symbol": [[(3,-5),(3,5)], [(-10,0),(10,0)], [(-3,-5),(-3,5)]]
 	},
 	"quadruple_end": {
 		"desc":      "10-10-20-10-10",
-		"code":      "6910022104"
+		"code":      "6910022104",
+		"symbol": [[(3,-5),(3,5)], [(-3,0),(10,0)], [(-5,0),(-3,5)]]
 	}
 }
 
@@ -810,9 +819,12 @@ class Panel:
 
 
 	def draw_stripe(self, msp):
+
+		w = 0.2/self.size[1] * self.height
+
 		ax = self.xcoord; bx = ax + self.width
-		ay = self.ycoord + self.height * 0.65 
-		by = ay + self.height * 0.25 / self.size[1]
+		ay = self.ycoord + self.height*0.5 + w
+		by = self.ycoord + self.height*0.5 - w
 
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 		
@@ -832,6 +844,9 @@ class Panel:
 		pl.dxf.layer = layer_panelp
 		pl.dxf.color = stripe_color
 		
+		hatch = msp.add_hatch(color=stripe_color)
+		hatch.paths.add_polyline_path(pline, is_closed=True)
+		hatch.dxf.layer = layer_panelp
 
 	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -1252,25 +1267,26 @@ class PanelArrangement:
 		if (not self.make_grid(origin)):
 			return
 
-		#print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
+		#if (self.room.pindex==3):
+		#	print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
 	
-		#print("room", self.room.pindex, self.mode, end="")
-		#if (self.room.clt_xside==LEFT):
-		#	print(" LEFT ",end="")
-		#else:
-		#	print(" RIGHT ",end="")
-		#if (self.room.clt_yside==TOP):
-		#	print("TOP")
-		#else:
-		#	print("BOTTOM")
+		#	print("room", self.room.pindex, self.mode, end="")
+		#	if (self.room.clt_xside==LEFT):
+		#		print(" LEFT ",end="")
+		#	else:
+		#		print(" RIGHT ",end="")
+		#	if (self.room.clt_yside==TOP):
+		#		print("TOP")
+		#	else:
+		#		print("BOTTOM")
 
-		#for row in range(self.rows):
-		#	for col in range(self.cols):
-		#		if (self.grid[row,col]):
-		#			print("X", end="")
-		#		else:
-		#			print(".", end="")
-		#	print()
+		#	for row in range(self.rows):
+		#		for col in range(self.cols):
+		#			if (self.grid[row,col]):
+		#				print("X", end="")
+		#			else:
+		#				print(".", end="")
+		#		print()
 
 		#for j in range(0,2):
 		for i in range(0,4):
@@ -1288,6 +1304,7 @@ class PanelArrangement:
 					self.best_grid = self.cells
 					self.alloc_mode = self.mode
 					self.alloc_clt_xside = self.room.clt_xside
+					self.origin = origin
 
 
 	def fittings(self):
@@ -1308,6 +1325,7 @@ class PanelArrangement:
 				cpos = x + w*lft, y + h*btm
 				local_fit.append([{'pos': cpos,
 							'side': lft,
+							'hside': btm,
 							'dorsal': dorsal,
 							'panel': p,
 					  		'last': False }])
@@ -1316,6 +1334,7 @@ class PanelArrangement:
 					cpos = x + w*(1-lft), y + h*btm
 					local_fit.append([{'pos': cpos,
 								  'side': 1-lft,
+								  'hside': btm,
 								  'dorsal': dorsal,
 								  'panel': p,
 							      'last': False }])
@@ -1368,14 +1387,76 @@ class PanelArrangement:
 			if (not cir.is_double()):
 				cir.add_stripe()
 
-		print("circuits, room", self.room.pindex)
-		for k, cir in enumerate(self.circuits):
-			cir.print()
-		print()
+		#print("circuits, room", self.room.pindex)
+		#for k, cir in enumerate(self.circuits):
+		#	cir.print()
+		#print()
+
 
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
 			cell.draw(msp)
+
+	def draw_couplings(self, msp):
+		global panel_width, panel_height
+	
+		if (not hasattr(self, 'couplings')):
+			return	
+
+		w = panel_width
+		h = panel_height
+		x0, y0 = self.origin
+		for cpl in self.couplings:
+
+			xpos, ypos = cpl.pos
+			fit = fittings[cpl.type]
+
+			symbol = deepcopy(fit["symbol"])
+
+			# flipping symbol upside down
+			if ((cpl.type == "double_linear_open" or 
+				cpl.type == "double_linear_end"  or
+				cpl.type == "single_open"  or
+				cpl.type == "single_end") and
+				cpl.is_at_top()):
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = x, -y
+
+			#  flipping symbol left-right 
+			if ((cpl.type == "double_tshape_end"  or
+				cpl.type == "double_linear_end" or
+				cpl.type == "single_end") and
+				cpl.is_at_right()):
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = -x, y
+				
+
+			for pline in symbol:
+				spline = []
+				for p in pline:	
+					xp = x0 + p[0]/scale + w*xpos
+					yp = y0 + p[1]/scale + h*ypos
+					if (self.alloc_mode == 0):
+						ps = xp, yp
+					else:
+						ps = yp, xp
+					spline.append(ps)
+				
+				if (self.room.vector):
+					room = self.room
+					rot = room.rot_orig
+					uv = room.uvector
+					uv = (uv[0], -uv[1])
+					for i in range(len(spline)):
+						spline[i] = rotate(spline[i], rot, uv)
+
+				pl = msp.add_lwpolyline(spline)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = stripe_color	
 
 
 class Coupling:
@@ -1405,6 +1486,11 @@ class Coupling:
 			print(fit['pos'], end=" ")
 		print()
 
+	def is_at_top(self):
+		return self.fits[0]['hside']
+
+	def is_at_right(self):
+		return self.fits[0]['side']
 
 class Circuit:
 	def __init__(self, room):
@@ -1723,6 +1809,7 @@ class Room:
 
 		# Rotate according to vector
 		if (self.vector):
+
 			p = self.points
 			rot = self.rot_orig
 			uv = self.uvector
@@ -1734,6 +1821,21 @@ class Room:
 				for i in range(len(obs.points)):
 					obs.points[i] = rotate(obs.points[i], rot, uv)
 
+			cltr = self.collector
+			rpos = rotate(self.pos, rot, uv)
+			cpos = rotate(cltr.pos, rot, uv)
+
+			(vx, vy) = (cpos[0]-rpos[0], cpos[1]-rpos[1])
+
+			if (vx>=0):
+				self.clt_xside = RIGHT
+			else:
+				self.clt_xside = LEFT
+
+			if (vy>=0):
+				self.clt_yside = TOP
+			else:
+				self.clt_yside = BOTTOM
 
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -2017,7 +2119,7 @@ class Room:
 
 	def draw_label(self, msp):
 
-		write_text(msp, "Room %d" % self.pindex, self.pos, zoom=2)
+		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
 
 	def draw(self, msp):
 	
@@ -2030,6 +2132,8 @@ class Room:
 			panel.draw(msp)
 			if (debug):
 				panel.draw_profile(msp)
+
+		self.arrangement.draw_couplings(msp)
 
 
 class Model(threading.Thread):
@@ -2500,9 +2604,10 @@ class Model(threading.Thread):
 			return
 
 		if (feeds_max > available_feeds or flow_max > available_flow):
-			self.output.print("WARNING: Possible insufficient collectors\n")
-			self.output.print("WARNING: suggested %d collectors\n" %
-				ceil(flow_eff/flow_per_collector))
+			rc = ceil(flow_eff/flow_per_collector)
+			if rc>len(self.collectors):
+				self.output.print("WARNING: Possible insufficient collectors\n")
+				self.output.print("WARNING: suggested %d collectors\n" % rc)
 
 		################################################################
 		self.create_trees()
@@ -2555,91 +2660,10 @@ class Model(threading.Thread):
 
 		# find fittings 
 		for room in self.processed:
-			room.arrangement.fittings()
-			room.arrangement.make_couplings()
-
-			#arrangement = room.arrangement
-			#cside = arrangement.alloc_clt_xside
-			#fits = arrangement.fittings = list()
-
-			#dorsals = arrangement.dorsals
-
-			#for dorsal in dorsals:
-
-			#	local_fit = list()
-			#	for p in dorsal.panels:
-
-			#		y, x = p.cell.pos
-			#		w = p.size[0]; h = p.size[1]
-			#		btm = (1 - p.side % 2)
-			#		lft = p.side//2
-
-			#		cpos = x + w*lft, y + h*btm
-			#		local_fit.append([{'pos': cpos,
-			#					'side': lft,
-			#					'dorsal': dorsal,
-			#					'panel': p,
-			#			  		'last': False }])
-
-			#		if (p.size[0]==2):
-			#			cpos = x + w*(1-lft), y + h*btm
-			#			local_fit.append([{'pos': cpos,
-			#						  'side': 1-lft,
-			#						  'dorsal': dorsal,
-			#						  'panel': p,
-			#					      'last': False }])
-
-			#	local_fit.sort(key=lambda x: x[0]['pos'])
-
-			#	if (cside==0):
-			#		local_fit[-1][0]["last"] = True
-			#	else:
-			#		local_fit[0][0]["last"] = True
-
-			#	fits += local_fit
-
-
-			# merge fittings 
-			#for j, fit in enumerate(fits):
-			#	fit[0]['merged'] = False
-			#	for k in range(j):
-			#		fitv = fits[k]
-			#		if (not fitv[0]['merged'] and 
-			#			fitv[0]['pos'] == fit[0]['pos']):
-			#			fitv.append(fit[0])
-			#			fit[0]['merged'] = True
-
-
-			#self._fits = list(filter(lambda x: not x[0]['merged'], fits))
-				
-			# create coupling from merged fittings
-			#cpl = self.couplings = list()
-			#for fit in self._fits:
-			#	cpl.append(Coupling(fit))
-
-			## form circuits from couplings
-			#cirs = room.circuits = []
-			#ypos = -1
-			#for cp in cpl:
-			#	if (cp.ypos > ypos):
-			#		ypos = cp.ypos
-			#		cirs.append(Circuit(room))
-			#	cirs[-1].add_coupling(cp)
-
-			#for cir in cirs:
-
-			#	# calculate couplings
-			#	cir.name_couplings()
-
-			#	# add red stripe
-			#	if (not cir.is_double()):
-			#		cir.add_stripe()
-
-			#print("circuits, room", room.pindex)
-			#for k, cir in enumerate(room.circuits):
-			#	cir.print()
-			#print()
-				
+			if (hasattr(room.arrangement, 'alloc_clt_xside')):
+				room.arrangement.fittings()
+				room.arrangement.make_couplings()
+	
 
 		# find attachment points of dorsals
 		self.dorsals = list()
@@ -3367,6 +3391,9 @@ class Model(threading.Thread):
 			(fittings[fit])['count'] = 0 
 
 		for room in self.processed:
+			if (not hasattr(room.arrangement,'alloc_clt_xside')):
+				continue
+
 			for cpl in room.arrangement.couplings:
 				(fittings[cpl.type])['count'] += 1
 			
@@ -3378,7 +3405,6 @@ class Model(threading.Thread):
 					fit['code'], desc)
 
 		# Save collectors
-		print("save collectors")
 		clt_qnts = [0]*(feeds_per_collector+1)
 		for c in self.collectors:
 			clt_qnts[c.req_feeds] += 1
