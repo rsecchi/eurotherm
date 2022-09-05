@@ -388,9 +388,9 @@ sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
 sheet_breakdown = [
-	('Dettaglio Stanze L55', 44), 
-	('Dettaglio Stanze L35', 62),
-	('Dettaglio Stanze 30p', 79)
+	('Dettaglio Stanze L55', 85, 43), 
+	('Dettaglio Stanze L35', 84.2, 64.8),
+	('Dettaglio Stanze 30p', 82.3, 80.9)
 ]
 
 show_panel_list = True
@@ -3294,7 +3294,7 @@ class Model(threading.Thread):
 		ws3['I3'] = ws3['I4'] = no_collectors 
 
 		if show_panel_list:
-			for sheet, cool_coef in sheet_breakdown:
+			for sheet, warm_coef, cool_coef in sheet_breakdown:
 				ws = wb.create_sheet(sheet)
 
 				ws.row_dimensions[3].height = 32
@@ -3402,7 +3402,7 @@ class Model(threading.Thread):
 
 					# heating 
 					pos = 'N' + str(index)
-					ws[pos] = radiated = room.active_m2 * 85
+					ws[pos] = radiated = room.active_m2 * warm_coef
 					ws[pos].number_format = "0"
 
 					pos = 'O' + str(index)
@@ -3751,7 +3751,7 @@ def _create_model(iface):
 	importer.finalize()
 
 	## copy blocks from panels
-	source_dxf = ezdxf.readfile("panels.dxf")
+	source_dxf = ezdxf.readfile("Symbol2.dxf")
 	importer = Importer(source_dxf, iface.model.doc)
 
 	if (not web_version):
