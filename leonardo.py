@@ -230,51 +230,87 @@ ac_label = {
 }
 
 
+# couplings geometry
+stripe_width = 0.15
+delta_h  = 2.5
+delta_v  = 4
+axis_offset = 12
+shift = 13
+
+
+w_fit = 10
+h_fit = 5
+s_fit = 7
+
+
 fittings = {
 	"single_open": {
 		"desc":      "20-10-20",
 		"code":      "6910022007",
-		"symbol": [[(0,0),(0,5)], [(-10,0),(10,0)]]
+		"symbol": [ 
+					[(0,0),(0,h_fit)], 
+					[(-w_fit,0),(w_fit,0)]]
 	},
 	"single_end": {
 		"desc":      "20-10",
 		"code":      "6910022107",
-		"symbol": [[(0,0),(0,5)], [(0,0),(10,0)]]
+		"symbol": [
+					[(0,0),(0,h_fit)], 
+					[(0,0),(w_fit,0)]]
 	},
 	"double_tshape_open": {
 		"desc":      "20-10-20-10",
 		"code":      "6910022003",
-		"symbol": [[(0,-5),(0,5)], [(-10,0),(10,0)]]
+		"symbol": [
+					[(0,-h_fit),(0,h_fit)], 
+					[(-w_fit,0),(w_fit,0)]]
 	},
 	"double_tshape_end": {
 		"desc":      "10-20-10",
 		"code":      "6910022103",
-		"symbol": [[(0,-5),(0,5)], [(0,0),(10,0)]]
+		"symbol": [
+					[(0,-h_fit),(0,h_fit)], 
+					[(0,0),(w_fit,0)]]
 	},
 	"double_linear_open": {
 		"desc":      "20-10-10-20",
 		"code":      "6910022008",
-		"symbol": [[(3,0),(3,5)], [(-10,0),(10,0)], [(-3,0),(-3,5)]]
+		"symbol": [
+					[(s_fit,0),(s_fit,h_fit)], 
+					[(-w_fit,0),(w_fit,0)], 
+					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
 	"double_linear_end": {
 		"desc":      "20-10-10",
 		"code":      "6910022108",
-		"symbol": [[(3,0),(3,5)], [(-3,0),(10,0)], [(-3,0),(-3,5)]]
+		"symbol": [
+					[(s_fit,0),(s_fit,h_fit)], 
+					[(-s_fit,0),(w_fit,0)], 
+					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
 	"triple_end": {
 		"desc":      "10-20-10-10",
 		"code":      "6910022110",
-		"symbol": [[(3,0),(3,5)], [(-3,0),(10,0)], [(-3,0),(-3,5)]]
+		"symbol": [
+					[(s_fit,0),(s_fit,h_fit)], 
+					[(-s_fit,0),(w_fit,0)], 
+					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
 	"quadruple_open": {
 		"desc":      "20-10-10-20-10-10",
 		"code":      "6910022004",
-		"symbol": [[(3,-5),(3,5)], [(-10,0),(10,0)], [(-3,-5),(-3,5)]]
+		"symbol": [
+					[(s_fit,-h_fit),(s_fit,h_fit)], 
+					[(-w_fit,0),(w_fit,0)], 
+					[(-s_fit,-h_fit),(-s_fit,h_fit)]]
 	},
 	"quadruple_end": {
 		"desc":      "10-10-20-10-10",
 		"code":      "6910022104",
-		"symbol": [[(3,-5),(3,5)], [(-3,0),(10,0)], [(-5,0),(-3,5)]]
+		"symbol":   [
+					[(s_fit,-h_fit),(s_fit,h_fit)], 
+					[(-s_fit,0),(w_fit,0)], 
+					[(-s_fit,0),(-s_fit,h_fit)]]
 	}
 }
 
@@ -314,6 +350,7 @@ default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 50
 
+
 default_input_layer = 'AREE LEONARDO'
 layer_text      = 'Eurotherm_text'
 layer_box       = 'Eurotherm_box'
@@ -330,7 +367,9 @@ disabled_room_color = 6     ;# magenta
 valid_room_color = 5        ;# blue
 bathroom_color = 3          ;# green
 obstacle_color = 2          ;# yellow
-stripe_color = 1             ;# red
+stripe_color = 1            ;# red
+color_warm = 1
+color_cold = 5
 
 ask_for_write = False
 
@@ -820,7 +859,7 @@ class Panel:
 
 	def draw_stripe(self, msp):
 
-		w = 0.2/self.size[1] * self.height
+		w = stripe_width/self.size[1] * self.height
 
 		ax = self.xcoord; bx = ax + self.width
 		ay = self.ycoord + self.height*0.5 + w
@@ -1378,14 +1417,18 @@ class PanelArrangement:
 				cirs.append(Circuit(self.room))
 			cirs[-1].add_coupling(cp)
 
+
+		self.couplings = []
 		for cir in cirs:
 
 			# calculate couplings
-			cir.name_couplings()
+			self.couplings += cir.name_couplings()
 
 			# add red stripe
 			if (not cir.is_double()):
 				cir.add_stripe()
+
+
 
 		#print("circuits, room", self.room.pindex)
 		#for k, cir in enumerate(self.circuits):
@@ -1408,6 +1451,9 @@ class PanelArrangement:
 		x0, y0 = self.origin
 		for cpl in self.couplings:
 
+			if cpl.type == "invalid":
+				continue
+
 			xpos, ypos = cpl.pos
 			fit = fittings[cpl.type]
 
@@ -1424,7 +1470,7 @@ class PanelArrangement:
 						x, y = p
 						symbol[i][k] = x, -y
 
-			#  flipping symbol left-right 
+			# flipping symbol left-right 
 			if ((cpl.type == "double_tshape_end"  or
 				cpl.type == "double_linear_end" or
 				cpl.type == "single_end") and
@@ -1434,29 +1480,57 @@ class PanelArrangement:
 						x, y = p
 						symbol[i][k] = -x, y
 				
+			# horizontal offset
+			if (cpl.type == "double_tshape_end"  or
+				cpl.type == "double_tshape_open" or
+				cpl.type == "single_open" or
+				cpl.type == "single_end"):
+				offset =  shift * (0.5 - cpl.is_at_right())
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = x + offset, y	
+
+			# shift axis if single-sided dorsal
+			axis = 0
+			if not cpl.circuit.is_double():
+				axis = axis_offset*(0.5-cpl.is_at_top())
 
 			for pline in symbol:
-				spline = []
+				spline1 = []
+				spline2 = []
 				for p in pline:	
-					xp = x0 + p[0]/scale + w*xpos
-					yp = y0 + p[1]/scale + h*ypos
+					xp1 = x0 + (p[0]+delta_h)/scale + w*xpos
+					yp1 = y0 + (p[1]+delta_v+axis)/scale + h*ypos
+					xp2 = x0 + (p[0]-delta_h)/scale + w*xpos
+					yp2 = y0 + (p[1]-delta_v+axis)/scale + h*ypos
 					if (self.alloc_mode == 0):
-						ps = xp, yp
+						ps1 = xp1, yp1
+						ps2 = xp2, yp2
 					else:
-						ps = yp, xp
-					spline.append(ps)
+						ps1 = yp1, xp1
+						ps2 = yp2, xp2
+					spline1.append(ps1)
+					spline2.append(ps2)
 				
 				if (self.room.vector):
 					room = self.room
 					rot = room.rot_orig
 					uv = room.uvector
 					uv = (uv[0], -uv[1])
-					for i in range(len(spline)):
-						spline[i] = rotate(spline[i], rot, uv)
+					for i in range(len(spline1)):
+						spline1[i] = rotate(spline1[i], rot, uv)
+						spline2[i] = rotate(spline2[i], rot, uv)
 
-				pl = msp.add_lwpolyline(spline)
+				pl = msp.add_lwpolyline(spline1)
 				pl.dxf.layer = layer_link
-				pl.dxf.color = stripe_color	
+				pl.dxf.color = color_warm
+				pl.dxf.lineweight = 200
+
+				pl = msp.add_lwpolyline(spline2)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = color_cold
+				pl.dxf.lineweight = 200
 
 
 class Coupling:
@@ -1528,8 +1602,8 @@ class Circuit:
 				self.xmax = cpl.xpos
 				cplmax = cpl
 
-		cplsc = list(cpls)
-		for cpl in cplsc:
+		for cpl in cpls:
+			cpl.circuit = self
 
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
@@ -1548,13 +1622,11 @@ class Circuit:
 					f1 = cpl.fits[1]
 					if f0['side'] != f1['side']:
 						# Double fitting on opposite sides. Split
-						cpls.remove(cpl)
+						cpl.type = "invalid"
 						cp0 = Coupling([f0])
 						cp1 = Coupling([f1])
 						cpls.append(cp0)
 						cpls.append(cp1)
-						cplsc.append(cp0)
-						cplsc.append(cp1)
 					else:
 						# Double fitting on the same side.
 						if (end_flag):
@@ -1568,36 +1640,36 @@ class Circuit:
 						cpl.type = "double_linear_open"
 
 			if (cpl.num_fits==3):
+
 				if (end_flag):
 					cpl.type = "triple_end"
 				else:
 					# Split if not an ending
-					cpls.remove(cpl)
+					cpl.type = "invalid"
+					
 					f0 = cpl.fits[0]
 					f1 = cpl.fits[1]
 					f2 = cpl.fits[2]
-					cpls.remove(cpl)
 					if f0['side'] == f1['side']:
 						cp0 = Coupling([f0, f1])
-						cp1 = Couplings([f2])
+						cp1 = Coupling([f2])
 					else:
 						if f0['side'] == f1['side']:
 							cp0 = Coupling([f0, f2])
 							cp1 = Coupling([f1])
 						else:
-							cp0 = Coupling([f1,f2])
+							cp0 = Coupling([f1, f2])
 							cp1 = Coupling([f0])
-
 					cpls.append(cp0)
 					cpls.append(cp1)
-					cplsc.append(cp0)
-					cplsc.append(cp1)
 
 			if (cpl.num_fits==4):
 				if (end_flag):
 					cpl.type = "quadruple_end"
 				else:
 					cpl.type = "quadruple_open"
+
+		return cpls
 
 				
 	def print(self):
@@ -3395,13 +3467,15 @@ class Model(threading.Thread):
 				continue
 
 			for cpl in room.arrangement.couplings:
+				if cpl.type == 'invalid':
+					continue
 				(fittings[cpl.type])['count'] += 1
 			
 		for name in fittings:
 			fit = fittings[name]
 			if fit['count']:
 				desc = "RACCORDO LEONARDO " + fit['desc']
-				self.text_nav += nav_item(fit['count'],
+				self.text_nav += nav_item(2*fit['count'],
 					fit['code'], desc)
 
 		# Save collectors
@@ -3644,6 +3718,9 @@ def _create_model(iface):
 	# reload file
 	iface.doc = ezdxf.readfile(iface.filename)	
 	iface.model.doc = ezdxf.new(dxf_version)
+
+	iface.model.doc.header["$LWDISPLAY"] = 1
+	# iface.model.doc.header["$LWDISPSCALE"] = 0.55
 	# self.model.doc = self.doc     # <<<<<<<<< MODIFIED LINE <<<<<<<
 
 	iface.model.msp = iface.model.doc.modelspace()
