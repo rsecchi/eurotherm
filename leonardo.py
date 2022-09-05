@@ -3480,15 +3480,41 @@ class Model(threading.Thread):
 
 		# Save collectors
 		clt_qnts = [0]*(feeds_per_collector+1)
+		tot_cirs = 0
+		tot_clts = len(self.collectors)
 		for c in self.collectors:
 			clt_qnts[c.req_feeds] += 1
+			tot_cirs += c.req_feeds 
 
 		for i in range(1,feeds_per_collector+1):
 			if (clt_qnts[i] == 0):
 				continue
 			code = '41200101%02d' % i
-			desc = 'COLLETTORE SL 1" %d+%d COMPLETO' % (i,i)
-			self.text_nav += nav_item(clt_qnts[i],code, desc)
+			desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
+			self.text_nav += nav_item(clt_qnts[i],code, desc)	
+
+		# Hatch (botola)
+		code = '6920012001'
+		desc = 'BOTOLA'
+		self.text_nav += nav_item(tot_clts, code, desc)
+		code = '4910020112'
+		desc = 'MANOMETRO'
+		self.text_nav += nav_item(tot_clts, code, desc)
+		code = '4710020306'
+		desc = 'Valvole a sfera'
+		self.text_nav += nav_item(tot_clts, code, desc)
+		code = '4710020301'
+		desc = 'Valvole a sfera'
+		self.text_nav += nav_item(tot_clts, code, desc)
+
+		# headers (testina)	
+		code = '5150020201'
+		desc = 'Testine senza regolazione Smart'
+		self.text_nav += nav_item(tot_cirs, code, desc)
+		code = '5150020202'
+		desc = 'Testine con regolazione Smart'
+		self.text_nav += nav_item(tot_cirs, code, desc)
+		
 
 		if (web_version):
 			out = self.outname[:-4] + ".dat"
@@ -3502,43 +3528,43 @@ class Model(threading.Thread):
 
 		document = docx.Document()
 
-		document.add_heading('Document Title', 0)
+		document.add_heading('Offerta Eurotherm', 0)
 
-		p = document.add_paragraph('A plain paragraph having some ')
-		p.add_run('bold').bold = True
-		p.add_run(' and some ')
-		p.add_run('italic.').italic = True
-		
-		document.add_heading('Heading, level 1', level=1)
-		document.add_paragraph('Intense quote', style='Intense Quote')
-		
-		document.add_paragraph(
-		    'first item in unordered list', style='List Bullet'
-		)
-		document.add_paragraph(
-		    'first item in ordered list', style='List Number'
-		)
-		
-		
-		records = (
-		    (3, '101', 'Spam'),
-		    (7, '422', 'Eggs'),
-		    (4, '631', 'Spam, spam, eggs, and spam')
-		)
-		
-		table = document.add_table(rows=1, cols=3)
-		hdr_cells = table.rows[0].cells
-		hdr_cells[0].text = 'Qty'
-		hdr_cells[1].text = 'Id'
-		hdr_cells[2].text = 'Desc'
-		for qty, id, desc in records:
-		    row_cells = table.add_row().cells
-		    row_cells[0].text = str(qty)
-		    row_cells[1].text = id
-		    row_cells[2].text = desc
-		
-		document.add_page_break()
-		
+		#p = document.add_paragraph('A plain paragraph having some ')
+		#p.add_run('bold').bold = True
+		#p.add_run(' and some ')
+		#p.add_run('italic.').italic = True
+		#
+		#document.add_heading('Heading, level 1', level=1)
+		#document.add_paragraph('Intense quote', style='Intense Quote')
+		#
+		#document.add_paragraph(
+		#    'first item in unordered list', style='List Bullet'
+		#)
+		#document.add_paragraph(
+		#    'first item in ordered list', style='List Number'
+		#)
+		#
+		#
+		#records = (
+		#    (3, '101', 'Spam'),
+		#    (7, '422', 'Eggs'),
+		#    (4, '631', 'Spam, spam, eggs, and spam')
+		#)
+		#
+		#table = document.add_table(rows=1, cols=3)
+		#hdr_cells = table.rows[0].cells
+		#hdr_cells[0].text = 'Qty'
+		#hdr_cells[1].text = 'Id'
+		#hdr_cells[2].text = 'Desc'
+		#for qty, id, desc in records:
+		#    row_cells = table.add_row().cells
+		#    row_cells[0].text = str(qty)
+		#    row_cells[1].text = id
+		#    row_cells[2].text = desc
+		#
+		#document.add_page_break()
+		#
 
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
