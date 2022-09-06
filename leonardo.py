@@ -1519,6 +1519,16 @@ class PanelArrangement:
 					orig2 = yo_2, xo
 					sgnx, sgny = sgny, sgnx
 					rot = 90
+
+				if (self.room.vector):
+					room = self.room
+					rot_orig = room.rot_orig
+					uv = room.uvector
+					uv = (uv[0], -uv[1])
+					orig1 = rotate(orig1, rot_orig, uv)
+					orig2 = rotate(orig2, rot_orig, uv)
+					rot += room.rot_angle
+
 				xs, ys = sgnx*0.1/scale, sgny*0.1/scale
 				msp.add_blockref(cpl.type + "-R", orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
@@ -2559,6 +2569,10 @@ class Model(threading.Thread):
 
 				if (room.color == obstacle_color):
 					self.obstacles.append(room)
+
+				if (room.color == disabled_room_color):
+					room.pindex = 0
+					self.processed.append(room)
 
 	
 		# check if the room is too small to be processed
