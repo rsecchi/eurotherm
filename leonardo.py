@@ -1459,12 +1459,14 @@ class PanelArrangement:
 
 			symbol = deepcopy(fit["symbol"])
 
+			sgnx = sgny = 1
 			# flipping symbol upside down
 			if ((cpl.type == "double_linear_open" or 
 				cpl.type == "double_linear_end"  or
 				cpl.type == "single_open"  or
 				cpl.type == "single_end") and
 				cpl.is_at_top()):
+				sgny = -1
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
@@ -1475,12 +1477,14 @@ class PanelArrangement:
 				cpl.type == "double_linear_end" or
 				cpl.type == "single_end") and
 				cpl.is_at_right()):
+				sgnx = -1
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
 						symbol[i][k] = -x, y
 				
 			# horizontal offset
+			offset = 0
 			if (cpl.type == "double_tshape_end"  or
 				cpl.type == "double_tshape_open" or
 				cpl.type == "single_open" or
@@ -1496,6 +1500,32 @@ class PanelArrangement:
 			if not cpl.circuit.is_double():
 				axis = axis_offset*(0.5-cpl.is_at_top())
 
+			if (cpl.type=="double_linear_open" or
+				cpl.type=="single_open" or
+				cpl.type=="double_tshape_open" or
+				cpl.type=="quadruple_open"
+			):
+				print(cpl.type)
+				xo   = x0 + w*xpos + offset/scale
+				yo_1 = y0 + h*ypos + (axis+delta_v)/scale
+				yo_2 = y0 + h*ypos + (axis-delta_v)/scale
+
+				if (self.alloc_mode == 0):
+					orig1 = xo, yo_1
+					orig2 = xo, yo_2
+					rot = 0
+				else:
+					orig1 = yo_1, xo
+					orig2 = yo_2, xo
+					sgnx, sgny = sgny, sgnx
+					rot = 90
+				xs, ys = sgnx*0.1/scale, sgny*0.1/scale
+				msp.add_blockref(cpl.type + "-R", orig1,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+				msp.add_blockref(cpl.type + "-B", orig2,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+
+			# draw lines
 			for pline in symbol:
 				spline1 = []
 				spline2 = []
@@ -1525,12 +1555,12 @@ class PanelArrangement:
 				pl = msp.add_lwpolyline(spline1)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_warm
-				pl.dxf.lineweight = 200
+				pl.dxf.lineweight = 2
 
 				pl = msp.add_lwpolyline(spline2)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_cold
-				pl.dxf.lineweight = 200
+				pl.dxf.lineweight = 2
 
 
 class Coupling:
@@ -3803,6 +3833,16 @@ def _create_model(iface):
 	importer.import_block(block_green_120x100)
 	importer.import_block(block_green_60x100)
 	importer.import_block(block_collector)
+
+	# import fittings
+	importer.import_block("single_open-B")
+	importer.import_block("single_open-R")
+	importer.import_block("double_linear_open-B")
+	importer.import_block("double_linear_open-R")
+	importer.import_block("double_tshape_open-B")
+	importer.import_block("double_tshape_open-R")
+	importer.import_block("quadruple_open-B")
+	importer.import_block("quadruple_open-R")
 	importer.finalize()
 
 
