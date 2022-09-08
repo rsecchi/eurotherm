@@ -388,7 +388,7 @@ sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
 sheet_breakdown = [
-	('Dettaglio Stanze L55', 85, 43), 
+	('Dettaglio Stanze L55', 85.0, 51.8), 
 	('Dettaglio Stanze L35', 84.2, 64.8),
 	('Dettaglio Stanze 30p', 82.3, 80.9)
 ]
@@ -440,7 +440,7 @@ def nav_item(qnty, code, desc):
 	if (type(qnty)==int):
 		txt = '%d\r\n' % qnty
 	else:
-		txt = ('%.2f\r\n' % qnty).replace(".", ",")
+		txt = ('%.1f\r\n' % qnty).replace(".", ",")
 	
 	txt += code
 	txt += '      EURO\t'
@@ -838,12 +838,12 @@ class Panel:
 	def draw(self, msp):
 
 		if (self.size[1]==2):
-			if (self.color==3):
+			if (self.color==bathroom_color):
 				self.panel_type = block_green_120x100	
 			else:
 				self.panel_type = block_blue_120x100	
 		else:
-			if (self.color==3):
+			if (self.color==bathroom_color):
 				self.panel_type = block_green_60x100	
 			else:
 				self.panel_type = block_blue_60x100	
@@ -1428,8 +1428,6 @@ class PanelArrangement:
 			if (not cir.is_double()):
 				cir.add_stripe()
 
-
-
 		#print("circuits, room", self.room.pindex)
 		#for k, cir in enumerate(self.circuits):
 		#	cir.print()
@@ -1454,19 +1452,25 @@ class PanelArrangement:
 			if cpl.type == "invalid":
 				continue
 
+			#print(cpl.type, cpl.pos, end="")
+			#print("Room=", self.room.pindex, end="")
+			#print(" mode=", self.alloc_mode, end="")
+			#print(" vect=", self.room.vector)
+
 			xpos, ypos = cpl.pos
 			fit = fittings[cpl.type]
 
 			symbol = deepcopy(fit["symbol"])
 
-			sgnx = sgny = 1
+			sgnx = -1; sgny = -1
 			# flipping symbol upside down
 			if ((cpl.type == "double_linear_open" or 
 				cpl.type == "double_linear_end"  or
 				cpl.type == "single_open"  or
 				cpl.type == "single_end") and
 				cpl.is_at_top()):
-				sgny = -1
+				sgny = -sgny
+				#print("flipping upside-down")
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
@@ -1477,7 +1481,8 @@ class PanelArrangement:
 				cpl.type == "double_linear_end" or
 				cpl.type == "single_end") and
 				cpl.is_at_right()):
-				sgnx = -1
+				sgnx = -sgnx
+				#print("flipping left-right")
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
@@ -1500,40 +1505,38 @@ class PanelArrangement:
 			if not cpl.circuit.is_double():
 				axis = axis_offset*(0.5-cpl.is_at_top())
 
-			if (cpl.type=="double_linear_open" or
-				cpl.type=="single_open" or
-				cpl.type=="double_tshape_open" or
-				cpl.type=="quadruple_open"
-			):
-				print(cpl.type)
-				xo   = x0 + w*xpos + offset/scale
-				yo_1 = y0 + h*ypos + (axis+delta_v)/scale
-				yo_2 = y0 + h*ypos + (axis-delta_v)/scale
 
-				if (self.alloc_mode == 0):
-					orig1 = xo, yo_1
-					orig2 = xo, yo_2
-					rot = 0
-				else:
-					orig1 = yo_1, xo
-					orig2 = yo_2, xo
-					sgnx, sgny = sgny, sgnx
-					rot = 90
+			xo   = x0 + w*xpos + offset/scale
+			yo_1 = y0 + h*ypos + (axis+delta_v)/scale
+			yo_2 = y0 + h*ypos + (axis-delta_v)/scale
 
-				if (self.room.vector):
-					room = self.room
-					rot_orig = room.rot_orig
-					uv = room.uvector
-					uv = (uv[0], -uv[1])
-					orig1 = rotate(orig1, rot_orig, uv)
-					orig2 = rotate(orig2, rot_orig, uv)
-					rot += room.rot_angle
+			if (self.alloc_mode == 0):
+				orig1 = xo, yo_1
+				orig2 = xo, yo_2
+				rot = 0
+			else:
+				orig1 = yo_1, xo
+				orig2 = yo_2, xo
+				sgny = -sgny
+				rot = 90
 
-				xs, ys = sgnx*0.1/scale, sgny*0.1/scale
-				msp.add_blockref(cpl.type + "-R", orig1,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type + "-B", orig2,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			if (self.room.vector):
+				room = self.room
+				rot_orig = room.rot_orig
+				uv = room.uvector
+				uv = (uv[0], -uv[1])
+				orig1 = rotate(orig1, rot_orig, uv)
+				orig2 = rotate(orig2, rot_orig, uv)
+				rot += room.rot_angle
+
+			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
+			msp.add_blockref(cpl.type + "-R", orig1,
+				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			msp.add_blockref(cpl.type + "-B", orig2,
+				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+
+			if (not debug):
+				continue
 
 			# draw lines
 			for pline in symbol:
@@ -3191,6 +3194,13 @@ class Model(threading.Thread):
 		h = default_panel_height
 		failed_rooms = 0
 		self.feeds = 0
+		self.normal_area = 0
+		self.normal_active_area = 0
+		self.normal_passive_area = 0
+		self.bathroom_area = 0
+		self.bathroom_active_area = 0
+		self.bathroom_passive_area = 0
+
 		for room in self.processed:
 
 			if (len(room.errorstr)>0):
@@ -3203,6 +3213,16 @@ class Model(threading.Thread):
 			self.area += rep['area']
 			self.active_area += rep['active_area']
 			txt += rep['txt'] + "\n"
+
+			if (room.color == bathroom_color):
+				self.bathroom_area += rep['area']
+				self.bathroom_active_area += rep['area'] 
+				self.bathroom_passive_area += rep['area'] - rep['active_area']
+			else:
+				self.normal_area += rep['area']
+				self.normal_active_area += rep['area']
+				self.normal_passive_area += rep['area'] - rep['active_area']
+
 			if (room.color == valid_room_color):
 				p2x2 += rep['panels_120x200']
 				p2x1 += rep['panels_60x200']
@@ -3230,12 +3250,25 @@ class Model(threading.Thread):
 			room.actual_feeds = ceil(rep['active_area']/area_per_feed_m2)
 			self.feeds += room.actual_feeds
 			
+		self.passive_area = self.area - self.active_area
+		self.perimeter = 0
+		for room in self.processed:
+			self.perimeter += room.perimeter
+		
 	
 		# Summary of all areas
 		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
 		smtxt += "Total collectors %d\n" % (len(self.collectors))
 		smtxt += "Total area %.5g m2\n" % self.area
-		smtxt += "Total active area %.5g m2" % self.active_area
+		smtxt += "Total active area %.5g m2\n" % self.active_area
+		smtxt += "Total passive area %.5g m2\n" % self.passive_area
+		smtxt += "Normal area %.5g m2\n" % self.normal_area
+		smtxt += "Normal active area %.5g m2\n" % self.normal_active_area
+		smtxt += "Normal passive area %.5g m2\n" % self.normal_passive_area
+		smtxt += "Hydro area %.5g m2\n" % self.normal_area
+		smtxt += "Hydro active area %.5g m2\n" % self.normal_active_area
+		smtxt += "Hydro passive area %.5g m2\n" % self.normal_passive_area
+		smtxt += "Total perimeter %.5g m" % self.perimeter
 		smtxt += " (%.4g %%)\n" % (100*self.active_area/self.area)
 		smtxt += "Total pipes %d\n" % self.feeds
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
@@ -3545,20 +3578,39 @@ class Model(threading.Thread):
 		desc = 'MANOMETRO'
 		self.text_nav += nav_item(tot_clts, code, desc)
 		code = '4710020306'
-		desc = 'Valvole a sfera'
+		desc = 'VALVOLE A SFERA'
 		self.text_nav += nav_item(tot_clts, code, desc)
 		code = '4710020301'
-		desc = 'Valvole a sfera'
+		desc = 'ISOLAMENTO VALVOLE A SFERA'
 		self.text_nav += nav_item(tot_clts, code, desc)
 
 		# headers (testina)	
 		code = '5150020201'
-		desc = 'Testine senza regolazione Smart'
+		desc = 'TESTINE 4 FILI'
 		self.text_nav += nav_item(tot_cirs, code, desc)
-		code = '5150020202'
-		desc = 'Testine con regolazione Smart'
-		self.text_nav += nav_item(tot_cirs, code, desc)
+		#code = '5150020202'
+		#desc = 'TESTINE 2 FILI'
+		#self.text_nav += nav_item(tot_cirs, code, desc)
 		
+		# Passive panels
+		code = '0000000000'
+		desc = 'Pannelli passivi normali'
+		self.text_nav += nav_item(1.03*self.normal_passive_area, code, desc)
+		code = '0000000000'
+		desc = 'Pannelli passivi idrorepellenti'
+		self.text_nav += nav_item(1.03*self.bathroom_passive_area, code, desc)
+
+		# pipes 
+		code = '0000000000'
+		desc = 'Tubo blu'
+		self.text_nav += nav_item(self.active_area/2, code, desc)
+		code = '0000000000'
+		desc = 'Tubo rosso'
+		self.text_nav += nav_item(self.active_area/2, code, desc)
+
+		# Abdution lines
+		# Control panel
+		# Red stripes
 
 		if (web_version):
 			out = self.outname[:-4] + ".dat"
@@ -3851,12 +3903,22 @@ def _create_model(iface):
 	# import fittings
 	importer.import_block("single_open-B")
 	importer.import_block("single_open-R")
+	importer.import_block("single_end-B")
+	importer.import_block("single_end-R")
 	importer.import_block("double_linear_open-B")
 	importer.import_block("double_linear_open-R")
+	importer.import_block("double_linear_end-B")
+	importer.import_block("double_linear_end-R")
 	importer.import_block("double_tshape_open-B")
 	importer.import_block("double_tshape_open-R")
+	importer.import_block("double_tshape_end-B")
+	importer.import_block("double_tshape_end-R")
+	importer.import_block("triple_end-B")
+	importer.import_block("triple_end-R")
 	importer.import_block("quadruple_open-B")
 	importer.import_block("quadruple_open-R")
+	importer.import_block("quadruple_end-B")
+	importer.import_block("quadruple_end-R")
 	importer.finalize()
 
 
