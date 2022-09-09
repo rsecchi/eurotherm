@@ -1419,6 +1419,7 @@ class PanelArrangement:
 
 
 		self.couplings = []
+		self.strip_len = 0
 		for cir in cirs:
 
 			# calculate couplings
@@ -1426,11 +1427,14 @@ class PanelArrangement:
 
 			# add red stripe
 			if (not cir.is_double()):
+				self.strip_len += cir.xmax - cir.xmin
 				cir.add_stripe()
 
 		#print("circuits, room", self.room.pindex)
-		#for k, cir in enumerate(self.circuits):
-		#	cir.print()
+		#for cir in self.circuits:
+		#	print("[",cir.xmin, cir.xmax,"]")
+
+		#print("strip_len", self.strip_len)
 		#print()
 
 
@@ -1613,9 +1617,17 @@ class Circuit:
 	def __init__(self, room):
 		self.room = room
 		self.couplings = list()
+		self.panels = list()
+		self.size = 0
 
 	def add_coupling(self, cpl):
 		self.couplings.append(cpl)
+		for fit in cpl.fits:
+			panel = fit['panel']
+			if not panel in self.panels:
+				self.panels.append(panel)
+				size = panel.size
+				self.size += (size[0]*size[1])/4
 
 	def is_double(self):
 
@@ -2777,13 +2789,14 @@ class Model(threading.Thread):
 
 		self.output.print("\n")
 
+		################################################################
+
 		# find fittings 
 		for room in self.processed:
 			if (hasattr(room.arrangement, 'alloc_clt_xside')):
 				room.arrangement.fittings()
 				room.arrangement.make_couplings()
 	
-
 		# find attachment points of dorsals
 		self.dorsals = list()
 		for room in self.processed:
@@ -2807,6 +2820,25 @@ class Model(threading.Thread):
 		# summary
 		# self.output.clear()
 		report = self.print_report()
+
+
+		################################################################
+		# Splitting/joining circuits 
+
+		self.joints = 0
+		for room in self.processed:
+			cirs = room.arrangement.circuits
+			tot_split = 0
+			for cir in cirs:
+				cir.flow = cir.size * self.ptype['flow_panel']
+				cir.split = False
+				if (cir.flow>self.ptype['flow_line']):
+					tot_split += 1
+					cir.split = True
+			room.joints = len(cirs) + tot_split - room.actual_feeds
+			self.joints += room.joints
+
+		################################################################
 
 		summary = ""
 		if (not self.mtype == "warm"):
@@ -3216,11 +3248,11 @@ class Model(threading.Thread):
 
 			if (room.color == bathroom_color):
 				self.bathroom_area += rep['area']
-				self.bathroom_active_area += rep['area'] 
+				self.bathroom_active_area += rep['active_area'] 
 				self.bathroom_passive_area += rep['area'] - rep['active_area']
 			else:
 				self.normal_area += rep['area']
-				self.normal_active_area += rep['area']
+				self.normal_active_area += rep['active_area']
 				self.normal_passive_area += rep['area'] - rep['active_area']
 
 			if (room.color == valid_room_color):
@@ -3254,36 +3286,39 @@ class Model(threading.Thread):
 		self.perimeter = 0
 		for room in self.processed:
 			self.perimeter += room.perimeter
-		
-	
+			
 		# Summary of all areas
-		smtxt =  "\n\nTotal rooms %d  (%d failed)\n" % (len(self.processed), failed_rooms)
-		smtxt += "Total collectors %d\n" % (len(self.collectors))
-		smtxt += "Total area %.5g m2\n" % self.area
-		smtxt += "Total active area %.5g m2\n" % self.active_area
-		smtxt += "Total passive area %.5g m2\n" % self.passive_area
-		smtxt += "Normal area %.5g m2\n" % self.normal_area
-		smtxt += "Normal active area %.5g m2\n" % self.normal_active_area
-		smtxt += "Normal passive area %.5g m2\n" % self.normal_passive_area
-		smtxt += "Hydro area %.5g m2\n" % self.normal_area
-		smtxt += "Hydro active area %.5g m2\n" % self.normal_active_area
-		smtxt += "Hydro passive area %.5g m2\n" % self.normal_passive_area
-		smtxt += "Total perimeter %.5g m" % self.perimeter
-		smtxt += " (%.4g %%)\n" % (100*self.active_area/self.area)
+		smtxt =  "\n\nTotal processed rooms %d\n" % len(self.processed)
+		smtxt += "Total collectors %d\n" % len(self.collectors)
+		smtxt += "Total area %.2lf m2\n" % self.area
+		smtxt += "Total active area %.2lf m2 " % self.active_area
+		smtxt += " (%.2lf %%)\n" % (100*self.active_area/self.area)
+		smtxt += "Total passive area %.2lf m2\n" % self.passive_area
+		smtxt += "Normal area %.2lf m2\n" % self.normal_area
+		smtxt += "Normal active area %.2lf m2\n" % self.normal_active_area
+		smtxt += "Normal passive area %.2lf m2\n" % self.normal_passive_area
+		smtxt += "Hydro area %.2g m2\n" % self.bathroom_area
+		smtxt += "Hydro active area %.2lf m2\n" % self.bathroom_active_area
+		smtxt += "Hydro passive area %.2lf m2\n" % self.bathroom_passive_area
+		smtxt += "Total perimeter %.2lf m\n" % (self.perimeter*scale/100)
 		smtxt += "Total pipes %d\n" % self.feeds
+		smtxt += "Normal panels count:\n"
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
 		smtxt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h)
 		smtxt += "  %d left, %d right\n" % (p1x2_l, p1x2_r)
 		smtxt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
 		smtxt += "  %d left, %d right\n" % (p1x1_l, p1x1_r)
-		smtxt += "Hydro panels total"
+		smtxt += "Hydro panels count:\n"
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x2_h, 2*w, 2*h) 
 		smtxt += "  %5d panels %dx%d cm\n" % (p2x1_h, 2*w, h) 
 		smtxt += "  %5d panels %dx%d cm - " % (p1x2_h, w, 2*h)
 		smtxt += "  %d left, %d right\n" % (p1x2_h_l, p1x2_h_r)
 		smtxt += "  %5d panels %dx%d cm - " % (p1x1_h, w, h) 
 		smtxt += "  %d left, %d right\n" % (p1x1_h_l, p1x1_h_r)
+
+		self.laid_half_panels   = 2*(p2x2   + p2x1)   + p1x2   + p1x1
+		self.laid_half_panels_h = 2*(p2x2_h + p2x1_h) + p1x2_h + p1x1_h
 
 		# Requirements normal panels
 		smtxt += "\n> Requirements:\n"
@@ -3298,7 +3333,7 @@ class Model(threading.Thread):
 		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, 2*h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_cut, p1x1_spr) 
 
-		# Requirements normal panels
+		# Requirements waterproof panels
 		smtxt += "\n> Requirements Hydro:\n"
 		p2x2_h_cut = min(p1x2_h_r,p1x2_h_l) + abs(p1x2_h_r-p1x2_h_l)
 		self.panels_h_120x200 = p2x2_h_tot = p2x2_h + p2x2_h_cut 
@@ -3555,6 +3590,11 @@ class Model(threading.Thread):
 				self.text_nav += nav_item(2*fit['count'],
 					fit['code'], desc)
 
+		code = '6910022009'
+		desc = 'RACCORDO LEONARDO 20-20-20 (4pz)'
+		qnt = 2*self.joints
+		self.text_nav += nav_item(qnt, code, desc)
+
 		# Save collectors
 		clt_qnts = [0]*(feeds_per_collector+1)
 		tot_cirs = 0
@@ -3593,23 +3633,58 @@ class Model(threading.Thread):
 		#self.text_nav += nav_item(tot_cirs, code, desc)
 		
 		# Passive panels
-		code = '0000000000'
-		desc = 'Pannelli passivi normali'
-		self.text_nav += nav_item(1.03*self.normal_passive_area, code, desc)
-		code = '0000000000'
-		desc = 'Pannelli passivi idrorepellenti'
-		self.text_nav += nav_item(1.03*self.bathroom_passive_area, code, desc)
+		code = '6111020101'
+		desc = 'LEONARDO PASSIVO 1200x2000x50mm'
+		qnt = 1.05*self.normal_passive_area,
+		self.text_nav += nav_item(qnt, code, desc)
+		code = '6114020201'
+		desc = 'LEONARDO PASSIVO IDRO 1200x2000x50mm'
+		qnt = 1.05*self.bathroom_passive_area,
+		self.text_nav += nav_item(qnt, code, desc)
 
 		# pipes 
-		code = '0000000000'
-		desc = 'Tubo blu'
-		self.text_nav += nav_item(self.active_area/2, code, desc)
-		code = '0000000000'
-		desc = 'Tubo rosso'
-		self.text_nav += nav_item(self.active_area/2, code, desc)
+		code = '2112200220'
+		desc = 'TUBO MULTISTRATO 20X2 RIV.ROSSO'
+		qnt = self.area * 0.85
+		self.text_nav += nav_item(qnt, code, desc)
+		code = '2112200120'
+		desc = 'TUBO MULTISTRATO 20X2 RIV.BLU'
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '2720200120'
+		desc = 'LINEA AGG. PERT-AL-PERT + ANELLI E TERMIN. (2m)'
+		qnt = 0
+		for room in self.processed:
+			qnt += room.arrangement.strip_len
+		self.text_nav += nav_item(qnt, code, desc)
+
+		# bent joint
+		code = '6910022006'
+		desc = 'CURVA LEONARDO 20-20 (4pz)'
+		qnt = ceil(0.04*self.area)
+		self.text_nav += nav_item(qnt, code, desc)
+		code = '6910022005'
+		desc = 'RACCORDO LEONARDO 20-20 (4pz)'
+		self.text_nav += nav_item(qnt, code, desc)
+
+		# Control panel
+		code = '6110020103'
+		desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
+		qnt = ceil(0.25*self.laid_half_panels)
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '6112020201'
+		desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
+		qnt = ceil(0.25*self.laid_half_panels_h)
+		self.text_nav += nav_item(qnt, code, desc)
+
+		if (self.ptype['handler']=='30'):
+			code = '6113021001'
+			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
+			qnt = ceil(0.25*self.laid_half_panels)
+			self.text_nav += nav_item(qnt, code, desc)
 
 		# Abdution lines
-		# Control panel
 		# Red stripes
 
 		if (web_version):
@@ -3984,6 +4059,5 @@ if (web_version):
 
 else:
 	App()
-
 
 
