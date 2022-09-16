@@ -13,6 +13,10 @@ div.navmenu  {
 }
 
 
+.container h2 {
+	color: yellow;
+}
+
 .navmenu ul {
 	padding: 0px;
 	margin: 0px;
