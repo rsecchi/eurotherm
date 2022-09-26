@@ -1433,6 +1433,8 @@ class PanelArrangement:
 		#print("circuits, room", self.room.pindex)
 		#for cir in self.circuits:
 		#	print("[",cir.xmin, cir.xmax,"]")
+		#	for cpl in cir.couplings:
+		#		print(cpl.type)
 
 		#print("strip_len", self.strip_len)
 		#print()
@@ -1481,7 +1483,8 @@ class PanelArrangement:
 						symbol[i][k] = x, -y
 
 			# flipping symbol left-right 
-			if ((cpl.type == "double_tshape_end"  or
+			if ((cpl.type == "quadruple_end" or
+				cpl.type == "double_tshape_end"  or
 				cpl.type == "double_linear_end" or
 				cpl.type == "single_end") and
 				cpl.is_at_right()):
@@ -1594,9 +1597,30 @@ class Coupling:
 			if (fit['dorsal'] != first_fit):
 				self.is_double = True
 
-		self.is_last = True
+		top_last = bottom_last = None
 		for fit in fits:
-			self.is_last &= fit['last']
+			if (fit['hside']==0):
+				if top_last == None:
+					top_last = fit['last']
+				else:
+					top_last |= fit['last']
+
+			if (fit['hside']==1):
+				if bottom_last == None:
+					bottom_last = fit['last']
+				else:
+					bottom_last |= fit['last']
+
+		if top_last == None:
+			top_last = True
+
+		if bottom_last == None:
+			bottom_last = True
+ 
+		self.is_last = top_last and bottom_last
+		#if (self.pos == (6,6)):
+		#	print("STRANGE CASE: ", top_last, bottom_last, self.is_last)
+
 
 	def add_stripe(self):
 		for fit in self.fits:
@@ -1663,6 +1687,7 @@ class Circuit:
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
 				end_flag = True
+
 
 			if (cpl.num_fits==1): 
 				if (end_flag):
@@ -3754,7 +3779,7 @@ class App:
 		self.root = Tk()
 		root = self.root
 		#root.geometry('500x300')
-		root.title("Eurotherm Leonardo Planner")
+		root.title("Eurotherm Leonardo Planner - Experimental")
 		root.resizable(width=False, height=False)
 
 		# Control section
