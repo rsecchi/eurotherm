@@ -1491,6 +1491,9 @@ class PanelArrangement:
 				cpl.type == "single_end") and
 				cpl.is_at_right()):
 				sgnx = -sgnx
+				if cpl.circuit.self_flip:
+					sgnx = -sgnx
+
 				#print("flipping left-right")
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
@@ -1624,9 +1627,13 @@ class Coupling:
 		#	print("STRANGE CASE: ", top_last, bottom_last, self.is_last)
 
 
-	def add_stripe(self):
+	def add_stripe(self, xmin, xmax):
 		for fit in self.fits:
-			fit['panel'].stripe = True
+			panel = fit['panel']
+			xa = panel.cell.pos[1]
+			xb = xa + panel.size[0]
+			if (not (xa<xmin or xb>xmax)):
+				fit['panel'].stripe = True
 
 	def print(self):
 		for fit in self.fits:
@@ -1645,6 +1652,7 @@ class Circuit:
 		self.couplings = list()
 		self.panels = list()
 		self.size = 0
+		self.self_flip = False
 
 	def add_coupling(self, cpl):
 		self.couplings.append(cpl)
@@ -1665,7 +1673,7 @@ class Circuit:
 
 	def add_stripe(self):
 		for cpl in self.couplings:
-			cpl.add_stripe()
+			cpl.add_stripe(self.xmin, self.xmax)
 		
 
 	def name_couplings(self):	
@@ -1682,6 +1690,9 @@ class Circuit:
 			if (cpl.xpos > self.xmax):
 				self.xmax = cpl.xpos
 				cplmax = cpl
+
+		if self.xmin == self.xmax:
+			self.self_flip = True
 
 		for cpl in cpls:
 			cpl.circuit = self
