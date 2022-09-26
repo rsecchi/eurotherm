@@ -1193,6 +1193,8 @@ class PanelArrangement:
 		self.room = room
 		self.elems = 0
 		self.alloc_mode = -1
+		self.circuits = list()
+		self.strip_len = 0
 
 	def len(self):
 		return len(self.cells)
