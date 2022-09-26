@@ -231,7 +231,8 @@ ac_label = {
 
 
 # couplings geometry
-stripe_width = 0.15
+stripe_width = 0.08
+stripe_offset = 0.44
 delta_h  = 2.5
 delta_v  = 4
 axis_offset = 12
@@ -860,10 +861,14 @@ class Panel:
 	def draw_stripe(self, msp):
 
 		w = stripe_width/self.size[1] * self.height
+		offs = stripe_offset/self.size[1]
+		if (not self.side % 2):
+			offs = 1-offs
+		soffs = self.height*offs
 
 		ax = self.xcoord; bx = ax + self.width
-		ay = self.ycoord + self.height*0.5 + w
-		by = self.ycoord + self.height*0.5 - w
+		ay = self.ycoord + soffs + w
+		by = self.ycoord + soffs - w
 
 		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 		
