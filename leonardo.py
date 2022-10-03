@@ -312,6 +312,11 @@ fittings = {
 					[(s_fit,-h_fit),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]]
+	},
+	"joint": {
+		"desc":      "20-20",
+		"code":      "6910022005",
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
 	}
 }
 
@@ -1465,6 +1470,9 @@ class PanelArrangement:
 			if cpl.type == "invalid":
 				continue
 
+			if cpl.type == "joint":
+				print("Drawing joint")
+
 			#print(cpl.type, cpl.pos, end="")
 			#print("Room=", self.room.pindex, end="")
 			#print(" mode=", self.alloc_mode, end="")
@@ -1547,10 +1555,18 @@ class PanelArrangement:
 				rot += room.rot_angle
 
 			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
-			msp.add_blockref(cpl.type + "-R", orig1,
-				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-			msp.add_blockref(cpl.type + "-B", orig2,
-				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			if (cpl.type != 'joint'):
+				msp.add_blockref(cpl.type + "-R", orig1,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+				msp.add_blockref(cpl.type + "-B", orig2,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			else:
+				print("printing")
+				msp.add_blockref(cpl.type, orig1,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+				msp.add_blockref(cpl.type, orig2,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			
 
 			if (not debug):
 				continue
@@ -1658,6 +1674,7 @@ class Circuit:
 		self.panels = list()
 		self.size = 0
 		self.self_flip = False
+		self.xa = self.xb = None
 
 	def add_coupling(self, cpl):
 		self.couplings.append(cpl)
@@ -1667,6 +1684,20 @@ class Circuit:
 				self.panels.append(panel)
 				size = panel.size
 				self.size += (size[0]*size[1])/4
+				xa = panel.cell.pos[1]
+				xb = xa + size[0]
+				if (self.xa == None):
+					self.xa = xa
+					self.xb = xb
+					self.xa_panel = panel
+					self.xb_panel = panel
+				else:
+					if xa < self.xa:
+						self.xa = xa
+						self.xa_panel = panel
+					if xb > self.xb:
+						self.xb = xb
+						self.xb_panel = panel 
 
 	def is_double(self):
 
@@ -1686,6 +1717,7 @@ class Circuit:
 		cpls = self.couplings	
 
 		self.xmin = self.xmax = cpls[0].xpos
+		self.ypos = cpls[0].ypos
 		cplmin = cplmax = cpls[0]
 		for cpl in cpls:
 			if (cpl.xpos < self.xmin):
@@ -1699,8 +1731,45 @@ class Circuit:
 		if self.xmin == self.xmax:
 			self.self_flip = True
 
+		print("[", cplmin.xpos, ",",cplmax.xpos, "]   ", end="")
+		print("[", self.xa, ",", self.xb,"]")
+
+		self.fixture = None
+		if (cplmin.is_last and self.xb!=cplmax.xpos):
+			self.fixture = self.xb
+			pos = self.xb, self.ypos
+			fit = {'pos' : pos, 
+				   'dorsal': None,
+				   'hside': 0,
+				   'side': 0,
+				   'last': 0,
+				   'panel': self.xb_panel
+			}
+			cpl = Coupling([fit])
+			cpl.type = 'joint'
+			cpls.append(cpl)
+			print("20-20 needed xb", self.xb, cplmax.xpos)
+
+		if (cplmax.is_last and self.xa!=cplmin.xpos):
+			self.fixture = self.xa
+			pos = self.xa, self.ypos
+			fit = {'pos' : pos, 
+				   'dorsal': None,
+				   'hside': 0,
+				   'side': 0,
+				   'last': 0,
+				   'panel': self.xa_panel
+			}
+			cpl = Coupling([fit])
+			cpl.type = 'joint'
+			cpls.append(cpl)
+			print("20-20 needed xa", self.xa, cplmin.xpos)
+
 		for cpl in cpls:
 			cpl.circuit = self
+
+			if hasattr(cpl,"type"):
+				continue
 
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
@@ -1766,6 +1835,9 @@ class Circuit:
 					cpl.type = "quadruple_end"
 				else:
 					cpl.type = "quadruple_open"
+
+		for cpl in cpls:
+			print(cpl.type)
 
 		return cpls
 
@@ -2296,7 +2368,6 @@ class Room:
 		if (debug):
 			self.arrangement.draw_grid(msp)
 
-		self.draw_label(msp)
 
 		for panel in self.panels:
 			panel.draw(msp)
@@ -2304,6 +2375,8 @@ class Room:
 				panel.draw_profile(msp)
 
 		self.arrangement.draw_couplings(msp)
+
+		self.draw_label(msp)
 
 
 class Model(threading.Thread):
@@ -2326,13 +2399,13 @@ class Model(threading.Thread):
 		
 
 	def create_layers(self):
-		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_panel, 0)
-		self.new_layer(layer_error, 0)
 		if (debug):
 			self.new_layer(layer_panelp, 0)
 			self.new_layer(layer_box, box_color)
 		self.new_layer(layer_link, 0)
+		self.new_layer(layer_text, text_color)
+		self.new_layer(layer_error, 0)
 
 	def find_gates(self):
 		
@@ -2519,7 +2592,7 @@ class Model(threading.Thread):
 				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
 				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
-				self.textinfo.insert(END, wstr)
+				self.Textinfo.insert(END, wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		query = self.msp.query(searchstr)
@@ -3398,6 +3471,9 @@ class Model(threading.Thread):
 		ws1 = wb[sheet_template_1]
 		ws2 = wb[sheet_template_2]
 		ws3 = wb[sheet_template_3]
+		sheet_breakdown[0] += (ws1,)
+		sheet_breakdown[1] += (ws2,)
+		sheet_breakdown[2] += (ws3,)
 
 		no_collectors = len(self.collectors)
 
@@ -3449,7 +3525,7 @@ class Model(threading.Thread):
 		ws3['I3'] = ws3['I4'] = no_collectors 
 
 		if show_panel_list:
-			for sheet, warm_coef, cool_coef in sheet_breakdown:
+			for sheet, warm_coef, cool_coef, wsh in sheet_breakdown:
 				ws = wb.create_sheet(sheet)
 
 				ws.row_dimensions[3].height = 32
@@ -3565,7 +3641,7 @@ class Model(threading.Thread):
 					ws[pos].number_format = "0"
 
 					pos = 'P' + str(index)
-					ws[pos] = 3.6*output/(4.186*ws1['M3'].value)
+					ws[pos] = 3.6*output/(4.186*wsh['M3'].value)
 					ws[pos].number_format = "0"
 
 					# cooling
@@ -3578,7 +3654,7 @@ class Model(threading.Thread):
 					ws[pos].number_format = "0"
 
 					pos = 'T' + str(index)
-					ws[pos] = 3.6*output/(4.186*ws1['M4'].value)
+					ws[pos] = 3.6*output/(4.186*wsh['M4'].value)
 					ws[pos].number_format = "0"
 
 
@@ -4037,6 +4113,7 @@ def _create_model(iface):
 	importer.import_block("quadruple_open-R")
 	importer.import_block("quadruple_end-B")
 	importer.import_block("quadruple_end-R")
+	importer.import_block("joint")
 	importer.finalize()
 
 
