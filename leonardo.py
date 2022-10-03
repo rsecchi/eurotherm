@@ -1097,13 +1097,13 @@ class Dorsal:
 			    self.attach[0] < rgt[0]):
 				self.attach = rgt
 
-		if (size!=(2,2)):
+		if size==(2,2) or size==(2,1):
 			self.last_panel_cut = False
 		else:
 			self.last_panel_cut = True
 
-		if (self.first_of_line and size!=(2,2) and
-			  self.room.clt_xside==RIGHT):
+		if (self.first_of_line and self.last_panel_cut and
+			  self.room.clt_xside==LEFT):
 			self.cost += 0.01
 
 		self.panels.append(panel)
@@ -1270,10 +1270,11 @@ class PanelArrangement:
 			t_dors = td0
 			lost = b_dors.lost + t_dors.lost
 			cost = b_dors.cost + t_dors.cost
-			
+
 			nlost = bu1.lost + td0.lost
 			ncost = bu1.cost + td1.cost 
-			
+
+
 			if (nlost < lost or (nlost==lost and ncost<cost)):
 				b_dors = bu1
 				t_dors = td1
@@ -1470,9 +1471,6 @@ class PanelArrangement:
 			if cpl.type == "invalid":
 				continue
 
-			if cpl.type == "joint":
-				print("Drawing joint")
-
 			#print(cpl.type, cpl.pos, end="")
 			#print("Room=", self.room.pindex, end="")
 			#print(" mode=", self.alloc_mode, end="")
@@ -1561,7 +1559,6 @@ class PanelArrangement:
 				msp.add_blockref(cpl.type + "-B", orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			else:
-				print("printing")
 				msp.add_blockref(cpl.type, orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 				msp.add_blockref(cpl.type, orig2,
@@ -1731,9 +1728,6 @@ class Circuit:
 		if self.xmin == self.xmax:
 			self.self_flip = True
 
-		print("[", cplmin.xpos, ",",cplmax.xpos, "]   ", end="")
-		print("[", self.xa, ",", self.xb,"]")
-
 		self.fixture = None
 		if (cplmin.is_last and self.xb!=cplmax.xpos):
 			self.fixture = self.xb
@@ -1748,7 +1742,6 @@ class Circuit:
 			cpl = Coupling([fit])
 			cpl.type = 'joint'
 			cpls.append(cpl)
-			print("20-20 needed xb", self.xb, cplmax.xpos)
 
 		if (cplmax.is_last and self.xa!=cplmin.xpos):
 			self.fixture = self.xa
@@ -1763,7 +1756,6 @@ class Circuit:
 			cpl = Coupling([fit])
 			cpl.type = 'joint'
 			cpls.append(cpl)
-			print("20-20 needed xa", self.xa, cplmin.xpos)
 
 		for cpl in cpls:
 			cpl.circuit = self
@@ -1835,9 +1827,6 @@ class Circuit:
 					cpl.type = "quadruple_end"
 				else:
 					cpl.type = "quadruple_open"
-
-		for cpl in cpls:
-			print(cpl.type)
 
 		return cpls
 
@@ -2102,7 +2091,7 @@ class Room:
 				for i in range(0,len(obs.points)):
 					obs.points[i] = (obs.points[i][1], obs.points[i][0])
 				(obsxcoord, obs.ycoord) = (obs.ycoord, obs.xcoord)
-	
+
 			(self.clt_xside,self.clt_yside) = (self.clt_yside,self.clt_xside) 
 	
 			self.arrangement.mode += 1  
@@ -2659,6 +2648,7 @@ class Model(threading.Thread):
 			self.output.print(wstr)
 
 
+		pindex = 1
 		# Create list of rooms, obstacles and collectors
 		for poly in self.query:
 
@@ -2702,12 +2692,12 @@ class Model(threading.Thread):
 					self.obstacles.append(room)
 
 				if (room.color == disabled_room_color):
-					room.pindex = 0
+					room.pindex = pindex
+					pindex += 1
 					self.processed.append(room)
 
 	
 		# check if the room is too small to be processed
-		pindex = 1
 		for room in self.valid_rooms:
 			area = scale * scale * room.area
 			if  (area < min_room_area):
@@ -2898,6 +2888,7 @@ class Model(threading.Thread):
 
 			self.output.print("%d " % room.pindex)
 			room.alloc_panels()
+		
 			count += 1
 			if (count == 19):
 				self.output.print("\n")
@@ -3471,9 +3462,11 @@ class Model(threading.Thread):
 		ws1 = wb[sheet_template_1]
 		ws2 = wb[sheet_template_2]
 		ws3 = wb[sheet_template_3]
-		sheet_breakdown[0] += (ws1,)
-		sheet_breakdown[1] += (ws2,)
-		sheet_breakdown[2] += (ws3,)
+	
+		sheet_bd = deepcopy(sheet_breakdown)
+		sheet_bd[0] += (ws1,)
+		sheet_bd[1] += (ws2,)
+		sheet_bd[2] += (ws3,)
 
 		no_collectors = len(self.collectors)
 
@@ -3525,7 +3518,7 @@ class Model(threading.Thread):
 		ws3['I3'] = ws3['I4'] = no_collectors 
 
 		if show_panel_list:
-			for sheet, warm_coef, cool_coef, wsh in sheet_breakdown:
+			for sheet, warm_coef, cool_coef, wsh in sheet_bd:
 				ws = wb.create_sheet(sheet)
 
 				ws.row_dimensions[3].height = 32
