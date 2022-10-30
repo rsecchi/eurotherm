@@ -1500,12 +1500,9 @@ class PanelArrangement:
 				cpl.type == "double_tshape_end"  or
 				cpl.type == "double_linear_end" or
 				cpl.type == "single_end") and
-				cpl.is_at_right()):
+				cpl.flip):
 				sgnx = -sgnx
-				if cpl.circuit.self_flip:
-					sgnx = -sgnx
 
-				#print("flipping left-right")
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
@@ -1613,6 +1610,7 @@ class Coupling:
 		self.ypos = fits[0]['pos'][1]
 		self.pos = fits[0]['pos']
 		self.num_fits = len(fits)
+		self.flip = False
 
 		self.is_double = False
 		first_fit = fits[0]['dorsal']	
@@ -1670,7 +1668,6 @@ class Circuit:
 		self.couplings = list()
 		self.panels = list()
 		self.size = 0
-		self.self_flip = False
 		self.xa = self.xb = None
 
 	def add_coupling(self, cpl):
@@ -1711,6 +1708,7 @@ class Circuit:
 
 	def name_couplings(self):	
 
+		cside = self.room.arrangement.alloc_clt_xside
 		cpls = self.couplings	
 
 		self.xmin = self.xmax = cpls[0].xpos
@@ -1725,8 +1723,6 @@ class Circuit:
 				self.xmax = cpl.xpos
 				cplmax = cpl
 
-		if self.xmin == self.xmax:
-			self.self_flip = True
 
 		self.fixture = None
 		if (cplmin.is_last and self.xb!=cplmax.xpos):
@@ -1766,6 +1762,9 @@ class Circuit:
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
 				end_flag = True
+
+				if cside == LEFT:
+					cpl.flip = True
 
 
 			if (cpl.num_fits==1): 
