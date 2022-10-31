@@ -1729,9 +1729,8 @@ class Circuit:
 				self.xmax = cpl.xpos
 				cplmax = cpl
 
-
 		self.fixture = None
-		if (cplmin.is_last and self.xb!=cplmax.xpos):
+		if (cside==RIGHT and self.xb!=cplmax.xpos):
 			self.fixture = self.xb
 			pos = self.xb, self.ypos
 			fit = {'pos' : pos, 
@@ -1745,7 +1744,7 @@ class Circuit:
 			cpl.type = 'joint'
 			cpls.append(cpl)
 
-		if (cplmax.is_last and self.xa!=cplmin.xpos):
+		if (cside==LEFT and self.xa!=cplmin.xpos):
 			self.fixture = self.xa
 			pos = self.xa, self.ypos
 			fit = {'pos' : pos, 
