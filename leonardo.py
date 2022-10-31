@@ -1868,6 +1868,7 @@ class Room:
 
 		self.points = list(poly.vertices())	
 		self.vector = None
+		self.vector_auto = False
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -2033,6 +2034,7 @@ class Room:
 		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
 		if (angle > 0.01):
 			self.vector = True
+			self.vector_auto = True
 			self.uvector = max_uv
 			self.rot_orig = max_rot_orig
 			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
@@ -2056,21 +2058,28 @@ class Room:
 				for i in range(len(obs.points)):
 					obs.points[i] = rotate(obs.points[i], rot, uv)
 
-			cltr = self.collector
-			rpos = rotate(self.pos, rot, uv)
-			cpos = rotate(cltr.pos, rot, uv)
+			# collector position
+			if (self.vector_auto):
+				# program found vector
+				cltr = self.collector
+				rpos = rotate(self.pos, rot, uv)
+				cpos = rotate(cltr.pos, rot, uv)
 
-			(vx, vy) = (cpos[0]-rpos[0], cpos[1]-rpos[1])
+				(vx, vy) = (cpos[0]-rpos[0], cpos[1]-rpos[1])
 
-			if (vx>=0):
-				self.clt_xside = RIGHT
+				if (vx>=0):
+					self.clt_xside = RIGHT
+				else:
+					self.clt_xside = LEFT
+
+				if (vy>=0):
+					self.clt_yside = TOP
+				else:
+					self.clt_yside = BOTTOM
 			else:
-				self.clt_xside = LEFT
-
-			if (vy>=0):
-				self.clt_yside = TOP
-			else:
-				self.clt_yside = BOTTOM
+				# user added vector
+				self.clt_xside = LEFT 
+				self.clt_yside = BOTTOM 
 
 		self.arrangement.mode = 0   ;# horizontal
 		while self.arrangement.mode < 2:
@@ -2086,6 +2095,9 @@ class Room:
 				
 					sy += search_tol
 				sx += search_tol
+
+			if (self.vector and not self.vector_auto):
+				break
 
 			for i in range(0,len(self.points)):
 				self.points[i] = (self.points[i][1], self.points[i][0])
