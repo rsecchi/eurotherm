@@ -992,6 +992,7 @@ class Dorsal:
 		side = self.side
 		self.first_of_line = True
 		self.last_panel_cut = False
+		self.last_handside = 0
 
 		while(j<m.shape[1]-3):
 
@@ -1068,6 +1069,8 @@ class Dorsal:
 		# Now assign costs based on gaps
 		if (self.last_panel_cut and self.room.clt_xside == RIGHT):
 			self.cost += 0.01
+			if (self.last_handside==0):
+				self.cost += 0.005
 
 
 	# handside 0=left, 1=right
@@ -1101,10 +1104,13 @@ class Dorsal:
 			self.last_panel_cut = False
 		else:
 			self.last_panel_cut = True
+		self.last_hanside = handside
 
 		if (self.first_of_line and self.last_panel_cut and
 			  self.room.clt_xside==LEFT):
 			self.cost += 0.01
+			if (handside==1):
+				self.cost += 0.005
 
 		self.panels.append(panel)
 		self.first_of_line = False
