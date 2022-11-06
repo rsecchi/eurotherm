@@ -238,10 +238,10 @@ delta_v  = 4
 axis_offset = 12
 shift = 13
 
-
 w_fit = 10
 h_fit = 5
 s_fit = 7
+
 
 
 fittings = {
@@ -356,6 +356,9 @@ default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 50
 
+# pipes geometry in cm
+default_add_offs = 10
+default_add_dist = 4
 
 default_input_layer = 'AREE LEONARDO'
 layer_text      = 'Eurotherm_text'
@@ -711,6 +714,111 @@ def set_border(ws, row, cols):
 	for col in cols:
 		ws[col+row].border = cell_border
 
+def project_hor(point, poly):
+
+	if len(poly)<1:
+		return point
+
+	x = point[0]
+	y = point[1]
+
+	xmin = xmax = poly[0][0]
+	ymin = ymax = poly[0][1]
+
+	for i in range(len(poly)-1):
+		pa = poly[i]
+		pb = poly[i+1]
+		if pa[1] == pb[1]:
+			if pa[1] == y:
+				return pa
+		else:
+			if pa[1] < pb[1]:
+				if pa[1]<=y and y<=pb[1]:
+					u = pb[0]*(y-pa[1]) + pa[0]*(pb[1]-y)
+					d = pb[1] - pa[1]
+					return (u/d, y)	
+			else:
+				if pb[1]<=y and y<=pa[1]:
+					u = pa[0]*(y-pb[1]) + pb[0]*(pa[1]-y)
+					d = pa[1] - pb[1]
+					return (u/d, y)
+
+		if ymin > pb[1]:
+			xmin = pb[0]
+			ymin = pb[1]
+		
+		if ymax < pb[1]:
+			xmin = pb[0]
+			ymax = pb[1]
+
+	if y<ymin:
+		return (xmin, y)
+
+	return (xmax, y)
+	
+
+def miter(poly, off):
+
+	if len(poly)<3:
+		return deepcopy(poly)
+	
+	opoly = [poly[0]]
+	
+	for i in range(1, len(poly)-1):
+		u1x = poly[i-1][0] - poly[i][0]
+		u1y = poly[i-1][1] - poly[i][1]
+		d1u = u1x*u1x + u1y*u1y
+		u2x = poly[i+1][0] - poly[i][0]
+		u2y = poly[i+1][1] - poly[i][1]
+		d2u = u2x*u2x + u2y*u2y
+		
+		if (d1u==0 or d2u==0):
+			opoly.append(poly[i])
+			continue
+
+		d1u = sqrt(d1u)
+		d2u = sqrt(d2u)
+		
+		u1 = off*u1x/d1u, off*u1y/d1u
+		u2 = off*u2x/d2u, off*u2y/d2u
+		
+		o1 = poly[i][0] + u1[0], poly[i][1] + u1[1]
+		o2 = poly[i][0] + u2[0], poly[i][1] + u2[1]
+		opoly.append(o1)
+		opoly.append(o2)
+
+	opoly.append(poly[-1])
+	return opoly
+
+def offset(poly, off):
+
+	if len(poly)<2:
+		return []
+
+	opoly = list()
+
+	up = u = (0, 0)
+	for i in range(len(poly)-1):
+		ux = poly[i+1][0] - poly[i][0]
+		uy = poly[i+1][1] - poly[i][1]
+		du = ux*ux + uy*uy
+		if du == 0:
+			continue
+		du = sqrt(du)
+
+		u = -uy/du, ux/du
+		k = 1 + u[0]*up[0] + u[1]*up[1]
+		if  k != 0:
+			ou = (u[0]+up[0])/k, (u[1]+up[1])/k
+
+		p = poly[i][0]+off*ou[0], poly[i][1]+off*ou[1]
+		opoly.append(p)
+
+		up = u
+
+	opoly.append( (poly[-1][0]+off*u[0], poly[-1][1]+off*u[1]) )
+
+	return opoly
 
 # This class represents the radiating panel
 # with its characteristics
@@ -731,6 +839,27 @@ class Panel:
 		self.mode = cell.mode
 		self.pos = (self.xcoord, self.ycoord)
 		self.stripe = False
+
+	def polyline(self):
+
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
+
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		
+		if (self.mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
+
+		return pline
 
 
 	def draw_whole(self, msp):
@@ -1463,150 +1592,6 @@ class PanelArrangement:
 		for cell in self.best_grid:
 			cell.draw(msp)
 
-	def draw_couplings(self, msp):
-		global panel_width, panel_height
-	
-		if (not hasattr(self, 'couplings')):
-			return	
-
-		w = panel_width
-		h = panel_height
-		x0, y0 = self.origin
-		for cpl in self.couplings:
-
-			if cpl.type == "invalid":
-				continue
-
-			#print(cpl.type, cpl.pos, end="")
-			#print("Room=", self.room.pindex, end="")
-			#print(" mode=", self.alloc_mode, end="")
-			#print(" vect=", self.room.vector)
-
-			xpos, ypos = cpl.pos
-			fit = fittings[cpl.type]
-
-			symbol = deepcopy(fit["symbol"])
-
-			sgnx = -1; sgny = -1
-			# flipping symbol upside down
-			if ((cpl.type == "double_linear_open" or 
-				cpl.type == "double_linear_end"  or
-				cpl.type == "single_open"  or
-				cpl.type == "single_end") and
-				cpl.is_at_top()):
-				sgny = -sgny
-				#print("flipping upside-down")
-				for i, pline in enumerate(symbol):
-					for k, p in enumerate(pline):
-						x, y = p
-						symbol[i][k] = x, -y
-
-			# flipping symbol left-right 
-			if ((cpl.type == "quadruple_end" or
-				cpl.type == "double_tshape_end"  or
-				cpl.type == "double_linear_end" or
-				cpl.type == "single_end") and
-				cpl.flip):
-				sgnx = -sgnx
-
-				for i, pline in enumerate(symbol):
-					for k, p in enumerate(pline):
-						x, y = p
-						symbol[i][k] = -x, y
-				
-			# horizontal offset
-			offset = 0
-			if (cpl.type == "double_tshape_end"  or
-				cpl.type == "double_tshape_open" or
-				cpl.type == "single_open" or
-				cpl.type == "single_end"):
-				offset =  shift * (0.5 - cpl.is_at_right())
-				for i, pline in enumerate(symbol):
-					for k, p in enumerate(pline):
-						x, y = p
-						symbol[i][k] = x + offset, y	
-
-			# shift axis if single-sided dorsal
-			axis = 0
-			if not cpl.circuit.is_double():
-				axis = axis_offset*(0.5-cpl.is_at_top())
-
-
-			xo   = x0 + w*xpos + offset/scale
-			yo_1 = y0 + h*ypos + (axis+delta_v)/scale
-			yo_2 = y0 + h*ypos + (axis-delta_v)/scale
-
-			if (self.alloc_mode == 0):
-				orig1 = xo, yo_1
-				orig2 = xo, yo_2
-				rot = 0
-			else:
-				orig1 = yo_1, xo
-				orig2 = yo_2, xo
-				sgny = -sgny
-				rot = 90
-
-			if (self.room.vector):
-				room = self.room
-				rot_orig = room.rot_orig
-				uv = room.uvector
-				uv = (uv[0], -uv[1])
-				orig1 = rotate(orig1, rot_orig, uv)
-				orig2 = rotate(orig2, rot_orig, uv)
-				rot += room.rot_angle
-
-			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
-			if (cpl.type != 'joint'):
-				msp.add_blockref(cpl.type + "-R", orig1,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type + "-B", orig2,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-			else:
-				msp.add_blockref(cpl.type, orig1,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type, orig2,
-					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-			
-
-			if (not debug):
-				continue
-
-			# draw lines
-			for pline in symbol:
-				spline1 = []
-				spline2 = []
-				for p in pline:	
-					xp1 = x0 + (p[0]+delta_h)/scale + w*xpos
-					yp1 = y0 + (p[1]+delta_v+axis)/scale + h*ypos
-					xp2 = x0 + (p[0]-delta_h)/scale + w*xpos
-					yp2 = y0 + (p[1]-delta_v+axis)/scale + h*ypos
-					if (self.alloc_mode == 0):
-						ps1 = xp1, yp1
-						ps2 = xp2, yp2
-					else:
-						ps1 = yp1, xp1
-						ps2 = yp2, xp2
-					spline1.append(ps1)
-					spline2.append(ps2)
-				
-				if (self.room.vector):
-					room = self.room
-					rot = room.rot_orig
-					uv = room.uvector
-					uv = (uv[0], -uv[1])
-					for i in range(len(spline1)):
-						spline1[i] = rotate(spline1[i], rot, uv)
-						spline2[i] = rotate(spline2[i], rot, uv)
-
-				pl = msp.add_lwpolyline(spline1)
-				pl.dxf.layer = layer_link
-				pl.dxf.color = color_warm
-				pl.dxf.lineweight = 2
-
-				pl = msp.add_lwpolyline(spline2)
-				pl.dxf.layer = layer_link
-				pl.dxf.color = color_cold
-				pl.dxf.lineweight = 2
 
 
 class Coupling:
@@ -1674,29 +1659,57 @@ class Circuit:
 		self.couplings = list()
 		self.panels = list()
 		self.size = 0
+		self.flip = False
 		self.xa = self.xb = None
 
 	def add_coupling(self, cpl):
 		self.couplings.append(cpl)
+		cside = self.room.arrangement.alloc_clt_xside
+
 		for fit in cpl.fits:
 			panel = fit['panel']
 			if not panel in self.panels:
 				self.panels.append(panel)
 				size = panel.size
 				self.size += (size[0]*size[1])/4
+
+				# calculating front line
 				xa = panel.cell.pos[1]
 				xb = xa + size[0]
+				ya = panel.cell.pos[0]
+				yb = ya + size[1]
 				if (self.xa == None):
 					self.xa = xa
 					self.xb = xb
+					self.ya = ya
+					self.yb = yb
 					self.xa_panel = panel
 					self.xb_panel = panel
 				else:
+					if xa == self.xa and cside == LEFT:
+						if (yb > self.yb):
+							self.yb = yb
+						if (ya < self.ya):
+							self.ya = ya
+						
+					if xb == self.xb and cside == RIGHT:
+						if (yb > self.yb):
+							self.yb = yb
+						if (ya < self.ya):
+							self.ya = ya
+
 					if xa < self.xa:
 						self.xa = xa
+						if cside == LEFT:
+							self.ya = ya
+							self.yb = yb
 						self.xa_panel = panel
+
 					if xb > self.xb:
 						self.xb = xb
+						if cside == RIGHT:
+							self.ya = ya
+							self.yb = yb
 						self.xb_panel = panel 
 
 	def is_double(self):
@@ -1710,11 +1723,20 @@ class Circuit:
 	def add_stripe(self):
 		for cpl in self.couplings:
 			cpl.add_stripe(self.xmin, self.xmax)
-		
+
+
+	def face(self):
+		if self.flip:
+			return [(self.xa, self.ya), (self.xa, self.yb)]
+		else:
+		 	return [(self.xb, self.ya), (self.xb, self.yb)]
 
 	def name_couplings(self):	
 
 		cside = self.room.arrangement.alloc_clt_xside
+		if cside == LEFT:
+			self.flip = True
+
 		cpls = self.couplings	
 
 		self.xmin = self.xmax = cpls[0].xpos
@@ -1767,10 +1789,7 @@ class Circuit:
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
 				end_flag = True
-
-				if cside == LEFT:
-					cpl.flip = True
-
+				cpl.flip = self.flip
 
 			if (cpl.num_fits==1): 
 				if (end_flag):
@@ -1831,6 +1850,8 @@ class Circuit:
 					cpl.type = "quadruple_end"
 				else:
 					cpl.type = "quadruple_open"
+	
+		cpls.sort(reverse=(cside==LEFT), key=lambda x: x.xpos)
 
 		return cpls
 
@@ -1843,8 +1864,192 @@ class Circuit:
 		print()
 
 
-# This class represents the rrom described by a 
-# polyline
+class Line:
+	def __init__(self, room, joined=False):
+		self.couplings = list()
+		self.flow = 0
+		self.room = room
+		self.sgn = 1
+		self.facing = False
+		
+		# if a line is joined then 
+		# contains a list of lines
+		self.joined = joined
+		self.lines = list()
+
+	def draw_couplings(self, msp):
+		global panel_width, panel_height
+	
+		if (not hasattr(self, 'couplings')):
+			return	
+
+		room = self.room
+		arrng = room.arrangement
+
+		w = panel_width
+		h = panel_height
+		x0, y0 = arrng.origin
+		for cpl in self.couplings:
+
+			if cpl.type == "invalid":
+				continue
+
+			#print(cpl.type, cpl.pos, end="")
+			#print("Room=", self.room.pindex, end="")
+			#print(" mode=", self.alloc_mode, end="")
+			#print(" vect=", self.room.vector)
+
+			xpos, ypos = cpl.pos
+			fit = fittings[cpl.type]
+
+			symbol = deepcopy(fit["symbol"])
+
+			sgnx = -1; sgny = -1
+			# flipping symbol upside down
+			if ((cpl.type == "double_linear_open" or 
+				cpl.type == "double_linear_end"  or
+				cpl.type == "single_open"  or
+				cpl.type == "single_end") and
+				cpl.is_at_top()):
+				sgny = -sgny
+				#print("flipping upside-down")
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = x, -y
+
+			# flipping symbol left-right 
+			if ((cpl.type == "quadruple_end" or
+				cpl.type == "double_tshape_end"  or
+				cpl.type == "double_linear_end" or
+				cpl.type == "single_end") and
+				cpl.flip):
+				sgnx = -sgnx
+
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = -x, y
+				
+			# horizontal offset
+			offset = 0
+			if (cpl.type == "double_tshape_end"  or
+				cpl.type == "double_tshape_open" or
+				cpl.type == "single_open" or
+				cpl.type == "single_end"):
+				offset =  shift * (0.5 - cpl.is_at_right())
+				for i, pline in enumerate(symbol):
+					for k, p in enumerate(pline):
+						x, y = p
+						symbol[i][k] = x + offset, y	
+
+			# shift axis if single-sided dorsal
+			axis = 0
+			if not cpl.circuit.is_double():
+				axis = axis_offset*(0.5-cpl.is_at_top())
+
+
+			xo   = x0 + w*xpos + offset/scale
+			yo_1 = y0 + h*ypos + (axis+delta_v)/scale
+			yo_2 = y0 + h*ypos + (axis-delta_v)/scale
+
+			if (arrng.alloc_mode == 0):
+				orig1 = xo, yo_1
+				orig2 = xo, yo_2
+				rot = 0
+			else:
+				orig1 = yo_1, xo
+				orig2 = yo_2, xo
+				sgny = -sgny
+				rot = 90
+
+			if (self.room.vector):
+				room = self.room
+				rot_orig = room.rot_orig
+				uv = room.uvector
+				uv = (uv[0], -uv[1])
+				orig1 = rotate(orig1, rot_orig, uv)
+				orig2 = rotate(orig2, rot_orig, uv)
+				rot += room.rot_angle
+
+			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
+			if (cpl.type != 'joint'):
+				msp.add_blockref(cpl.type + "-R", orig1,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+				msp.add_blockref(cpl.type + "-B", orig2,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			else:
+				msp.add_blockref(cpl.type, orig1,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+				msp.add_blockref(cpl.type, orig2,
+					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+			
+			cpl.orig1 = orig1
+			cpl.orig2 = orig2
+
+			if (not debug):
+				continue
+
+			# draw lines
+			for pline in symbol:
+				spline1 = []
+				spline2 = []
+				for p in pline:	
+					xp1 = x0 + (p[0]+delta_h)/scale + w*xpos
+					yp1 = y0 + (p[1]+delta_v+axis)/scale + h*ypos
+					xp2 = x0 + (p[0]-delta_h)/scale + w*xpos
+					yp2 = y0 + (p[1]-delta_v+axis)/scale + h*ypos
+					if (arrng.alloc_mode == 0):
+						ps1 = xp1, yp1
+						ps2 = xp2, yp2
+					else:
+						ps1 = yp1, xp1
+						ps2 = yp2, xp2
+					spline1.append(ps1)
+					spline2.append(ps2)
+				
+				if (room.vector):
+					rot = room.rot_orig
+					uv = room.uvector
+					uv = (uv[0], -uv[1])
+					for i in range(len(spline1)):
+						spline1[i] = rotate(spline1[i], rot, uv)
+						spline2[i] = rotate(spline2[i], rot, uv)
+
+				pl = msp.add_lwpolyline(spline1)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = color_warm
+				pl.dxf.lineweight = 2
+
+				pl = msp.add_lwpolyline(spline2)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = color_cold
+				pl.dxf.lineweight = 2
+
+	def draw_cpls_link(self, msp, cpls):
+
+		for i in range(len(cpls)-1):
+			seg1 = [cpls[i].orig1, cpls[i+1].orig1]
+			pl1 = msp.add_lwpolyline(seg1)
+			pl1.dxf.color = color_warm
+			pl1.dxf.layer = layer_link
+
+			seg2 = [cpls[i].orig2, cpls[i+1].orig2]
+			pl2 = msp.add_lwpolyline(seg2)
+			pl2.dxf.color = color_cold
+			pl2.dxf.layer = layer_link
+
+	def draw_adductions(self, msp):
+
+		if not self.joined:
+			self.draw_cpls_link(msp, self.couplings)
+
+		else:
+			for line in self.lines:
+				self.draw_cpls_link(msp, line.couplings)				
+
+
+# This class represents the room described by a polyline
 class Room:
 
 	index = 1
@@ -1860,6 +2065,10 @@ class Room:
 		self.contained_in = None
 		self.obstacles = list()
 		self.gates = list()
+		self.lines = list()
+		self.joined_lines = list()
+		self.sup = 0
+		self.inf = 0
 
 		tol = tolerance
 		self.orient = 0
@@ -1959,6 +2168,32 @@ class Room:
 		self.bx = max(self.xcoord)
 		self.ay = min(self.ycoord)
 		self.by = max(self.ycoord)
+
+	# Cell to absolute coordinates
+	def abs(self, pos):
+		global panel_width, panel_height
+	
+		arrng = self.arrangement
+
+		w = panel_width
+		h = panel_height
+		x0, y0 = arrng.origin
+
+		xo = x0 + w*pos[0]
+		yo = y0 + h*pos[1]
+
+		if (arrng.alloc_mode == 0):
+			p = xo, yo
+		else:
+			p = yo, xo
+
+		if (self.vector):
+			rot_orig = self.rot_orig
+			uv = self.uvector
+			uv = (uv[0], -uv[1])
+			p = rotate(p, rot_orig, uv)
+
+		return p
 		
 	def dist_linear(self, collector):
 
@@ -2295,6 +2530,79 @@ class Room:
 			return False
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
+
+	def make_lines(self, fline, fpanel):
+
+		lines_res = list()
+		for cir in self.arrangement.circuits:
+			cir.flow = cir.size * fpanel
+
+			line = Line(self)
+			line.sgn = 1
+			line.level = cir.couplings[-1].pos[1]
+			if cir.flip:
+				line.sgn = -1
+			self.lines.append(line)
+
+			for cpl in cir.couplings:
+				if (cpl.type == "invalid"):
+					continue
+
+				cpl.flow = 0	
+				for fit in cpl.fits:
+					fitflow = fpanel * fit["panel"].size[1]/4
+					cpl.flow += fitflow
+
+				if line.flow + cpl.flow > fline:
+					if (cpl.type[-5:] == "_open"):
+						cpl.type = cpl.type[:-5] + "_end"
+						cpl.flip = cir.flip
+					line = Line(self)
+					line.sgn = 1
+					line.level = cir.couplings[-1].pos[1]
+					if cir.flip:
+						line.sgn = -1
+					self.lines.append(line)
+
+				line.couplings.append(cpl)
+				line.flow += cpl.flow
+
+			line = self.lines.pop()
+			line.facing = True
+			lines_res.append(line)
+
+		lines_res.sort(key=lambda x: x.flow)
+
+		if len(lines_res)==0:
+			return
+
+		# join residual lines using first-fit decreasing
+		joined_lines = list()
+		while lines_res:
+			line = lines_res.pop()
+			for l in joined_lines:
+				if l.flow + line.flow < fline:
+					l.couplings += line.couplings
+					l.flow += line.flow
+					l.lines += [line]
+					break
+			else:
+				nl = Line(self, joined=True)
+				nl.lines.append(line)
+				nl.couplings = line.couplings
+				nl.flow = line.flow
+				nl.level = line.couplings[-1].pos[1]
+				joined_lines.append(nl)
+
+	
+		for line in joined_lines:
+			if line.joined and len(line.lines)==1:
+				line.lines[0].joined = False
+				self.lines.append(line.lines[0])
+			else:
+				self.lines.append(line)
+
+
 	# Reporting Room
 	def report(self):
 		txt = ""
@@ -2368,6 +2676,161 @@ class Room:
 
 		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
 
+
+	def draw_lines(self, msp):
+
+		for line in self.lines:
+			line.draw_couplings(msp)
+			line.draw_adductions(msp)
+
+		self.draw_connectors(msp)
+
+	def draw_connectors(self, msp):
+	
+		arrng = self.arrangement
+		if (not hasattr(arrng, 'alloc_clt_xside')):
+			return
+		cside = arrng.alloc_clt_xside
+		cpos = self.collector.pos
+		dst = MAX_DIST
+		front = list()
+
+		# attachment point
+		for cir in arrng.circuits:
+			front_cpl = cir.couplings[-1]
+			fpos = front_cpl.orig1
+			d = dist(fpos, cpos) 
+			if d < dst:
+				dst = d
+				rpos = fpos
+				cn = self.conn = front_cpl.pos
+				self.thr = cn[1]
+
+		# build front line
+		tail = False
+		for cir in arrng.circuits:
+			fcir = cir.face()
+			xcir = fcir[0][0]
+			ycir0 = fcir[0][1]
+			ycir1 = fcir[1][1]
+			if tail:
+				if ((xcir > lvl and cir.flip) or 
+					(xcir < lvl and not cir.flip)):
+					fcir[0] = xcir, front[-1][1]
+				else:
+					front[-1] = front[-1][0], ycir0
+
+			front += fcir
+			lvl = xcir
+			tail = True
+
+		self.front = front
+
+		for line in filter(lambda x: not x.joined, self.lines):
+			if not line.facing:
+				line.level += 0.001
+
+		self.lines.sort(key=lambda x: x.level)
+
+		# determine line position
+		for line in filter(lambda x: not x.joined, self.lines):
+			if line.level >= self.thr:
+				line.plvl = self.sup
+				self.sup += 1
+			else:
+				self.inf += 1
+				line.plvl = -self.inf
+			
+		# build paths to connectors
+		fw = max(self.inf, self.sup)+1
+		sgn = 1
+		if (cside == LEFT):
+			sgn = -1
+			fw = -fw
+
+		for k, line in enumerate(self.lines):
+		
+			# end of path
+			k = line.plvl
+			if k<0:
+				k = -self.inf -k-1
+
+			ew = cn[0] + fw*0.1, cn[1] + k*0.3 + 0.08
+			ec = cn[0] + fw*0.1, cn[1] + k*0.3 - 0.08
+	
+			if not line.joined:
+				
+				ss = 1
+				if line.plvl<0:
+					ss = -1
+
+				# start of path
+				pos = line.couplings[-1].pos
+				if line.facing:
+					sw = pos[0], pos[1] + 0.08
+					sc = pos[0], pos[1] - 0.08
+				else:
+					sw = pos[0]+sgn*0.2, pos[1] + 0.6 + 0.08
+					sc = pos[0]+sgn*0.2, pos[1] + 0.6 - 0.08
+
+				# find pipe level
+				lvl = line.plvl
+				if line.plvl <0:
+					lvl = self.inf + lvl  
+				lvl = lvl*0.05 + 0.1
+
+
+				# build path
+				polywarm = self.path(sw, ew, lvl+ss*0.02)
+				polycold = self.path(sc, ec, lvl-ss*0.02)
+				polywarm.append(self.abs((pos[0], pos[1] + 0.08)))
+				polycold.append(self.abs((pos[0], pos[1] - 0.08)))
+		
+				pw = msp.add_lwpolyline(polywarm)
+				pc = msp.add_lwpolyline(polycold)
+				pw.dxf.color = color_warm
+				pc.dxf.color = color_cold
+				pw.dxf.layer = layer_link
+				pc.dxf.layer = layer_link
+			else:
+				for l in line.lines:
+					pos = l.couplings[-1].pos
+					sw = pos[0], pos[1] + 0.08
+					sc = pos[0], pos[1] - 0.08
+
+					polywarm = self.path(sw, ew, lvl)
+					polycold = self.path(sc, ec, lvl+0.02)
+					pw = msp.add_lwpolyline(polywarm)
+					pc = msp.add_lwpolyline(polycold)
+					pw.dxf.color = color_warm
+					pc.dxf.color = color_cold
+					pw.dxf.layer = layer_link
+					pc.dxf.layer = layer_link
+
+	def path(self, s, e, offs):		
+		global add_offs
+
+		fc = deepcopy(self.front)
+		fc = offset(fc, offs)	
+		ps = project_hor(s, fc)
+		pe = project_hor(e, fc)
+
+		if ps[1] < pe[1]:
+			fc = [p for p in fc if ps[1]<=p[1] and p[1]<=pe[1]]	
+			fc = [s, ps] + fc + [pe, e]
+			fc.reverse()
+		else:
+			fc = [p for p in fc if pe[1]<=p[1] and p[1]<=ps[1]]	
+			fc = [e, pe] + fc + [ps, s]
+
+		pfront = []
+		for p in fc:
+			pfront.append(self.abs(p))
+
+
+		pfront = miter(pfront, add_offs)	
+		return pfront
+
 	def draw(self, msp):
 	
 		if (debug):
@@ -2379,8 +2842,7 @@ class Room:
 			if (debug):
 				panel.draw_profile(msp)
 
-		self.arrangement.draw_couplings(msp)
-
+		self.draw_lines(msp)
 		self.draw_label(msp)
 
 
@@ -2564,6 +3026,9 @@ class Model(threading.Thread):
 		global default_min_dist2
 		global default_wall_depth
 		global default_max_clt_distance
+		global default_add_offs
+		global default_add_dist
+
 		global panel_width 
 		global panel_height 
 		global search_tol 
@@ -2574,6 +3039,8 @@ class Model(threading.Thread):
 		global min_dist2
 		global wall_depth
 		global max_clt_distance
+		global add_offs
+		global add_dist
 
 		tolerance    = default_tolerance/scale
 		font_size  = default_font_size/scale
@@ -2588,6 +3055,8 @@ class Model(threading.Thread):
 		min_dist2 = default_min_dist2/scale
 		wall_depth = default_wall_depth/scale
 		max_clt_distance = default_max_clt_distance/scale
+		add_offs = default_add_offs/scale
+		add_dist = default_add_dist/scale
 
 	def autoscale(self):
 		global scale
@@ -2944,9 +3413,13 @@ class Model(threading.Thread):
 		# self.output.clear()
 		report = self.print_report()
 
-
 		################################################################
 		# Splitting/joining circuits 
+
+		fline = self.ptype['flow_line']
+		fpanel = self.ptype['flow_panel']
+		for room in self.processed:
+			room.make_lines(fline, fpanel)
 
 		self.joints = 0
 		for room in self.processed:
@@ -2958,6 +3431,7 @@ class Model(threading.Thread):
 				if (cir.flow>self.ptype['flow_line']):
 					tot_split += 1
 					cir.split = True
+
 			room.joints = len(cirs) + tot_split - room.actual_feeds
 			self.joints += room.joints
 
