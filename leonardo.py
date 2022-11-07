@@ -757,7 +757,7 @@ def project_hor(point, poly):
 	return (xmax, y)
 	
 
-def miter(poly, off):
+def miter(poly, offs):
 
 	if len(poly)<3:
 		return deepcopy(poly)
@@ -767,18 +767,17 @@ def miter(poly, off):
 	for i in range(1, len(poly)-1):
 		u1x = poly[i-1][0] - poly[i][0]
 		u1y = poly[i-1][1] - poly[i][1]
-		d1u = u1x*u1x + u1y*u1y
+		d1u = sqrt(u1x*u1x + u1y*u1y)
 		u2x = poly[i+1][0] - poly[i][0]
 		u2y = poly[i+1][1] - poly[i][1]
-		d2u = u2x*u2x + u2y*u2y
+		d2u = sqrt(u2x*u2x + u2y*u2y)
 		
 		if (d1u==0 or d2u==0):
 			opoly.append(poly[i])
 			continue
 
-		d1u = sqrt(d1u)
-		d2u = sqrt(d2u)
-		
+		off = min(offs, d1u/3, d2u/3)
+	
 		u1 = off*u1x/d1u, off*u1y/d1u
 		u2 = off*u2x/d2u, off*u2y/d2u
 		
