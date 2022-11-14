@@ -2581,14 +2581,14 @@ class Room:
 			line = lines_res.pop()
 			for l in joined_lines:
 				if l.flow + line.flow < fline:
-					l.couplings += line.couplings
+					l.couplings += line.couplings.copy()
 					l.flow += line.flow
 					l.lines += [line]
 					break
 			else:
 				nl = Line(self, joined=True)
 				nl.lines.append(line)
-				nl.couplings = line.couplings
+				nl.couplings = line.couplings.copy()
 				nl.flow = line.flow
 				nl.level = line.couplings[-1].pos[1]
 				joined_lines.append(nl)
@@ -2682,7 +2682,7 @@ class Room:
 			line.draw_couplings(msp)
 			line.draw_adductions(msp)
 
-		self.draw_connectors(msp)
+		#self.draw_connectors(msp)
 
 	def draw_connectors(self, msp):
 	
