@@ -2748,7 +2748,10 @@ class Room:
 			fw = -fw
 
 		for k, line in enumerate(self.lines):
-		
+	
+			if not hasattr(line, 'plvl'):
+				continue
+
 			# end of path
 			k = line.plvl
 			if k<0:
@@ -2780,8 +2783,8 @@ class Room:
 
 
 				# build path
-				polywarm = self.path(sw, ew, lvl+ss*0.02)
-				polycold = self.path(sc, ec, lvl-ss*0.02)
+				polywarm = self.path(sw, ew, -sgn*lvl-sgn*ss*0.02)
+				polycold = self.path(sc, ec, -sgn*lvl+sgn*ss*0.02)
 				polywarm.append(self.abs((pos[0], pos[1] + 0.08)))
 				polycold.append(self.abs((pos[0], pos[1] - 0.08)))
 		
@@ -4285,6 +4288,120 @@ class Model(threading.Thread):
 			qnt = ceil(0.25*self.laid_half_panels)
 			self.text_nav += nav_item(qnt, code, desc)
 
+
+		fpanel = self.ptype['flow_panel']
+		zones = list()
+		smartp = 0
+		smartp_b = 0
+		for room in self.processed:
+			flow = fpanel*room.active_m2/2.4
+
+			if not room.zone in zones:
+				zones.append(room.zone)
+				room.zone.zone_count = 1
+				room.zone.flow = flow
+				room.zone.smartp = 0
+				room.zone.smartp_b = 0
+			else:
+				room.zone.zone_count += 1
+				room.zone.flow += flow
+
+			if room.color == bathroom_color:
+				room.zone.smartp_b += 1
+				smartp_b += 1
+			else:
+				room.zone.smartp += 1
+				smartp += 1
+
+		smartbases = 0
+		smartcomforts = 0
+		compamat_R = 0
+		compamat_TOP = 0
+		compamat_SUPER = 0
+		for zone in zones:
+			zone.smartbases = ceil((zone.smartp+zone.smartp_b)/8)
+			smartbases += zone.smartbases
+			smartcomforts += ceil(zone.smartbases/8)
+
+			if zone.flow < 1850:
+				compamat_R += 1
+			else:
+				if zoneflow < 4000:
+					compamat_TOP += 1
+				else:
+					compamat_SUPER +=1
+
+
+		mtype = self.mtype[:-5]
+		smartairs = 0
+		if mtype=="dehum_int":
+			smartairs = len(zones)
+
+
+		# Smart Confort
+		code = '5150020202'
+		desc = 'TESTINE ELETTROTERMICHE 2 FILI'
+		qnt = tot_cirs
+		self.text_nav += nav_item(qnt, code, desc)
+		
+		code = '5140030101'
+		desc = 'SMARTCOMFORT 365'
+		qnt = smartcomforts
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020401'
+		desc = 'SMARTPOINT TEMPERATURA'
+		qnt = smartp
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020402'
+		desc = 'SMARTPOINT TEMPERATURA / UMIDITA\''
+		qnt = smartp_b
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020201'
+		desc = 'SMARTBASE PER LA GESTIONE DI TESTINE, POMPA E MISCELATRICE'
+		qnt = smartbases
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020202'
+		desc = 'SMARTAIR PER LA GESTIONE DELL\'UNITA\' ARIA E SERRANDE'
+		qnt = smartairs
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020301'
+		desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
+		qnt = smartbases + smartairs
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020403'
+		desc = 'SMARTPOINT EXT SONDA ESTERNA'
+		qnt = smartcomforts
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '5140020404'
+		desc = 'SONDA DI MANDATA'
+		qnt = smartcomforts + compamat_R + compamat_TOP + compamat_SUPER
+		self.text_nav += nav_item(qnt, code, desc)
+
+		if compamat_R > 0:
+			code = '5330010101'
+			desc = 'COMPAMAT R'
+			qnt = compamat_R
+			self.text_nav += nav_item(qnt, code, desc)
+
+		if compamat_TOP > 0:
+			code = '5330010201'
+			desc = 'COMPAMAT TOP'
+			qnt = compamat_TOP
+			self.text_nav += nav_item(qnt, code, desc)
+
+		if compamat_SUPER > 0:
+			code = '5330010301'
+			desc = 'COMPAMAT SUPER'
+			qnt = compamat_SUPER
+			self.text_nav += nav_item(qnt, code, desc)
+	
 		# Abdution lines
 		# Red stripes
 
