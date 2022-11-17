@@ -4326,7 +4326,7 @@ class Model(threading.Thread):
 			if zone.flow < 1850:
 				compamat_R += 1
 			else:
-				if zoneflow < 4000:
+				if zone.flow < 4000:
 					compamat_TOP += 1
 				else:
 					compamat_SUPER +=1
