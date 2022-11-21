@@ -2983,7 +2983,7 @@ class Model(threading.Thread):
 					collector.zone_rooms.append(room)
 
 				else:
-					if (room.zone):
+					if (room.zone and room.walk<MAX_DIST):
 						leader = room.zone
  
 				link_item = (collector, room.walk, room.uplink)
