@@ -67,7 +67,15 @@ panel_types = [
         "panels"     : 4.5,
         "flow_line"  : 252,
         "flow_ring"  : 28,
-        "flow_panel" : 56
+        "flow_panel" : 56,
+		"code_full"  : "6113010451",
+		"desc_full"  : "LEONARDO 3,5 MS - 1200x2000x50mm",
+		"code_half"  : "6113010452",
+		"desc_half"  : "LEONARDO 3,5 MS - 600x2000x50mm",
+		"code_full_h": "6114010431",
+		"desc_full_h": "LEONARDO 3,5 IDRO MS - 1200x2000x50mm",
+		"code_half_h": "6114010432",
+		"desc_half_h": "LEONARDO 3,5 IDRO MS - 600x2000x50mm",
     },
     {
         "full_name"  : "Leonardo 3,0 plus",
@@ -76,7 +84,15 @@ panel_types = [
         "panels"     : 4.5,
         "flow_line"  : 265,
         "flow_ring"  : 29.4,
-        "flow_panel" : 58.9
+        "flow_panel" : 58.9,
+		"code_full"  : "6113011001",
+		"desc_full"  : "LEONARDO 3,0 PLUS MS - 1200x2000x50mm",
+		"code_half"  : "6113011002",
+		"desc_half"  : "LEONARDO 3,0 PLUS MS - 600x2000x50mm",
+		"code_full_h": "6113011001",
+		"desc_full_h": "LEONARDO 3,0 PLUS IDRO MS - 1200x2000x50mm",
+		"code_half_h": "6113011002",
+		"desc_half_h": "LEONARDO 3,0 PLUS IDRO MS - 600x2000x50mm",
     }
 ]
 
