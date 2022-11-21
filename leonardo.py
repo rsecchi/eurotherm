@@ -377,6 +377,7 @@ valid_room_color = 5        ;# blue
 bathroom_color = 3          ;# green
 obstacle_color = 2          ;# yellow
 stripe_color = 1            ;# red
+zone_color = 4              ;# cyan
 color_warm = 1
 color_cold = 5
 
@@ -2504,6 +2505,7 @@ class Room:
 
 	def set_as_root(self, queue, collector):
 		self.visited = True
+
 		for room, wall in self.gates:
 			if (not room.visited):
 				if (collector.contained_in == self):
@@ -2858,6 +2860,7 @@ class Model(threading.Thread):
 		self.processed = list()
 		self.obstacles = list()
 		self.zone = list()
+		self.user_zones = list()
 		self.output = output
 		self.best_list = list()
 		self.text_nav = ""
@@ -2942,6 +2945,9 @@ class Model(threading.Thread):
 
 			leader = None
 			for room in self.processed:
+
+				if room.user_zone != collector.user_zone:
+					room.walk = MAX_DIST
 
 				# check if room is assigned to a collector
 				if ((not room.zone) and room.walk<MAX_DIST):
@@ -3096,6 +3102,7 @@ class Model(threading.Thread):
 				 poly.dxf.color == obstacle_color or
 				 poly.dxf.color == bathroom_color or
 				 poly.dxf.color == valid_room_color or
+				 poly.dxf.color == zone_color or
 				 poly.dxf.color == disabled_room_color)):
 			return False
 		return True
@@ -3157,7 +3164,9 @@ class Model(threading.Thread):
 				# Valid polyline, classify room
 				room.error = False
 				area = scale * scale * room.area
-				if (area > max_room_area):
+				if (area > max_room_area and
+				    (room.color == valid_room_color or
+				     room.color == bathroom_color)):
 					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
 						max_room_area)
 					wstr += "Consider splitting area \n\n"
@@ -3182,6 +3191,9 @@ class Model(threading.Thread):
 					room.pindex = pindex
 					pindex += 1
 					self.processed.append(room)
+
+				if (room.color == zone_color):
+					self.user_zones.append(room)
 
 	
 		# check if the room is too small to be processed
@@ -3215,6 +3227,30 @@ class Model(threading.Thread):
 				self.output.print(wstr)
 				return
 			
+		# assings collectors to user zone
+		for collector in self.collectors:
+			collector.user_zone = None
+			for zone in self.user_zones:
+				if zone.contains(collector):
+					if collector.user_zone != None:
+						wstr = "ABORT: Collector inside two user zones"
+						self.output.print(wstr)
+						return
+					else:
+						collector.user_zone = zone
+
+		# assign rooms to user zones
+		for room in self.processed:
+			room.user_zone = None
+			for zone in self.user_zones:
+				if zone.contains(room):
+					if room.user_zone != None:
+						wstr = "ABORT: Room inside two user zones"
+						self.output.print(wstr)
+						return
+					else:
+						room.user_zone = zone
+					
 
 		# assign obstacles to rooms
 		for obs in self.obstacles:
@@ -3554,23 +3590,36 @@ class Model(threading.Thread):
 	def draw(self):
 		global collector_size, search_tol
 
+
+
 		# Box zones
 		for clt in self.collectors:
 			if (not clt.is_leader):
 				continue
-			ax = min([c.ax for c in clt.zone_rooms]) - 2*min_dist
-			ay = min([c.ay for c in clt.zone_rooms]) - 2*min_dist
-			bx = max([c.bx for c in clt.zone_rooms]) + 2*min_dist
-			by = max([c.by for c in clt.zone_rooms]) + 2*min_dist
+
+			# Box zones
+			if not clt.user_zone:	
+				ax = min([c.ax for c in clt.zone_rooms]) - 2*min_dist
+				ay = min([c.ay for c in clt.zone_rooms]) - 2*min_dist
+				bx = max([c.bx for c in clt.zone_rooms]) + 2*min_dist
+				by = max([c.by for c in clt.zone_rooms]) + 2*min_dist
 			
-			pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
-			pl = self.msp.add_lwpolyline(pline)
-			pl.dxf.layer = layer_panel
-			pl.dxf.color = 4
-			pl.dxf.linetype = 'CONTINUOUS'
+				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_panel
+				pl.dxf.color = zone_color
+				pl.dxf.linetype = 'CONTINUOUS'
+			else:
+				ax = -MAX_DIST
+				by = -MAX_DIST
+
+				for p in clt.user_zone.poly:
+					if p[1] > by or (p[1] == by and p[0] < ax):
+						ax = p[0]; by = p[1]
 
 			write_text(self.msp, "Zone %d" % clt.zone_num, (ax, min_dist+by), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
+
 
 		# Collectors
 		for collector, items in self.best_list:
