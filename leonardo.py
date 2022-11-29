@@ -261,35 +261,35 @@ s_fit = 7
 
 
 fittings = {
-	"single_open": {
+	"Rac_20_20_20": {
 		"desc":      "20-10-20",
 		"code":      "6910022007",
 		"symbol": [ 
 					[(0,0),(0,h_fit)], 
 					[(-w_fit,0),(w_fit,0)]]
 	},
-	"single_end": {
+	"Rac_20_10": {
 		"desc":      "20-10",
 		"code":      "6910022107",
 		"symbol": [
 					[(0,0),(0,h_fit)], 
 					[(0,0),(w_fit,0)]]
 	},
-	"double_tshape_open": {
+	"Rac_20_10_20_10": {
 		"desc":      "20-10-20-10",
 		"code":      "6910022003",
 		"symbol": [
 					[(0,-h_fit),(0,h_fit)], 
 					[(-w_fit,0),(w_fit,0)]]
 	},
-	"double_tshape_end": {
+	"Rac_10_20_10": {
 		"desc":      "10-20-10",
 		"code":      "6910022103",
 		"symbol": [
 					[(0,-h_fit),(0,h_fit)], 
 					[(0,0),(w_fit,0)]]
 	},
-	"double_linear_open": {
+	"Rac_20_10_10_20": {
 		"desc":      "20-10-10-20",
 		"code":      "6910022008",
 		"symbol": [
@@ -297,7 +297,7 @@ fittings = {
 					[(-w_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
-	"double_linear_end": {
+	"Rac_20_10_10": {
 		"desc":      "20-10-10",
 		"code":      "6910022108",
 		"symbol": [
@@ -305,7 +305,7 @@ fittings = {
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
-	"triple_end": {
+	"Rac_10_20_10_10": {
 		"desc":      "10-20-10-10",
 		"code":      "6910022110",
 		"symbol": [
@@ -313,7 +313,7 @@ fittings = {
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
-	"quadruple_open": {
+	"Rac_20_10_10_20_10_10": {
 		"desc":      "20-10-10-20-10-10",
 		"code":      "6910022004",
 		"symbol": [
@@ -321,7 +321,7 @@ fittings = {
 					[(-w_fit,0),(w_fit,0)], 
 					[(-s_fit,-h_fit),(-s_fit,h_fit)]]
 	},
-	"quadruple_end": {
+	"Rac_10_10_20_10_10": {
 		"desc":      "10-10-20-10-10",
 		"code":      "6910022104",
 		"symbol":   [
@@ -329,7 +329,7 @@ fittings = {
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
-	"joint": {
+	"Rac_20_20_dritto": {
 		"desc":      "20-20",
 		"code":      "6910022005",
 		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
@@ -1779,7 +1779,7 @@ class Circuit:
 				   'panel': self.xb_panel
 			}
 			cpl = Coupling([fit])
-			cpl.type = 'joint'
+			cpl.type = 'Rac_20_20_dritto'
 			cpls.append(cpl)
 
 		if (cside==LEFT and self.xa!=cplmin.xpos):
@@ -1793,7 +1793,7 @@ class Circuit:
 				   'panel': self.xa_panel
 			}
 			cpl = Coupling([fit])
-			cpl.type = 'joint'
+			cpl.type = 'Rac_20_20_dritto'
 			cpls.append(cpl)
 
 		for cpl in cpls:
@@ -1809,9 +1809,9 @@ class Circuit:
 
 			if (cpl.num_fits==1): 
 				if (end_flag):
-					cpl.type = "single_end"
+					cpl.type = "Rac_20_10"
 				else:
-					cpl.type = "single_open"
+					cpl.type = "Rac_20_20_20"
 
 			if (cpl.num_fits==2):
 
@@ -1828,19 +1828,19 @@ class Circuit:
 					else:
 						# Double fitting on the same side.
 						if (end_flag):
-							cpl.type = "double_tshape_end"
+							cpl.type = "Rac_10_20_10"
 						else:
-							cpl.type = "double_tshape_open"
+							cpl.type = "Rac_20_10_20_10"
 				else:
 					if (end_flag):
-						cpl.type = "double_linear_end"
+						cpl.type = "Rac_20_10_10"
 					else:
-						cpl.type = "double_linear_open"
+						cpl.type = "Rac_20_10_10_20"
 
 			if (cpl.num_fits==3):
 
 				if (end_flag):
-					cpl.type = "triple_end"
+					cpl.type = "Rac_10_20_10_10"
 				else:
 					# Split if not an ending
 					cpl.type = "invalid"
@@ -1863,9 +1863,9 @@ class Circuit:
 
 			if (cpl.num_fits==4):
 				if (end_flag):
-					cpl.type = "quadruple_end"
+					cpl.type = "Rac_10_10_20_10_10"
 				else:
-					cpl.type = "quadruple_open"
+					cpl.type = "Rac_20_10_10_20_10_10"
 	
 		cpls.sort(reverse=(cside==LEFT), key=lambda x: x.xpos)
 
@@ -1922,10 +1922,10 @@ class Line:
 
 			sgnx = -1; sgny = -1
 			# flipping symbol upside down
-			if ((cpl.type == "double_linear_open" or 
-				cpl.type == "double_linear_end"  or
-				cpl.type == "single_open"  or
-				cpl.type == "single_end") and
+			if ((cpl.type == "Rac_20_10_10_20" or 
+				cpl.type == "Rac_20_10_10"  or
+				cpl.type == "Rac_20_20_20"  or
+				cpl.type == "Rac_20_10") and
 				cpl.is_at_top()):
 				sgny = -sgny
 				#print("flipping upside-down")
@@ -1935,10 +1935,10 @@ class Line:
 						symbol[i][k] = x, -y
 
 			# flipping symbol left-right 
-			if ((cpl.type == "quadruple_end" or
-				cpl.type == "double_tshape_end"  or
-				cpl.type == "double_linear_end" or
-				cpl.type == "single_end") and
+			if ((cpl.type == "Rac_10_10_20_10_10" or
+				cpl.type == "Rac_10_20_10"  or
+				cpl.type == "Rac_20_10_10" or
+				cpl.type == "Rac_20_10") and
 				cpl.flip):
 				sgnx = -sgnx
 
@@ -1949,10 +1949,10 @@ class Line:
 				
 			# horizontal offset
 			offset = 0
-			if (cpl.type == "double_tshape_end"  or
-				cpl.type == "double_tshape_open" or
-				cpl.type == "single_open" or
-				cpl.type == "single_end"):
+			if (cpl.type == "Rac_10_20_10"  or
+				cpl.type == "Rac_20_10_20_10" or
+				cpl.type == "Rac_20_10_20" or
+				cpl.type == "Rac_20_10"):
 				offset =  shift * (0.5 - cpl.is_at_right())
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
@@ -1989,10 +1989,10 @@ class Line:
 				rot += room.rot_angle
 
 			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
-			if (cpl.type != 'joint'):
-				msp.add_blockref(cpl.type + "-R", orig1,
+			if (cpl.type != 'Rac_20_20_dritto'):
+				msp.add_blockref(cpl.type + "_rosso", orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type + "-B", orig2,
+				msp.add_blockref(cpl.type + "_blu", orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			else:
 				msp.add_blockref(cpl.type, orig1,
@@ -4731,7 +4731,7 @@ def _create_model(iface):
 	importer.finalize()
 
 	## copy blocks from panels
-	source_dxf = ezdxf.readfile("Symbol2.dxf")
+	source_dxf = ezdxf.readfile("Symbol.dxf")
 	importer = Importer(source_dxf, iface.model.doc)
 
 	if (not web_version):
@@ -4759,29 +4759,29 @@ def _create_model(iface):
 	importer.import_block(block_collector)
 
 	# import fittings
-	importer.import_block("single_open-B")
-	importer.import_block("single_open-R")
-	importer.import_block("single_end-B")
-	importer.import_block("single_end-R")
-	importer.import_block("double_linear_open-B")
-	importer.import_block("double_linear_open-R")
-	importer.import_block("double_linear_end-B")
-	importer.import_block("double_linear_end-R")
-	importer.import_block("double_tshape_open-B")
-	importer.import_block("double_tshape_open-R")
-	importer.import_block("double_tshape_end-B")
-	importer.import_block("double_tshape_end-R")
-	importer.import_block("triple_end-B")
-	importer.import_block("triple_end-R")
-	importer.import_block("quadruple_open-B")
-	importer.import_block("quadruple_open-R")
-	importer.import_block("quadruple_end-B")
-	importer.import_block("quadruple_end-R")
-	importer.import_block("joint")
+	importer.import_block("Rac_20_20_20_blu")
+	importer.import_block("Rac_20_20_20_rosso")
+	importer.import_block("Rac_20_10_blu")
+	importer.import_block("Rac_20_10_rosso")
+	importer.import_block("Rac_20_10_10_20_blu")
+	importer.import_block("Rac_20_10_10_20_rosso")
+	importer.import_block("Rac_20_10_10_blu")
+	importer.import_block("Rac_20_10_10_rosso")
+	importer.import_block("Rac_20_10_20_10_blu")
+	importer.import_block("Rac_20_10_20_10_rosso")
+	importer.import_block("Rac_10_20_10_blu")
+	importer.import_block("Rac_10_20_10_rosso")
+	importer.import_block("Rac_10_20_10_10_blu")
+	importer.import_block("Rac_10_20_10_10_rosso")
+	importer.import_block("Rac_20_10_10_20_10_10_blu")
+	importer.import_block("Rac_20_10_10_20_10_10_rosso")
+	importer.import_block("Rac_10_10_20_10_10_blu")
+	importer.import_block("Rac_10_10_20_10_10_rosso")
+	importer.import_block("Rac_20_20_dritto")
 	importer.finalize()
 
 
-	iface.model.doc.layers.remove("Pannelli Leonardo")
+	#iface.model.doc.layers.remove("Pannelli Leonardo")
 	iface.model.start()
 
 	
