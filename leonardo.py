@@ -463,6 +463,10 @@ alphabet = {
 
 
 def nav_item(qnty, code, desc):
+
+	if qnty<=0:
+		return ""
+
 	if (type(qnty)==int):
 		txt = '%d\r\n' % qnty
 	else:
@@ -4317,11 +4321,11 @@ class Model(threading.Thread):
 		# Passive panels
 		code = '6111020101'
 		desc = 'LEONARDO PASSIVO 1200x2000x50mm'
-		qnt = 1.05*self.normal_passive_area,
+		qnt = 1.05*self.normal_passive_area
 		self.text_nav += nav_item(qnt, code, desc)
 		code = '6114020201'
 		desc = 'LEONARDO PASSIVO IDRO 1200x2000x50mm'
-		qnt = 1.05*self.bathroom_passive_area,
+		qnt = 1.05*self.bathroom_passive_area
 		self.text_nav += nav_item(qnt, code, desc)
 
 		# pipes 
