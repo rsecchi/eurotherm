@@ -35,10 +35,10 @@ if len(sys.argv) > 1 :
 	web_version = True
 
 # block names (defaults)
-block_blue_120x100  = "leo_55_120"
-block_blue_60x100   = "leo_55_60"
-block_green_120x100 = "leo_55_120_idro"
-block_green_60x100  = "leo_55_60_idro"
+block_blue_120x100  = "LEO_55_120"
+block_blue_60x100   = "LEO_55_60"
+block_green_120x100 = "LEO_55_120_IDRO"
+block_green_60x100  = "LEO_55_60_IDRO"
 block_collector     = "collettore"
 
 # Panel types
@@ -4755,11 +4755,11 @@ def _create_model(iface):
 	for ptype in panel_types:
 		if (ctype == ptype['full_name']):
 			iface.model.ptype = ptype
-			handler = "leo_" + ptype['handler'] + "_"
+			handler = "LEO_" + ptype['handler'] + "_"
 			block_blue_120x100 = handler + "120"
 			block_blue_60x100 = handler + "60"
-			block_green_120x100 = handler + "120_idro"
-			block_green_60x100 = handler + "60_idro"			
+			block_green_120x100 = handler + "120_IDRO"
+			block_green_60x100 = handler + "60_IDRO"
 			area_per_feed_m2 = ptype['panels'] * 2.4
 			flow_per_m2 = ptype['flow_panel'] / 2.4
 			iface.print('Area/line = %g m2\n' % area_per_feed_m2)
