@@ -2681,9 +2681,9 @@ class Room:
 		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
 		txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
 		txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
-		txt += " %d left, %d right\n" % (p1x2_r, p1x2_l)
+		txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
 		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
-		txt += " %d left, %d right\n" % (p1x1_r, p1x1_l)
+		txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
 
 
 		self.room_rep = {
