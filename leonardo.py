@@ -2633,6 +2633,7 @@ class Room:
 		p1x2_r = 0
 		p1x2_l = 0
 
+		arrng = self.arrangement
 		w = default_panel_width
 		h = default_panel_height
 
@@ -2643,17 +2644,29 @@ class Room:
 				p2x1 += 1
 			if (panel.size == (1,2)):
 				p1x2 += 1
-				if (panel.side == 0 or panel.side == 2):
-					p1x2_r += 1
+				if (panel.side == 0 or panel.side == 3):
+					if (arrng.alloc_mode == 0):
+						p1x2_l += 1
+					else:
+						p1x2_r += 1	
 				else:
-					p1x2_l += 1
+					if (arrng.alloc_mode == 0):
+						p1x2_r += 1
+					else:
+						p1x2_l += 1	
 
 			if (panel.size == (1,1)):
 				p1x1 += 1
-				if (panel.side == 0 or panel.side == 2):
-					p1x1_r += 1
+				if (panel.side == 0 or panel.side == 3):
+					if (arrng.alloc_mode == 0):
+						p1x1_l += 1
+					else:
+						p1x1_r += 1
 				else:
-					p1x1_l += 1
+					if (arrng.alloc_mode == 0):
+						p1x1_r += 1
+					else:
+						p1x1_l += 1
 
 		area = self.area * scale * scale	
 		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
