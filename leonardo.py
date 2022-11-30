@@ -105,7 +105,9 @@ air_conditioners = [
 		"width_mm": [756],
 		"height_mm": [260],
 		"depth_mm": [803],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7110010301",
+		"accessories": {"sifone", "plenum"}
 	},
 	{
 		"type": "dehum",
@@ -115,7 +117,9 @@ air_conditioners = [
 		"width_mm": [706],
 		"height_mm": [309],
 		"depth_mm": [936],
-		"flow_m3h": 580
+		"flow_m3h": 580,
+		"code": "7110010601",
+		"accessories": {"sifone"}
 	},
 	{
 		"type": "dehum",
@@ -125,7 +129,9 @@ air_conditioners = [
 		"width_mm": [402],
 		"height_mm": [637],
 		"depth_mm": [203],
-		"flow_m3h": 200
+		"flow_m3h": 200,
+		"code": "7110020101",
+		"accessories": {"sifone", "telaio1", "griglia1"}
 	},
 	{
 		"type": "dehum",
@@ -135,7 +141,9 @@ air_conditioners = [
 		"width_mm": [732],
 		"height_mm": [732],
 		"depth_mm": [203],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7110020101",
+		"accessories": {"sifone", "telaio2", "griglia2"}
 	},
 	{
 		"type": "dehum_int",
@@ -145,7 +153,9 @@ air_conditioners = [
 		"width_mm": [756],
 		"depth_mm": [260],
 		"height_mm": [803],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7210020701",
+		"accessories": {"sifone", "plenum"}
 	},
 	{
 		"type": "dehum_int",
@@ -155,7 +165,9 @@ air_conditioners = [
 		"width_mm": [706],
 		"height_mm": [309],
 		"depth_mm": [936],
-		"flow_m3h": 580
+		"flow_m3h": 580,
+		"code": "7210010602",
+		"accessories": {"sifone"}
 	},
 	{
 		"type": "dehum_int",
@@ -165,7 +177,9 @@ air_conditioners = [
 		"width_mm": [732],
 		"height_mm": [732],
 		"depth_mm": [203],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7210020301",
+		"accessories": {"sifone", "telaio2", "griglia2"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -175,7 +189,9 @@ air_conditioners = [
 		"width_mm": [1204.4],
 		"height_mm": [979.5],
 		"depth_mm": [244],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7410010103",
+		"accessories": {"sifone", "sonda", "filtro1", "filtro3"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -185,7 +201,9 @@ air_conditioners = [
 		"width_mm": [1254.4],
 		"height_mm": [810.5],
 		"depth_mm": [294],
-		"flow_m3h": 500
+		"flow_m3h": 500,
+		"code": "7410010105",
+		"accessories": {"sifone", "sonda", "filtro2", "filtro3"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -196,6 +214,8 @@ air_conditioners = [
 		"height_mm": [700],
 		"depth_mm": [342.3],
 		"flow_m3h": 300
+		"code": "7510010101",
+		"accessories": {"sifone", "sonda", "filtro1", "filtro3"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -206,6 +226,8 @@ air_conditioners = [
 		"height_mm": [700],
 		"depth_mm": [421],
 		"flow_m3h": 500
+		"code": "7510010102",
+		"accessories": {"sifone", "sonda", "filtro4", "filtro3"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -215,7 +237,9 @@ air_conditioners = [
 		"width_mm": [805,1097],
 		"height_mm": [691,723],
 		"depth_mm": [350.5,350.5],
-		"flow_m3h": 1000
+		"flow_m3h": 1000,
+		"code": "7110011001",
+		"accessories": {"sifone", "dcr1000"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -225,7 +249,9 @@ air_conditioners = [
 		"width_mm": [950.5,1097],
 		"height_mm": [691,723],
 		"depth_mm": [350.5,350.5],
-		"flow_m3h": 2000
+		"flow_m3h": 2000,
+		"code": "7110011002",
+		"accessories": {"sifone", "dcr2000"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -235,9 +261,81 @@ air_conditioners = [
 		"width_mm": [1070],
 		"height_mm": [880],
 		"depth_mm": [251],
-		"flow_m3h": 300
+		"flow_m3h": 300,
+		"code": "7410010104",
+		"accessories": {"sifone"}
 	},
 ]
+
+accessories = {
+	{
+		"type": "sifone",
+		"code": "7910080907",
+		"desc": "Sifone"
+	},
+	{
+		"type": "plenum",
+		"code": "7510030203",
+		"desc": "Plenum di mandata 2/3xD160"
+	},
+	{
+		"type": "telaio1",
+		"code": "7910030201",
+		"desc": "Telaio da murare"
+	},
+	{
+		"type": "griglia1",
+		"code": "7910010101",
+		"desc": "Griglia in legno laccato"
+	},
+	{
+		"type": "telaio2",
+		"code": "7910030201",
+		"desc": "Telaio da murare"
+	},
+	{
+		"type": "griglia2",
+		"code": "7910030101",
+		"desc": "Griglia in legno laccato"
+	},
+	{
+		"type": "sonda",
+		"code": "7910080906",
+		"desc": "Sonda CO2"
+	},
+	{
+		"type": "filtro1",
+		"code": "7910080960",
+		"desc": "Box filtro con lampada UV"
+	},
+	{
+		"type": "filtro2",
+		"code": "7910080970",
+		"desc": "Box filtro con lampada UV"
+	},
+	{
+		"type": "filtro3",
+		"code": "7910080980",
+		"desc": "Box filtro con lampada UV e silenziatore"	
+	},
+	{
+		"type": "filtro4",
+		"code": "7910080929",
+		"desc": "Filtro opzionale ePM1 55% a boardo macchina",
+	},
+	{
+		"type": "dcr1000",
+		"code": "7910090901",
+		"desc": "Silenziatore DCR1000"
+	},
+	{
+		"type": "dcr2000",
+		"code": "7910090902",
+		"desc": "Silenziatore DCR2000"
+	}
+
+}
+
 
 ac_label = {
 	"dehum":         "Deumidificatore",
@@ -3573,7 +3671,7 @@ class Model(threading.Thread):
 		#if (self.mtype == "warm"):
 		#	return ""
 
-		volume = float(self.height) * self.area 
+		self.volume = float(self.height) * self.area 
 
 		mtype = self.mtype[:-5]
 		mtype_label = ac_label[mtype]
@@ -3583,21 +3681,35 @@ class Model(threading.Thread):
 		html =  '<div class="section" >'
 		html += '<h4>Eurotherm consiglia</h4>'
 		html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
-		html += 'per una portata di %.2f m3/h:</p>' % volume
+		html += 'per una portata di %.2f m3/h:</p>' % self.volume
 
-		cnd = list()
+		self.find_air_conditioners()
+
+		for k, ac in enumerate(self.cnd):
+			if (self.best_ac[k] > 0):
+				html += '<p id="mtype">%d x ' % self.best_ac[k] + ac['model'] + '</p>'
+		html += '<p id="suggest">copertura %.2f m3/h,' % self.best_flow
+		html += 'eccesso %.2f m3/h</p>' % (self.best_flow-self.volume)
+		html += '</div>'
+
+		return html
+
+
+	def find_air_conditioners(self):
+
+		self.cnd = list()
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
-				cnd.append(ac)
+				self.cnd.append(ac)
 		
-		l = len(cnd)
-		cnd.sort(key= lambda x: x["flow_m3h"]);
-		max_ac = ceil(volume/cnd[0]["flow_m3h"])
+		l = len(self.cnd)
+		self.cnd.sort(key= lambda x: x["flow_m3h"]);
+		max_ac = ceil(self.volume/self.cnd[0]["flow_m3h"])
 		num_tot = l*max_ac
 		
 		num_ac = [0]*l
-		best_ac = [0]*l
-		best_flow = MAX_COST
+		self.best_ac = [0]*l
+		self.best_flow = MAX_COST
 		for i in range((max_ac+1) ** l):
 			flowtot = 0
 			count = i
@@ -3605,25 +3717,15 @@ class Model(threading.Thread):
 				val = count % (max_ac+1)
 				count = count//(max_ac+1)
 				num_ac[k] = val
-				flowtot += val * cnd[k]["flow_m3h"]
-			if (flowtot >= volume and flowtot < best_flow):
-				best_flow = flowtot
+				flowtot += val * self.cnd[k]["flow_m3h"]
+			if (flowtot >= self.volume and flowtot < best_flow):
+				self.best_flow = flowtot
 				for k, val in enumerate(num_ac):
-					best_ac[k] = num_ac[k]
+					self.best_ac[k] = num_ac[k]
 
-		for k, ac in enumerate(cnd):
-			if (best_ac[k] > 0):
-				html += '<p id="mtype">%d x ' % best_ac[k] + ac['model'] + '</p>'
-		html += '<p id="suggest">copertura %.2f m3/h,' % best_flow
-		html += 'eccesso %.2f m3/h</p>' % (best_flow-volume)
-		html += '</div>'
-
-		return html
 
 	def draw(self):
 		global collector_size, search_tol
-
-
 
 		# Box zones
 		for clt in self.collectors:
@@ -4342,6 +4444,7 @@ class Model(threading.Thread):
 		qnt = 0
 		for room in self.processed:
 			qnt += room.arrangement.strip_len
+		qnt = ceil(qnt/2)
 		self.text_nav += nav_item(qnt, code, desc)
 
 		# bent joint
@@ -4433,12 +4536,12 @@ class Model(threading.Thread):
 
 		code = '5140020401'
 		desc = 'SMARTPOINT TEMPERATURA'
-		qnt = smartp
+		qnt = smartp_b
 		self.text_nav += nav_item(qnt, code, desc)
 
 		code = '5140020402'
 		desc = 'SMARTPOINT TEMPERATURA / UMIDITA\''
-		qnt = smartp_b
+		qnt = smartp
 		self.text_nav += nav_item(qnt, code, desc)
 
 		code = '5140020201'
