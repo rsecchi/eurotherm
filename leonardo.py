@@ -2790,6 +2790,83 @@ class Room:
 
 		return self.room_rep
 
+
+	def recount_panels(self, msp):
+
+		txt = ""
+		p2x2 = 0
+		p2x1 = 0
+		p1x2 = 0
+		p1x1 = 0
+
+		p1x1_r = 0
+		p1x1_l = 0
+		p1x2_r = 0
+		p1x2_l = 0
+
+		arrng = self.arrangement
+		w = default_panel_width
+		h = default_panel_height
+
+		for e in msp.query('*[layer=="%s"]' % layer_panel):
+			if (e.dxftype() == 'INSERT'):
+				loc = e.dxf.insert
+				location = loc[0], loc[1]
+				if self.is_point_inside(location):
+					vals = e.block().name.split("_")
+					if vals[0] == "LEO":
+						sgn = (e.dxf.xscale * e.dxf.yscale > 0)
+						if vals[2] == "120":
+							p1x2 += 1
+							if sgn:
+								p1x2_l += 1
+							else:
+								p1x2_r += 1
+
+						if vals[2] == "60":
+							p1x1 += 1
+							if sgn:
+								p1x2_l += 1
+							else:
+								p1x2_r += 1
+
+		area = self.area * scale * scale	
+		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
+		active_ratio = 100*active_area/area
+
+		self.area_m2 = area
+		self.active_m2 = active_area
+		self.ratio = active_ratio
+
+		txt += "Room area: %.4g m2 \n" % area
+		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
+		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
+		txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
+		txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
+		txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
+		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
+		txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
+
+
+		self.room_rep = {
+			"txt":               txt,
+			"area":              area,
+			"active_area":       active_area,
+			"panels_120x200":    p2x2,
+			"panels_60x200":     p2x1,
+			"panels_120x100":    p1x2,
+			"panels_120x100_l":  p1x2_l,
+			"panels_120x100_r":  p1x2_r,
+			"panels_60x100":     p1x1,
+			"panels_60x100_l":   p1x1_l,
+			"panels_60x100_r":   p1x1_r,
+		}
+
+		return self.room_rep
+
+
+
+
 	def draw_label(self, msp):
 
 		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
@@ -2981,6 +3058,7 @@ class Model(threading.Thread):
 		self.output = output
 		self.best_list = list()
 		self.text_nav = ""
+		self.cnd = list()
 
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
@@ -3230,6 +3308,12 @@ class Model(threading.Thread):
 		global tot_iterations, max_iterations
 		global scale
 
+
+		if self.refit:
+			self.output.print("******************************************\n");
+			self.output.print("Detected existing plan, disable allocation\n");
+			self.output.print("******************************************\n");
+
 		scale = self.scale
 		if (self.scale == "auto"):
 			scale = default_scale
@@ -3241,8 +3325,9 @@ class Model(threading.Thread):
 		self.rescale_model()
 
 		Room.index = 1
-		self.create_layers()
-
+		if not self.refit:
+			self.create_layers()
+		
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
 				self.vectors.append(e)
@@ -3513,55 +3598,8 @@ class Model(threading.Thread):
 		#self.draw_uplinks()
 		#self.draw_trees(self.collectors[3])
 
-		# Determine which side is collector in each room
-		self.collector_side()
-
-		################################################################
-
-		# allocating panels in room	
-		self.output.print("Processing Room:")
-		self.processed.sort(key = lambda x: x.pindex)
-		count = 5
-		for room in self.processed:
-			if (room.color == disabled_room_color):
-				continue
-
-			self.output.print("%d " % room.pindex)
-			room.alloc_panels()
-		
-			count += 1
-			if (count == 19):
-				self.output.print("\n")
-				count = 0
-
-		self.output.print("\n")
-
-		################################################################
-
-		# find fittings 
-		for room in self.processed:
-			if (hasattr(room.arrangement, 'alloc_clt_xside')):
-				room.arrangement.fittings()
-				room.arrangement.make_couplings()
-	
-		# find attachment points of dorsals
-		self.dorsals = list()
-		for room in self.processed:
-			room_dors = room.arrangement.dorsals
-			mode = room.arrangement.alloc_mode
-			self.dorsals += room_dors
-			uplink_dist = MAX_DIST
-			for dorsal in room_dors:
-				# dorsal.cltrs = list()
-				if (mode==0):
-					dorsal.pos = dorsal.attach
-				else:
-					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
-
-				d = dist(dorsal.pos, room.uplink.pos)
-				if (d <= uplink_dist):
-					uplink_dist = d
-					room.attachment = dorsal.pos
+		if not self.refit:
+			self.populating_model()
 
 		##############################################################
 		# summary
@@ -3617,16 +3655,68 @@ class Model(threading.Thread):
 
 		##############################################################
 
-		self.draw()
-
+		if not self.refit:
+			self.draw()
 
 		##############################################################
 		# save data in XLS
+
 		self.save_in_xls()
 		self.save_navision()
-		self.save_in_word()
+		if not self.refit:
+			self.save_in_word()
 
 		print("ALL DONE")
+
+	def populating_model(self):
+
+		# Determine which side is collector in each room
+		self.collector_side()
+
+		# allocating panels in room	
+		self.output.print("Processing Room:")
+		self.processed.sort(key = lambda x: x.pindex)
+		count = 5
+		for room in self.processed:
+			if (room.color == disabled_room_color):
+				continue
+
+			self.output.print("%d " % room.pindex)
+			room.alloc_panels()
+		
+			count += 1
+			if (count == 19):
+				self.output.print("\n")
+				count = 0
+
+		self.output.print("\n")
+
+		################################################################
+
+		# find fittings 
+		for room in self.processed:
+			if (hasattr(room.arrangement, 'alloc_clt_xside')):
+				room.arrangement.fittings()
+				room.arrangement.make_couplings()
+	
+		# find attachment points of dorsals
+		self.dorsals = list()
+		for room in self.processed:
+			room_dors = room.arrangement.dorsals
+			mode = room.arrangement.alloc_mode
+			self.dorsals += room_dors
+			uplink_dist = MAX_DIST
+			for dorsal in room_dors:
+				# dorsal.cltrs = list()
+				if (mode==0):
+					dorsal.pos = dorsal.attach
+				else:
+					dorsal.pos = (dorsal.attach[1], dorsal.attach[0])
+
+				d = dist(dorsal.pos, room.uplink.pos)
+				if (d <= uplink_dist):
+					uplink_dist = d
+					room.attachment = dorsal.pos
 
 	def output_error(self):
 		print("Showing the errors")
@@ -3686,7 +3776,6 @@ class Model(threading.Thread):
 		mtype = self.mtype[:-5]
 		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
 
-		self.cnd = list()
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
 				self.cnd.append(ac)
@@ -4012,7 +4101,10 @@ class Model(threading.Thread):
 				continue
 
 			txt += "Room %d  --------- \n" % room.pindex
-			rep = room.report()
+			if not self.refit:
+				rep = room.report()
+			else:
+				rep = room.recount_panels(self.msp)
 
 			self.area += rep['area']
 			self.active_area += rep['active_area']
@@ -4351,14 +4443,23 @@ class Model(threading.Thread):
 		for fit in fittings:
 			(fittings[fit])['count'] = 0 
 
-		for room in self.processed:
-			if (not hasattr(room.arrangement,'alloc_clt_xside')):
-				continue
-
-			for cpl in room.arrangement.couplings:
-				if cpl.type == 'invalid':
+		if not self.refit:
+			for room in self.processed:
+				if (not hasattr(room.arrangement,'alloc_clt_xside')):
 					continue
-				(fittings[cpl.type])['count'] += 1
+
+				for cpl in room.arrangement.couplings:
+					if cpl.type == 'invalid':
+						continue
+					(fittings[cpl.type])['count'] += 1
+				
+		else:
+			for e in self.msp:	
+				if e.dxftype() == "INSERT":
+					name = e.block().name
+					if name[0:3] == "Rac":
+						fit = "_".join(name.split("_")[:-1])
+						fittings[fit]['count'] += 1
 			
 		for name in fittings:
 			fit = fittings[name]
@@ -4375,17 +4476,27 @@ class Model(threading.Thread):
 		# Save collectors
 		clt_qnts = [0]*(feeds_per_collector+1)
 		tot_cirs = 0
-		tot_clts = len(self.collectors)
-		for c in self.collectors:
-			clt_qnts[c.req_feeds] += 1
-			tot_cirs += c.req_feeds 
-
-		for i in range(1,feeds_per_collector+1):
-			if (clt_qnts[i] == 0):
-				continue
-			code = '41200101%02d' % i
-			desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
-			self.text_nav += nav_item(clt_qnts[i],code, desc)	
+		if not self.refit:
+			tot_clts = len(self.collectors)
+			for c in self.collectors:
+				clt_qnts[c.req_feeds] += 1
+				tot_cirs += c.req_feeds 
+		
+			for i in range(1,feeds_per_collector+1):
+				if (clt_qnts[i] == 0):
+					continue
+				code = '41200101%02d' % i
+				desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
+				self.text_nav += nav_item(clt_qnts[i],code, desc)	
+		else:
+			tot_clts = 0
+			# use collector labels when refitting
+			for e in self.msp.query('*[layer=="%s"]' % layer_text):	
+				if e.dxftype() == "MTEXT" and e.text[0] == 'C':
+					tot_clts += 1
+					tag = e.text.split()[1][1:-1]
+					feeds = int(tag.split("+")[0])
+					clt_qnts[feeds] += 1
 
 		# Hatch (botola)
 		code = '6920012001'
@@ -4595,13 +4706,16 @@ class Model(threading.Thread):
 		# Abdution lines
 		# Red stripes
 
+
 		if (web_version):
 			out = self.outname[:-4] + ".dat"
 		else:
 			out = self.filename[:-4] + ".dat"	
 	
+		print(out)
 		f = open(out, "w")
 		print(self.text_nav, file = f, end="")
+		f.close()
 
 	def save_in_word(self):
 
@@ -4822,7 +4936,15 @@ def _create_model(iface):
 
 	# reload file
 	iface.doc = ezdxf.readfile(iface.filename)	
-	iface.model.doc = ezdxf.new(dxf_version)
+	iface.model.refit = False
+	for layer in iface.doc.layers:
+		if layer.dxf.name == layer_panel:
+			iface.model.refit = True
+
+	if not iface.model.refit:	
+		iface.model.doc = ezdxf.new(dxf_version)
+	else:
+		iface.model.doc = iface.doc
 
 	iface.model.doc.header["$LWDISPLAY"] = 1
 	# iface.model.doc.header["$LWDISPSCALE"] = 0.55
@@ -4837,6 +4959,17 @@ def _create_model(iface):
 
 	iface.model.mtype = iface.mtype
 	iface.model.height = iface.height
+
+	if iface.model.refit:
+		if (not web_version):
+			ctype = iface.type.get()
+		else:
+			ctype = iface.type
+		for ptype in panel_types:
+			if (ctype == ptype['full_name']):
+				iface.model.ptype = ptype
+		iface.model.start()
+		return
 
 	# copy input layer from source
 	importer = Importer(iface.doc, iface.model.doc)
@@ -4905,8 +5038,6 @@ def _create_model(iface):
 	importer.import_block("Rac_20_20_dritto")
 	importer.finalize()
 
-
-	#iface.model.doc.layers.remove("Pannelli Leonardo")
 	iface.model.start()
 
 	
