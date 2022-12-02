@@ -213,7 +213,7 @@ air_conditioners = [
 		"width_mm": [1391.7],
 		"height_mm": [700],
 		"depth_mm": [342.3],
-		"flow_m3h": 300
+		"flow_m3h": 300,
 		"code": "7510010101",
 		"accessories": {"sifone", "sonda", "filtro1", "filtro3"}
 	},
@@ -225,7 +225,7 @@ air_conditioners = [
 		"width_mm": [1696.7],
 		"height_mm": [700],
 		"depth_mm": [421],
-		"flow_m3h": 500
+		"flow_m3h": 500,
 		"code": "7510010102",
 		"accessories": {"sifone", "sonda", "filtro4", "filtro3"}
 	},
@@ -268,72 +268,58 @@ air_conditioners = [
 ]
 
 accessories = {
-	{
-		"type": "sifone",
+	"sifone": {
 		"code": "7910080907",
 		"desc": "Sifone"
 	},
-	{
-		"type": "plenum",
+	"plenum": {
 		"code": "7510030203",
 		"desc": "Plenum di mandata 2/3xD160"
 	},
-	{
-		"type": "telaio1",
+	"telaio1": {
 		"code": "7910030201",
 		"desc": "Telaio da murare"
 	},
-	{
-		"type": "griglia1",
+	"griglia1:": {
 		"code": "7910010101",
 		"desc": "Griglia in legno laccato"
 	},
-	{
-		"type": "telaio2",
+	"telaio2": {
 		"code": "7910030201",
 		"desc": "Telaio da murare"
 	},
-	{
-		"type": "griglia2",
+	"griglia2": {
 		"code": "7910030101",
 		"desc": "Griglia in legno laccato"
 	},
-	{
-		"type": "sonda",
+	"sonda": {
 		"code": "7910080906",
 		"desc": "Sonda CO2"
 	},
-	{
-		"type": "filtro1",
+	"filtro1": {
 		"code": "7910080960",
 		"desc": "Box filtro con lampada UV"
 	},
-	{
-		"type": "filtro2",
+	"filtro2": {
 		"code": "7910080970",
 		"desc": "Box filtro con lampada UV"
 	},
-	{
-		"type": "filtro3",
+	"filtro3": {
 		"code": "7910080980",
 		"desc": "Box filtro con lampada UV e silenziatore"	
 	},
-	{
-		"type": "filtro4",
+	"filtro4": {
 		"code": "7910080929",
 		"desc": "Filtro opzionale ePM1 55% a boardo macchina",
 	},
-	{
-		"type": "dcr1000",
+	"dcr1000": {
 		"code": "7910090901",
 		"desc": "Silenziatore DCR1000"
 	},
-	{
-		"type": "dcr2000",
+	"dcr2000": {
 		"code": "7910090902",
 		"desc": "Silenziatore DCR2000"
-	}
-
+	},
 }
 
 
@@ -3697,6 +3683,9 @@ class Model(threading.Thread):
 
 	def find_air_conditioners(self):
 
+		mtype = self.mtype[:-5]
+		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
+
 		self.cnd = list()
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
@@ -3718,7 +3707,7 @@ class Model(threading.Thread):
 				count = count//(max_ac+1)
 				num_ac[k] = val
 				flowtot += val * self.cnd[k]["flow_m3h"]
-			if (flowtot >= self.volume and flowtot < best_flow):
+			if (flowtot >= self.volume and flowtot < self.best_flow):
 				self.best_flow = flowtot
 				for k, val in enumerate(num_ac):
 					self.best_ac[k] = num_ac[k]
@@ -4586,6 +4575,22 @@ class Model(threading.Thread):
 			desc = 'COMPAMAT SUPER'
 			qnt = compamat_SUPER
 			self.text_nav += nav_item(qnt, code, desc)
+
+
+		for k, cnd in enumerate(self.cnd):
+			if (self.best_ac[k]>0):
+				code = cnd['code']
+				desc = cnd['model']
+				qnt = self.best_ac[k]
+				self.text_nav += nav_item(qnt, code, desc)
+				accs = [x['accessories'] 
+						for x in air_conditioners 
+						if x['code']=='7110011002'][0]
+				for acc in accs:
+					code = accessories[acc]['code']
+					desc = accessories[acc]['desc']
+					self.text_nav += nav_item(qnt, code, desc)
+					
 	
 		# Abdution lines
 		# Red stripes
@@ -4959,7 +4964,6 @@ if (web_version):
 		Iface(filename, units, ptype, mtype, height)
 	else:
 		print("resource busy")
-
 
 else:
 	App()
