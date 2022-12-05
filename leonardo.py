@@ -345,7 +345,7 @@ s_fit = 7
 
 
 fittings = {
-	"Rac_20_20_20": {
+	"Rac_20_10_20": {
 		"desc":      "20-10-20",
 		"code":      "6910022007",
 		"symbol": [ 
@@ -1899,7 +1899,7 @@ class Circuit:
 				if (end_flag):
 					cpl.type = "Rac_20_10"
 				else:
-					cpl.type = "Rac_20_20_20"
+					cpl.type = "Rac_20_10_20"
 
 			if (cpl.num_fits==2):
 
@@ -2012,7 +2012,7 @@ class Line:
 			# flipping symbol upside down
 			if ((cpl.type == "Rac_20_10_10_20" or 
 				cpl.type == "Rac_20_10_10"  or
-				cpl.type == "Rac_20_20_20"  or
+				cpl.type == "Rac_20_10_20"  or
 				cpl.type == "Rac_20_10") and
 				cpl.is_at_top()):
 				sgny = -sgny
@@ -5018,8 +5018,8 @@ def _create_model(iface):
 	importer.import_block(block_collector)
 
 	# import fittings
-	importer.import_block("Rac_20_20_20_blu")
-	importer.import_block("Rac_20_20_20_rosso")
+	importer.import_block("Rac_20_10_20_blu")
+	importer.import_block("Rac_20_10_20_rosso")
 	importer.import_block("Rac_20_10_blu")
 	importer.import_block("Rac_20_10_rosso")
 	importer.import_block("Rac_20_10_10_20_blu")
