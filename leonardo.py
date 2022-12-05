@@ -4919,6 +4919,7 @@ class App:
 		self.inputlayer = self.var.get()
 		self.mtype = "warm"
 		self.height = 2.7
+		self.control = "reg"
 
 		_create_model(self)
 
