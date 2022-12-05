@@ -4666,29 +4666,29 @@ class Model(threading.Thread):
 		qnt = smartcomforts
 		self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020404'
-		desc = 'SONDA DI MANDATA'
-		qnt = smartcomforts + compamat_R + compamat_TOP + compamat_SUPER
-		self.text_nav += nav_item(qnt, code, desc)
+		if self.control == "reg":
+			if compamat_R > 0:
+				code = '5330010101'
+				desc = 'COMPAMAT R'
+				qnt = compamat_R
+				self.text_nav += nav_item(qnt, code, desc)
 
-		if compamat_R > 0:
-			code = '5330010101'
-			desc = 'COMPAMAT R'
-			qnt = compamat_R
+			if compamat_TOP > 0:
+				code = '5330010201'
+				desc = 'COMPAMAT TOP'
+				qnt = compamat_TOP
+				self.text_nav += nav_item(qnt, code, desc)
+
+			if compamat_SUPER > 0:
+				code = '5330010301'
+				desc = 'COMPAMAT SUPER'
+				qnt = compamat_SUPER
+				self.text_nav += nav_item(qnt, code, desc)
+		else:
+			code = '5140020404'
+			desc = 'SONDA DI MANDATA'
+			qnt = smartcomforts 
 			self.text_nav += nav_item(qnt, code, desc)
-
-		if compamat_TOP > 0:
-			code = '5330010201'
-			desc = 'COMPAMAT TOP'
-			qnt = compamat_TOP
-			self.text_nav += nav_item(qnt, code, desc)
-
-		if compamat_SUPER > 0:
-			code = '5330010301'
-			desc = 'COMPAMAT SUPER'
-			qnt = compamat_SUPER
-			self.text_nav += nav_item(qnt, code, desc)
-
 
 		for k, cnd in enumerate(self.cnd):
 			if (self.best_ac[k]>0):
@@ -4957,6 +4957,7 @@ def _create_model(iface):
 	iface.model.textinfo = iface.textinfo
 	iface.model.outname = iface.outname
 	iface.model.filename = iface.filename
+	iface.model.control = iface.control
 
 	iface.model.mtype = iface.mtype
 	iface.model.height = iface.height
@@ -5043,9 +5044,10 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self, infile, units, ptype, mtype, height):
+	def __init__(self, infile, units, ptype, control, mtype, height):
 		self.filename = web_filename
 		self.scale = units
+		self.control = control
 		self.mtype = mtype
 		self.height = height
 		self.inputlayer = default_input_layer
@@ -5088,12 +5090,13 @@ if (web_version):
 		filename = sys.argv[1] 
 		units = sys.argv[2]	
 		ptype = sys.argv[3]
-		mtype = sys.argv[4]
-		height = sys.argv[5]
+		control = sys.argv[4]
+		mtype = sys.argv[5]
+		height = sys.argv[6]
 
 		os.rename(filename, web_filename)
 		
-		Iface(filename, units, ptype, mtype, height)
+		Iface(filename, units, ptype, control, mtype, height)
 	else:
 		print("resource busy")
 
