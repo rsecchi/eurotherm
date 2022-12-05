@@ -3657,6 +3657,8 @@ class Model(threading.Thread):
 
 		if not self.refit:
 			self.draw()
+		else:
+			self.doc.saveas(self.outname)
 
 		##############################################################
 		# save data in XLS
@@ -4712,7 +4714,6 @@ class Model(threading.Thread):
 		else:
 			out = self.filename[:-4] + ".dat"	
 	
-		print(out)
 		f = open(out, "w")
 		print(self.text_nav, file = f, end="")
 		f.close()
