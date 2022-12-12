@@ -4685,11 +4685,18 @@ class Model(threading.Thread):
 				desc = cnd['model']
 				qnt = self.best_ac[k]
 				self.text_nav += nav_item(qnt, code, desc)
-				accs = x['accessories'] 
+				accs = cnd['accessories'] 
 				for acc in accs:
-					code = accessories[acc]['code']
-					desc = accessories[acc]['desc']
-					self.text_nav += nav_item(qnt, code, desc)
+					if type(acc) == tuple:
+						code = accessories[acc[0]]['code']
+						desc = accessories[acc[0]]['desc']
+						num = acc[1]
+					else: 
+						code = accessories[acc]['code']
+						desc = accessories[acc]['desc']
+						num = 1
+						
+					self.text_nav += nav_item(qnt*num, code, desc)
 						
 		# Abdution lines
 		# Red stripes
