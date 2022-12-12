@@ -191,7 +191,7 @@ air_conditioners = [
 		"depth_mm": [244],
 		"flow_m3h": 300,
 		"code": "7410010103",
-		"accessories": {"sifone", "sonda", "filtro1", "filtro3"}
+		"accessories": {("sifone",2), "filtro"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -203,7 +203,7 @@ air_conditioners = [
 		"depth_mm": [294],
 		"flow_m3h": 500,
 		"code": "7410010105",
-		"accessories": {"sifone", "sonda", "filtro2", "filtro3"}
+		"accessories": {("sifone",2), "filtro"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -215,7 +215,7 @@ air_conditioners = [
 		"depth_mm": [342.3],
 		"flow_m3h": 300,
 		"code": "7510010101",
-		"accessories": {"sifone", "sonda", "filtro1", "filtro3"}
+		"accessories": {"sifone", "filtro"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -227,7 +227,7 @@ air_conditioners = [
 		"depth_mm": [421],
 		"flow_m3h": 500,
 		"code": "7510010102",
-		"accessories": {"sifone", "sonda", "filtro4", "filtro3"}
+		"accessories": {"sifone", "filtro"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -239,7 +239,7 @@ air_conditioners = [
 		"depth_mm": [350.5,350.5],
 		"flow_m3h": 1000,
 		"code": "7110011001",
-		"accessories": {"sifone", "dcr1000"}
+		"accessories": {("sifone",2), "dcr1000"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -251,7 +251,7 @@ air_conditioners = [
 		"depth_mm": [350.5,350.5],
 		"flow_m3h": 2000,
 		"code": "7110011002",
-		"accessories": {"sifone", "dcr2000"}
+		"accessories": {("sifone", 2), "dcr2000"}
 	},
 	{
 		"type": "dehum_int_ren",
@@ -277,7 +277,7 @@ accessories = {
 		"desc": "Plenum di mandata 2/3xD160"
 	},
 	"telaio1": {
-		"code": "7910030201",
+		"code": "7910010201",
 		"desc": "Telaio da murare"
 	},
 	"griglia1:": {
@@ -292,25 +292,9 @@ accessories = {
 		"code": "7910030101",
 		"desc": "Griglia in legno laccato"
 	},
-	"sonda": {
-		"code": "7910080906",
-		"desc": "Sonda CO2"
-	},
-	"filtro1": {
-		"code": "7910080960",
-		"desc": "Box filtro con lampada UV"
-	},
-	"filtro2": {
-		"code": "7910080970",
-		"desc": "Box filtro con lampada UV"
-	},
-	"filtro3": {
+	"filtro": {
 		"code": "7910080980",
 		"desc": "Box filtro con lampada UV e silenziatore"	
-	},
-	"filtro4": {
-		"code": "7910080929",
-		"desc": "Filtro opzionale ePM1 55% a boardo macchina",
 	},
 	"dcr1000": {
 		"code": "7910090901",
@@ -2826,9 +2810,9 @@ class Room:
 						if vals[2] == "60":
 							p1x1 += 1
 							if sgn:
-								p1x2_l += 1
+								p1x1_l += 1
 							else:
-								p1x2_r += 1
+								p1x1_r += 1
 
 		area = self.area * scale * scale	
 		active_area = w*h*(4*p2x2 + 2*p2x1 + 2*p1x2 + p1x1)/10000
@@ -3501,18 +3485,23 @@ class Model(threading.Thread):
 	
 		# check if vector is in room
 		for v in self.vectors:
+			p1 = (v.dxf.start[0], v.dxf.start[1])
+			p2 = (v.dxf.end[0], v.dxf.end[1])
+
 			for room in self.processed:
+
 				if (room.contains_vector(v)):
 					# Allocate vector
 					room.vector = v
-					p1 = (v.dxf.start[0], v.dxf.start[1])
-					p2 = (v.dxf.end[0], v.dxf.end[1])
 					norm = dist(p1, p2)
 					uv = room.uvector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
 					room.rot_orig = p1
 					room.rot_angle = -atan2(uv[1], -uv[0])*180/pi
 					break
 			else:
+
+				# Check if vector is vector fixes to collector
+
 				wstr = "ABORT: Vector outside room\n"
 				wstr += ("Check %s layer" % layer_error + 
 					" to visualize errors")
@@ -4696,15 +4685,12 @@ class Model(threading.Thread):
 				desc = cnd['model']
 				qnt = self.best_ac[k]
 				self.text_nav += nav_item(qnt, code, desc)
-				accs = [x['accessories'] 
-						for x in air_conditioners 
-						if x['code']=='7110011002'][0]
+				accs = x['accessories'] 
 				for acc in accs:
 					code = accessories[acc]['code']
 					desc = accessories[acc]['desc']
 					self.text_nav += nav_item(qnt, code, desc)
-					
-	
+						
 		# Abdution lines
 		# Red stripes
 
