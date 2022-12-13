@@ -4571,7 +4571,7 @@ class Model(threading.Thread):
 		if (self.ptype['handler']=='30'):
 			code = '6113021001'
 			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
-			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h)
+			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h))
 			closures += qnt
 			self.text_nav += nav_item(qnt, code, desc)
 		else:
