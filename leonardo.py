@@ -3753,39 +3753,55 @@ class Model(threading.Thread):
 		#if (self.mtype == "warm"):
 		#	return ""
 
-		self.volume = float(self.height) * self.area 
-
 		mtype = self.mtype[:-5]
 		mtype_label = ac_label[mtype]
 		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
 		mount_label = 'verticale' if self.mtype[-4:] == "vert" else 'orizzontale'
 
+		for ac in air_conditioners:
+			if (mtype == ac['type'] and mount == ac['mount']):
+				self.cnd.append(ac)
+
 		html =  '<div class="section" >'
 		html += '<h4>Eurotherm consiglia</h4>'
-		html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
-		html += 'per una portata di %.2f m3/h:</p>' % self.volume
 
-		self.find_air_conditioners()
+		for clt in self.collectors:
+			if not clt.is_leader:
+				continue
+				
+			html += '<p id="suggest"><b><u>Zona %d</u></b></p>' % clt.zone_num
 
-		for k, ac in enumerate(self.cnd):
-			if (self.best_ac[k] > 0):
-				html += '<p id="mtype">%d x ' % self.best_ac[k] + ac['model'] + '</p>'
-		html += '<p id="suggest">copertura %.2f m3/h,' % self.best_flow
-		html += 'eccesso %.2f m3/h</p>' % (self.best_flow-self.volume)
+			zone_area = 0
+			for room in clt.zone_rooms:
+				zone_area += room.area_m2
+
+			self.volume = float(self.height) * zone_area
+
+			html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
+			html += 'per una portata di %.2f m3/h:</p>' % self.volume
+
+			self.find_air_conditioners()
+			self.zone.append(self.best_ac)
+
+			for k, ac in enumerate(self.cnd):
+				if (self.best_ac[k] > 0):
+					html += '<p id="mtype">%d x ' % self.best_ac[k] + ac['model'] + '</p>'
+			html += '<p id="suggest">copertura %.2f m3/h,' % self.best_flow
+			html += 'eccesso %.2f m3/h</p>' % (self.best_flow-self.volume)
+
+		# final count 
+		l = len(self.cnd)
+		self.best_ac = [0]*l
+		for zone in self.zone:
+			for k in range(l):
+				self.best_ac[k] += zone[k]
+
 		html += '</div>'
-
 		return html
 
 
 	def find_air_conditioners(self):
-
-		mtype = self.mtype[:-5]
-		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
-
-		for ac in air_conditioners:
-			if (mtype == ac['type'] and mount == ac['mount']):
-				self.cnd.append(ac)
-		
+	
 		l = len(self.cnd)
 		self.cnd.sort(key= lambda x: x["flow_m3h"]);
 		max_ac = ceil(self.volume/self.cnd[0]["flow_m3h"])
@@ -4516,10 +4532,10 @@ class Model(threading.Thread):
 		desc = 'MANOMETRO'
 		self.text_nav += nav_item(tot_clts, code, desc)
 		code = '4710020306'
-		desc = 'VALVOLE A SFERA'
+		desc = 'COPPIA VALVOLE SFERA SL SQ/DR.1"1/4 F - 1"F'
 		self.text_nav += nav_item(tot_clts, code, desc)
-		code = '4710020301'
-		desc = 'ISOLAMENTO VALVOLE A SFERA'
+		code = '4713010301'
+		desc = 'ISOLAZIONE VALVOLA SFERA SL (coppia)'
 		self.text_nav += nav_item(tot_clts, code, desc)
 
 		# headers (testina)	
