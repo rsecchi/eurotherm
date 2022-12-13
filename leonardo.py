@@ -408,7 +408,7 @@ fittings = {
 		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
 	},
 	"Rac_20_20_20": {
-		"desc":      "20-20-20",
+		"desc":      "20-20-20 (4pz)",
 		"code":      "6910022009",
 		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
 	},
@@ -4466,6 +4466,7 @@ class Model(threading.Thread):
 			(fittings[fit])['count'] = 0 
 
 		if not self.refit:
+			# Count estimated fittings
 			for room in self.processed:
 				if (not hasattr(room.arrangement,'alloc_clt_xside')):
 					continue
@@ -4473,9 +4474,12 @@ class Model(threading.Thread):
 				for cpl in room.arrangement.couplings:
 					if cpl.type == 'invalid':
 						continue
-					(fittings[cpl.type])['count'] += 1
+					(fittings[cpl.type])['count'] += 2
+
+			fittings['Rac_20_20_20']['count'] = 2*self.joints
 				
 		else:
+			# Count actual fittings
 			for e in self.msp:	
 				if e.dxftype() == "INSERT":
 					name = e.block().name
@@ -4491,13 +4495,9 @@ class Model(threading.Thread):
 			fit = fittings[name]
 			if fit['count']:
 				desc = "RACCORDO LEONARDO " + fit['desc']
-				self.text_nav += nav_item(2*fit['count'],
+				self.text_nav += nav_item(fit['count'],
 					fit['code'], desc)
 
-		code = '6910022009'
-		desc = 'RACCORDO LEONARDO 20-20-20 (4pz)'
-		qnt = 2*self.joints
-		self.text_nav += nav_item(qnt, code, desc)
 
 		# Save collectors
 		clt_qnts = [0]*(feeds_per_collector+1)
