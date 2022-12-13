@@ -398,8 +398,23 @@ fittings = {
 					[(-s_fit,0),(-s_fit,h_fit)]]
 	},
 	"Rac_20_20_dritto": {
-		"desc":      "20-20",
+		"desc":      "20-20 Dritto",
 		"code":      "6910022005",
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+	},
+	"Rac_20_20_curva": {
+		"desc":      "20-20 Curva",
+		"code":      "6910022006",
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+	},
+	"Rac_20_20_20": {
+		"desc":      "20-20-20",
+		"code":      "6910022009",
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+	},
+	"Rac_10_10": {
+		"desc":      "10-10",
+		"code":      "6910022013",
 		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
 	}
 }
@@ -4449,7 +4464,11 @@ class Model(threading.Thread):
 				if e.dxftype() == "INSERT":
 					name = e.block().name
 					if name[0:3] == "Rac":
-						fit = "_".join(name.split("_")[:-1])
+						tag = name.split("_")[-1] 
+						if tag=="rosso" or tag=="blu":
+							fit = "_".join(name.split("_")[:-1])
+						else:
+							fit = name
 						fittings[fit]['count'] += 1
 			
 		for name in fittings:
@@ -4524,7 +4543,7 @@ class Model(threading.Thread):
 		# pipes 
 		code = '2112200220'
 		desc = 'TUBO MULTISTRATO 20X2 RIV.ROSSO'
-		qnt = self.area * 0.85
+		qnt = self.area * 0.7
 		self.text_nav += nav_item(qnt, code, desc)
 		code = '2112200120'
 		desc = 'TUBO MULTISTRATO 20X2 RIV.BLU'
@@ -4548,21 +4567,30 @@ class Model(threading.Thread):
 		self.text_nav += nav_item(qnt, code, desc)
 
 		# Control panel
-		code = '6110020103'
-		desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
-		qnt = ceil(0.25*self.laid_half_panels)
-		self.text_nav += nav_item(qnt, code, desc)
-
-		code = '6112020201'
-		desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
-		qnt = ceil(0.25*self.laid_half_panels_h)
-		self.text_nav += nav_item(qnt, code, desc)
-
+		closures = 0
 		if (self.ptype['handler']=='30'):
 			code = '6113021001'
 			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
-			qnt = ceil(0.25*self.laid_half_panels)
+			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h)
+			closures += qnt
 			self.text_nav += nav_item(qnt, code, desc)
+		else:
+			code = '6110020103'
+			desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
+			qnt = ceil(0.25*self.laid_half_panels)
+			closures += qnt
+			self.text_nav += nav_item(qnt, code, desc)
+
+			code = '6112020201'
+			desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
+			qnt = ceil(0.25*self.laid_half_panels_h)
+			closures += qnt
+			self.text_nav += nav_item(qnt, code, desc)
+
+		code = '6920042001'
+		desc = 'COLLA PER QUADRI DI CHIUSURA'
+		qnt = ceil(closures/4.35)
+		self.text_nav += nav_item(qnt, code, desc)
 
 
 		fpanel = self.ptype['flow_panel']
@@ -4571,6 +4599,9 @@ class Model(threading.Thread):
 		smartp_b = 0
 		for room in self.processed:
 			flow = fpanel*room.active_m2/2.4
+
+			if room.color == disabled_room_color:
+				continue
 
 			if not room.zone in zones:
 				zones.append(room.zone)
@@ -4582,7 +4613,8 @@ class Model(threading.Thread):
 				room.zone.zone_count += 1
 				room.zone.flow += flow
 
-			if room.color == bathroom_color:
+			if (room.color == bathroom_color 
+				and room.area_m2<=9):
 				room.zone.smartp_b += 1
 				smartp_b += 1
 			else:
@@ -5032,6 +5064,10 @@ def _create_model(iface):
 	importer.import_block("Rac_10_10_20_10_10_blu")
 	importer.import_block("Rac_10_10_20_10_10_rosso")
 	importer.import_block("Rac_20_20_dritto")
+	importer.import_block("Rac_20_20_curva")
+	importer.import_block("Rac_20_20_20_blu")
+	importer.import_block("Rac_20_20_20_rosso")
+	importer.import_block("Rac_10_10_dritto")
 	importer.finalize()
 
 	iface.model.start()
