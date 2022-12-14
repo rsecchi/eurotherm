@@ -2172,6 +2172,7 @@ class Room:
 		self.joined_lines = list()
 		self.sup = 0
 		self.inf = 0
+		self.fixed_collector = None
 
 		tol = tolerance
 		self.orient = 0
@@ -3498,14 +3499,34 @@ class Model(threading.Thread):
 					self.output_error()
 					return
 	
-		# check if vector is in room
+		# check if vector is in room or 
+		# across collector and room
 		for v in self.vectors:
 			p1 = (v.dxf.start[0], v.dxf.start[1])
 			p2 = (v.dxf.end[0], v.dxf.end[1])
 
+			p1_clt = p2_clt = None
+			for clt in self.collectors:
+				if clt.is_point_inside(p1):
+					p1_clt = clt
+					break;
+
+				if clt.is_point_inside(p2):
+					p2_clt = clt
+					break
+
 			for room in self.processed:
 
-				if (room.contains_vector(v)):
+				if p1_clt and room.is_point_inside(p2):
+					room.fixed_collector = p1_clt
+					break
+
+				if p2_clt and room.is_point_inside(p1):
+					room.fixed_collector = p2_clt
+					break
+
+				if (room.contains_vector(v) and
+					not (p1_clt or p2_clt)):
 					# Allocate vector
 					room.vector = v
 					norm = dist(p1, p2)
@@ -3514,7 +3535,6 @@ class Model(threading.Thread):
 					room.rot_angle = -atan2(uv[1], -uv[0])*180/pi
 					break
 			else:
-
 				# Check if vector is vector fixes to collector
 
 				wstr = "ABORT: Vector outside room\n"
@@ -4076,6 +4096,13 @@ class Model(threading.Thread):
 		for link in room.links:
 			collector, room_dist, uplink = link
 			new_partial = partial + room_dist
+
+			# If room if fixed to a collector, skip
+			# other collectors
+			if (room.fixed_collector and 
+				room.fixed_collector != collector):
+					continue
+
 			if (new_partial+room.bound<self.best_dist and 
 				collector.freespace>=room.feeds and
 				collector.freeflow>=room.flow):
