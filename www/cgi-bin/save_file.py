@@ -15,9 +15,12 @@ from conf import *
 
 
 ####### schedule command ####################
-def schedule_script(fname, units, ptype, control, mtype="", height=""):
-	cmd = "at now <<< '%s %s %s %s %s %s %s > %s 2> %s'" % (script,
-		 fname, units, ptype, control, mtype, height, logfile, logfile)
+def schedule_script(fname, units, ptype, control,
+	laid, cname, caddr, ccomp,
+	mtype="", height=""):
+	cmd = "at now <<< '%s %s %s %s %s %s %s %s %s %s %s > %s 2> %s'" % (script,
+		 fname, units, ptype, control, laid, cname, caddr, ccomp, 
+		mtype, height, logfile, logfile)
 	subprocess.Popen(['/bin/bash', '-c', cmd])
 #############################################
 
@@ -48,12 +51,20 @@ if not os.path.exists(lock_name):
 
 	control = form.getvalue('control')
 
+	# client details
+	laid = form.getvalue('laid').replace(" ", "_")
+	cname = form.getvalue('cname').replace(" ", "_")
+	caddr = form.getvalue('caddr').replace(" ", "_")
+	ccomp = form.getvalue('ccomp').replace(" ", "_")
+
 	if (mtype=='cold'):
 		mtype = regtype + "_" + mnt
 
 	outfile = open(web_filename, 'wb')
 	outfile.write(fileitem.file.read())
-	schedule_script('"'+web_filename+'"', units, ptype, control, mtype, height)
+	schedule_script('"'+web_filename+'"', units, ptype, control, 
+		laid, cname, caddr, ccomp,
+		mtype, height)
 
 ff = open(load_page, "r")
 print(ff.read() % os.path.basename(web_filename))

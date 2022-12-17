@@ -5,6 +5,7 @@ import sys
 from pprint import pprint
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
+from datetime import date
 
 
 import openpyxl
@@ -3059,6 +3060,7 @@ class Model(threading.Thread):
 		self.best_list = list()
 		self.text_nav = ""
 		self.cnd = list()
+		self.laid = "without"
 
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
@@ -4788,45 +4790,14 @@ class Model(threading.Thread):
 
 	def save_in_word(self):
 
-		document = docx.Document()
+		document = docx.Document("file.docx")
 
-		document.add_heading('Offerta Eurotherm', 0)
-
-		#p = document.add_paragraph('A plain paragraph having some ')
-		#p.add_run('bold').bold = True
-		#p.add_run(' and some ')
-		#p.add_run('italic.').italic = True
-		#
-		#document.add_heading('Heading, level 1', level=1)
-		#document.add_paragraph('Intense quote', style='Intense Quote')
-		#
-		#document.add_paragraph(
-		#    'first item in unordered list', style='List Bullet'
-		#)
-		#document.add_paragraph(
-		#    'first item in ordered list', style='List Number'
-		#)
-		#
-		#
-		#records = (
-		#    (3, '101', 'Spam'),
-		#    (7, '422', 'Eggs'),
-		#    (4, '631', 'Spam, spam, eggs, and spam')
-		#)
-		#
-		#table = document.add_table(rows=1, cols=3)
-		#hdr_cells = table.rows[0].cells
-		#hdr_cells[0].text = 'Qty'
-		#hdr_cells[1].text = 'Id'
-		#hdr_cells[2].text = 'Desc'
-		#for qty, id, desc in records:
-		#    row_cells = table.add_row().cells
-		#    row_cells[0].text = str(qty)
-		#    row_cells[1].text = id
-		#    row_cells[2].text = desc
-		#
-		#document.add_page_break()
-		#
+		today = date.today()
+		str_date = str(today.day) + '/' + str(today.month) + '/' + str(today.year)
+		document.paragraphs[7].text = 'Data: ' + str_date
+		document.paragraphs[8].text = 'Cliente: ' + self.cname
+		document.paragraphs[9].text = 'Rif. Cantiere: ' + self.caddr
+		document.paragraphs[10].text = 'Offerta: no. Ref.: ' + self.ccomp
 
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
@@ -5031,6 +5002,12 @@ def _create_model(iface):
 	iface.model.mtype = iface.mtype
 	iface.model.height = iface.height
 
+	if web_version and iface.laid=="with":
+		iface.model.laid = "with"
+		iface.model.cname = iface.cname
+		iface.model.caddr = iface.caddr
+		iface.model.ccomp = iface.ccomp
+
 	if iface.model.refit:
 		if (not web_version):
 			ctype = iface.type.get()
@@ -5041,6 +5018,7 @@ def _create_model(iface):
 				iface.model.ptype = ptype
 		iface.model.start()
 		return
+
 
 	# copy input layer from source
 	importer = Importer(iface.doc, iface.model.doc)
@@ -5117,7 +5095,9 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self, infile, units, ptype, control, mtype, height):
+	def __init__(self, infile, units, ptype, control, 
+	  laid, cname, caddr, ccomp,
+	  mtype, height):
 		self.filename = web_filename
 		self.scale = units
 		self.control = control
@@ -5126,6 +5106,11 @@ class Iface:
 		self.inputlayer = default_input_layer
 		self.textinfo = self
 		self.outname = infile
+
+		self.laid = laid
+		self.cname = cname
+		self.caddr = caddr
+		self.ccomp = ccomp
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == ptype):
@@ -5164,12 +5149,20 @@ if (web_version):
 		units = sys.argv[2]	
 		ptype = sys.argv[3]
 		control = sys.argv[4]
-		mtype = sys.argv[5]
-		height = sys.argv[6]
+
+		laid = sys.argv[5]
+		cname = sys.argv[6]
+		caddr = sys.argv[7]
+		ccomp = sys.argv[8]
+
+		mtype = sys.argv[9]
+		height = sys.argv[10]
 
 		os.rename(filename, web_filename)
 		
-		Iface(filename, units, ptype, control, mtype, height)
+		Iface(filename, units, ptype, control, 
+			laid, cname, caddr, ccomp,
+			mtype, height)
 	else:
 		print("resource busy")
 
