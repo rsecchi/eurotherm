@@ -281,7 +281,7 @@ accessories = {
 		"code": "7910010201",
 		"desc": "Telaio da murare"
 	},
-	"griglia1:": {
+	"griglia1": {
 		"code": "7910010101",
 		"desc": "Griglia in legno laccato"
 	},
