@@ -3691,7 +3691,7 @@ class Model(threading.Thread):
 
 		self.save_in_xls()
 		self.save_navision()
-		if not self.refit:
+		if not self.refit and self.laid != "without":
 			self.save_in_word()
 
 		print("ALL DONE")
