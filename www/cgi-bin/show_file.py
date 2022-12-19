@@ -62,6 +62,8 @@ else:
 	print('<h4>Risultati calcolo tecnico</h4><ul>')
 	fname = {}
 	for ftype in ftypes:
+		if not os.path.exists(output[ftype]):
+			continue
 		ff = os.path.basename(os.readlink(output[ftype]))
 		print('\t<li><span>Scarica file %s</span>' % ftype, end="")
 		print('[<a href="/output/%s" download>%s</a>]</li>' % (ff, ff)) 
