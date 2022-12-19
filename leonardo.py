@@ -4279,51 +4279,51 @@ class Model(threading.Thread):
 		no_collectors = len(self.collectors)
 
 		# copy total area
-		ws1['D3'] = self.area
-		ws2['D3'] = self.area
-		ws3['D3'] = self.area
-		ws1['D4'] = self.area
-		ws2['D4'] = self.area
-		ws3['D4'] = self.area
+		ws1['B14'] = self.area
+		ws2['B14'] = self.area
+		ws3['B14'] = self.area
+		ws1['B18'] = self.area
+		ws2['B18'] = self.area
+		ws3['B18'] = self.area
 
 		# copy total coverage
-		ws1['C3'] = self.active_area
-		ws2['C3'] = self.active_area
-		ws3['C3'] = self.active_area
-		ws1['C4'] = self.active_area
-		ws2['C4'] = self.active_area
-		ws3['C4'] = self.active_area
+		ws1['A14'] = self.active_area
+		ws2['A14'] = self.active_area
+		ws3['A14'] = self.active_area
+		ws1['A18'] = self.active_area
+		ws2['A18'] = self.active_area
+		ws3['A18'] = self.active_area
 
 		# copy total panels
-		ws1['F3'] = ws1['F4'] = self.panels_120x200 + self.panels_h_120x200
-		ws1['F3'] = ws1['F4'] = self.panels_120x200 + self.panels_h_120x200
-		ws2['F3'] = ws2['F4'] = self.panels_120x200 + self.panels_h_120x200
-		ws2['F3'] = ws2['F4'] = self.panels_120x200 + self.panels_h_120x200
-		ws3['F3'] = ws3['F4'] = self.panels_120x200 + self.panels_h_120x200
-		ws3['F3'] = ws3['F4'] = self.panels_120x200 + self.panels_h_120x200
+		ws1['D14'] = ws1['D18'] = self.panels_120x200 + self.panels_h_120x200
+		ws1['D14'] = ws1['D18'] = self.panels_120x200 + self.panels_h_120x200
+		ws2['D14'] = ws2['D18'] = self.panels_120x200 + self.panels_h_120x200
+		ws2['D14'] = ws2['D18'] = self.panels_120x200 + self.panels_h_120x200
+		ws3['D14'] = ws3['D18'] = self.panels_120x200 + self.panels_h_120x200
+		ws3['D14'] = ws3['D18'] = self.panels_120x200 + self.panels_h_120x200
 
-		ws1['G3'] = ws1['G4'] = self.panels_60x200 + self.panels_h_60x200
-		ws1['G3'] = ws1['G4'] = self.panels_60x200 + self.panels_h_60x200
-		ws2['G3'] = ws2['G4'] = self.panels_60x200 + self.panels_h_60x200
-		ws2['G3'] = ws2['G4'] = self.panels_60x200 + self.panels_h_60x200
-		ws3['G3'] = ws3['G4'] = self.panels_60x200 + self.panels_h_60x200
-		ws3['G3'] = ws3['G4'] = self.panels_60x200 + self.panels_h_60x200
+		ws1['E14'] = ws1['E18'] = self.panels_60x200 + self.panels_h_60x200
+		ws1['E14'] = ws1['E18'] = self.panels_60x200 + self.panels_h_60x200
+		ws2['E14'] = ws2['E18'] = self.panels_60x200 + self.panels_h_60x200
+		ws2['E14'] = ws2['E18'] = self.panels_60x200 + self.panels_h_60x200
+		ws3['E14'] = ws3['E18'] = self.panels_60x200 + self.panels_h_60x200
+		ws3['E14'] = ws3['E18'] = self.panels_60x200 + self.panels_h_60x200
 
 		# copy number of feeds
-		ws1['H3'] = ws1['H4'] = self.feeds
-		ws1['H3'] = ws1['H4'] = self.feeds
-		ws2['H3'] = ws2['H4'] = self.feeds
-		ws2['H3'] = ws2['H4'] = self.feeds
-		ws3['H3'] = ws3['H4'] = self.feeds
-		ws3['H3'] = ws3['H4'] = self.feeds
+		ws1['F14'] = ws1['F18'] = self.feeds
+		ws1['F14'] = ws1['F18'] = self.feeds
+		ws2['F14'] = ws2['F18'] = self.feeds
+		ws2['F14'] = ws2['F18'] = self.feeds
+		ws3['F14'] = ws3['F18'] = self.feeds
+		ws3['F14'] = ws3['F18'] = self.feeds
 
 		# copy number of collectors 
-		ws1['I3'] = ws1['I4'] = no_collectors 
-		ws1['I3'] = ws1['I4'] = no_collectors 
-		ws2['I3'] = ws2['I4'] = no_collectors 
-		ws2['I3'] = ws2['I4'] = no_collectors 
-		ws3['I3'] = ws3['I4'] = no_collectors 
-		ws3['I3'] = ws3['I4'] = no_collectors 
+		ws1['G14'] = ws1['G18'] = no_collectors 
+		ws1['G14'] = ws1['G18'] = no_collectors 
+		ws2['G14'] = ws2['G18'] = no_collectors 
+		ws2['G14'] = ws2['G18'] = no_collectors 
+		ws3['G14'] = ws3['G18'] = no_collectors 
+		ws3['G14'] = ws3['G18'] = no_collectors 
 
 		if show_panel_list:
 			for sheet, warm_coef, cool_coef, wsh in sheet_bd:
@@ -4442,7 +4442,7 @@ class Model(threading.Thread):
 					ws[pos].number_format = "0"
 
 					pos = 'P' + str(index)
-					ws[pos] = 3.6*output/(4.186*wsh['M3'].value)
+					ws[pos] = 3.6*output/(4.186*wsh['K14'].value)
 					ws[pos].number_format = "0"
 
 					# cooling
@@ -4455,7 +4455,7 @@ class Model(threading.Thread):
 					ws[pos].number_format = "0"
 
 					pos = 'T' + str(index)
-					ws[pos] = 3.6*output/(4.186*wsh['M4'].value)
+					ws[pos] = 3.6*output/(4.186*wsh['K18'].value)
 					ws[pos].number_format = "0"
 
 
