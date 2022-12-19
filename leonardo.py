@@ -4794,11 +4794,32 @@ class Model(threading.Thread):
 
 		today = date.today()
 		str_date = str(today.day) + '/' + str(today.month) + '/' + str(today.year)
-		document.paragraphs[7].text = 'Data: ' + str_date
-		document.paragraphs[8].text = 'Cliente: ' + self.cname
-		document.paragraphs[9].text = 'Rif. Cantiere: ' + self.caddr
-		document.paragraphs[10].text = 'Offerta: no. Ref.: ' + self.ccomp
+		document.paragraphs[24].text = 'Data: ' + str_date
+		document.paragraphs[25].text = 'Cliente: ' + self.cname
+		document.paragraphs[26].text = 'Rif. Cantiere: ' + self.caddr
+		document.paragraphs[27].text = 'Commessa: no. Ref.: ' + self.ccomp
 
+		# table costs
+		mq = "%.2f" % self.area
+		document.tables[0].cell(1,1).text = mq
+		document.tables[0].cell(2,1).text = mq
+		document.tables[0].cell(3,1).text = mq
+
+		cost1_mq = float(document.tables[0].cell(1,2).text.replace(",","."))
+		cost2_mq = float(document.tables[0].cell(2,2).text.replace(",","."))
+		cost3_mq = float(document.tables[0].cell(3,2).text.replace(",","."))		
+
+		t1 = "%.2f" % (self.area*cost1_mq)	
+		t2 = "%.2f" % (self.area*cost2_mq)	
+		t3 = "%.2f" % (self.area*cost3_mq)	
+		tot1 = 'EUR ' + t1.replace(".",",")
+		tot2 = 'EUR ' + t2.replace(".",",")
+		tot3 = 'EUR ' + t3.replace(".",",")
+	
+		document.tables[0].cell(1,3).text = tot1
+		document.tables[0].cell(2,3).text = tot2
+		document.tables[0].cell(3,3).text = tot3
+		
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
 		else:
