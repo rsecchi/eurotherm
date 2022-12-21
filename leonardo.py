@@ -4658,7 +4658,8 @@ class Model(threading.Thread):
 				room.zone.zone_count += 1
 				room.zone.flow += flow
 
-			if (room.color == bathroom_color 
+			if (self.mtype == "warm" or 
+				room.color == bathroom_color 
 				and room.area_m2<=9):
 				room.zone.smartp_b += 1
 				smartp_b += 1
