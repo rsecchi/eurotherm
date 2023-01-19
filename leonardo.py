@@ -4607,8 +4607,11 @@ class Model(threading.Thread):
 		desc = 'CURVA LEONARDO 20-20 (4pz)'
 		qnt = ceil(0.04*self.area)
 		self.text_nav += nav_item(qnt, code, desc)
+
+		# linear joint
 		code = '6910022005'
 		desc = 'RACCORDO LEONARDO 20-20 (4pz)'
+		qnt = fittings['Rac_20_20_dritto']['count']
 		self.text_nav += nav_item(qnt, code, desc)
 
 		# Control panel
