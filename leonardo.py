@@ -54,7 +54,7 @@ panel_types = [
         "flow_panel" : 56,
 		"code_full"  : "6113010431",
 		"desc_full"  : "LEONARDO 5,5 MS - 1200x2000x50mm",
-		"code_half"  : "6114010432",
+		"code_half"  : "6113010432",
 		"desc_half"  : "LEONARDO 5,5 MS - 600x2000x50mm",
 		"code_full_h": "6114010411",
 		"desc_full_h": "LEONARDO 5,5 IDRO MS - 1200x2000x50mm",
