@@ -4527,31 +4527,23 @@ class Model(threading.Thread):
 				self.text_nav += nav_item(fit['count'],
 					fit['code'], desc)
 
-
-		# Save collectors
+		# use collector labels to count collectors and circuits
 		clt_qnts = [0]*(feeds_per_collector+1)
 		tot_cirs = 0
-		if not self.refit:
-			tot_clts = len(self.collectors)
-			for c in self.collectors:
-				clt_qnts[c.req_feeds] += 1
-				tot_cirs += c.req_feeds 
-		
-			for i in range(1,feeds_per_collector+1):
-				if (clt_qnts[i] == 0):
-					continue
-				code = '41200101%02d' % i
-				desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
-				self.text_nav += nav_item(clt_qnts[i],code, desc)	
-		else:
-			tot_clts = 0
-			# use collector labels when refitting
-			for e in self.msp.query('*[layer=="%s"]' % layer_text):	
-				if e.dxftype() == "MTEXT" and e.text[0] == 'C':
-					tot_clts += 1
-					tag = e.text.split()[1][1:-1]
-					feeds = int(tag.split("+")[0])
-					clt_qnts[feeds] += 1
+		for e in self.msp.query('*[layer=="%s"]' % layer_text):	
+			if e.dxftype() == "MTEXT" and e.text[0] == 'C':
+				tot_clts += 1
+				tag = e.text.split()[1][1:-1]
+				feeds = int(tag.split("+")[0])
+				clt_qnts[feeds] += 1
+				tot_cirs += feeds
+
+		for i in range(1,feeds_per_collector+1):
+			if (clt_qnts[i] == 0):
+				continue
+			code = '41200101%02d' % i
+			desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
+			self.text_nav += nav_item(clt_qnts[i],code, desc)	
 
 		# Hatch (botola)
 		code = '6920012001'
