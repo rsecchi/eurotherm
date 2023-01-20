@@ -4514,8 +4514,6 @@ class Model(threading.Thread):
 				fittings['Rac_10_20_10_10']['count'] +
 				fittings['Rac_10_10_20_10_10']['count'])//2
 
-		print("Found", plugs, "lines")
-
 		for name in fittings:
 			fit = fittings[name]
 			if fit['count']:
@@ -4535,12 +4533,20 @@ class Model(threading.Thread):
 				clt_qnts[feeds] += 1
 				tot_cirs += feeds
 
+		tot_adpt = 0
 		for i in range(1,feeds_per_collector+1):
+			tot_adpt += clt_qnts[i]*i
 			if (clt_qnts[i] == 0):
 				continue
 			code = '41200101%02d' % i
 			desc = 'COLLETTORE SL 1" %02d+%02d COMPLETO' % (i,i)
 			self.text_nav += nav_item(clt_qnts[i],code, desc)	
+		
+		# Adaptors
+		code = '6910022011'
+		desc = 'ADATTATORE'
+		qnt = 2*tot_adpt
+		self.text_nav += nav_item(qnt,code, desc)
 
 		# Hatch (botola)
 		code = '6920012001'
@@ -4557,9 +4563,10 @@ class Model(threading.Thread):
 		self.text_nav += nav_item(tot_clts, code, desc)
 
 		# headers (testina)	
-		code = '5150020201'
-		desc = 'TESTINE 4 FILI'
-		self.text_nav += nav_item(tot_cirs, code, desc)
+		if not self.control == "reg":
+			code = '5150020201'
+			desc = 'TESTINE ELETTROTERMICHE 4 FILI'
+			self.text_nav += nav_item(tot_cirs, code, desc)
 		#code = '5150020202'
 		#desc = 'TESTINE 2 FILI'
 		#self.text_nav += nav_item(tot_cirs, code, desc)
@@ -4606,7 +4613,7 @@ class Model(threading.Thread):
 		# rings
 		code = '6910022011'
 		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'
-		qnt = 2*plugs + 3*2*self.joints + 2*qnt1 + 2*qnt2
+		qnt = 2*tot_cirs + 3*2*self.joints + 2*qnt1 + 2*qnt2
 		self.text_nav += nav_item(qnt, code, desc)
 
 
@@ -4692,10 +4699,11 @@ class Model(threading.Thread):
 
 
 		# Smart Confort
-		code = '5150020202'
-		desc = 'TESTINE ELETTROTERMICHE 2 FILI'
-		qnt = tot_cirs
-		self.text_nav += nav_item(qnt, code, desc)
+		if self.control == "reg":
+			code = '5150020202'
+			desc = 'TESTINE ELETTROTERMICHE 2 FILI'
+			qnt = tot_cirs
+			self.text_nav += nav_item(qnt, code, desc)
 		
 		code = '5140030101'
 		desc = 'SMARTCOMFORT 365'
