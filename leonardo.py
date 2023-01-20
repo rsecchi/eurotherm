@@ -4462,6 +4462,7 @@ class Model(threading.Thread):
 					#ws[pos_area].number_format = "0.00"
 					index += 1
 
+
 		if (web_version):
 			out = self.outname[:-4] + ".xlsx"
 		else:
@@ -4785,6 +4786,20 @@ class Model(threading.Thread):
 						
 		# Abdution lines
 		# Red stripes
+
+		# corrosion inhibitor
+		code = '3310020201'
+		desc = 'e100 INIBITORE'
+		if self.ptype['handler'] == '55':
+			water = self.active_area*0.043*16.67 + self.area*0.41
+
+		if self.ptype['handler'] == '35':
+			water = self.active_area*0.043*23.34 + self.area*0.41
+		
+		if self.ptype['handler'] == '30':
+			water = self.active_area*0.043*27.50 + self.area*0.41
+
+		self.text_nav += nav_item(ceil(water/100), code, desc)	
 
 
 		if (web_version):
