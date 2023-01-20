@@ -4494,32 +4494,28 @@ class Model(threading.Thread):
 		for fit in fittings:
 			(fittings[fit])['count'] = 0 
 
-		if not self.refit:
-			# Count estimated fittings
-			for room in self.processed:
-				if (not hasattr(room.arrangement,'alloc_clt_xside')):
-					continue
+		for e in self.msp:	
+			if e.dxftype() == "INSERT":
+				name = e.block().name
+				if name[0:3] == "Rac":
+					tag = name.split("_")[-1] 
+					if tag=="rosso" or tag=="blu":
+						fit = "_".join(name.split("_")[:-1])
+					else:
+						fit = name
+					fittings[fit]['count'] += 1
 
-				for cpl in room.arrangement.couplings:
-					if cpl.type == 'invalid':
-						continue
-					(fittings[cpl.type])['count'] += 2
+		fittings['Rac_20_20_20']['count'] = 2*self.joints
+		
+		# count the plugs == circuits
+		plugs = (fittings['Rac_20_10']['count'] +
+				fittings['Rac_20_10_10']['count'] +
+				fittings['Rac_10_20_10']['count'] +
+				fittings['Rac_10_20_10_10']['count'] +
+				fittings['Rac_10_10_20_10_10']['count'])//2
 
-			fittings['Rac_20_20_20']['count'] = 2*self.joints
-				
-		else:
-			# Count actual fittings
-			for e in self.msp:	
-				if e.dxftype() == "INSERT":
-					name = e.block().name
-					if name[0:3] == "Rac":
-						tag = name.split("_")[-1] 
-						if tag=="rosso" or tag=="blu":
-							fit = "_".join(name.split("_")[:-1])
-						else:
-							fit = name
-						fittings[fit]['count'] += 1
-			
+		print("Found", plugs, "lines")
+
 		for name in fittings:
 			fit = fittings[name]
 			if fit['count']:
@@ -4597,11 +4593,21 @@ class Model(threading.Thread):
 		# bent joint
 		code = '6910022006'
 		desc = 'CURVA LEONARDO 20-20 (4pz)'
-		qnt = ceil(0.04*self.area)
-		self.text_nav += nav_item(qnt, code, desc)
+		qnt1 = ceil(0.04*self.area)
+		self.text_nav += nav_item(qnt1, code, desc)
+
+		# linear joint
 		code = '6910022005'
 		desc = 'RACCORDO LEONARDO 20-20 (4pz)'
+		qnt2 = fittings['Rac_20_20_dritto']['count']
+		self.text_nav += nav_item(qnt2, code, desc)
+
+		# rings
+		code = '6910022011'
+		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'
+		qnt = 2*plugs + 3*2*self.joints + 2*qnt1 + 2*qnt2
 		self.text_nav += nav_item(qnt, code, desc)
+
 
 		# Control panel
 		closures = 0
