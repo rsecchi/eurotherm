@@ -39,11 +39,10 @@ else:
 		del_file = tmp + strval[1:-1]
 		if (os.path.exists(del_file)):
 			os.remove(del_file)
-			os.remove(del_file[:-4] + ".txt")
-			os.remove(del_file[:-4] + ".xlsx")
-			os.remove(del_file[:-4] + ".dat")
-			os.remove(del_file[:-4] + ".doc")
-
+			for ext in [".txt", ".xlsx", ".dat", ".doc"]:
+				ff = del_file[:-4] + ext
+				if os.path.exists(ff):
+					os.remove(ff)
 
 	print('<div class="section">')
 	print('<h4>File dispobili sul server</h4>')
