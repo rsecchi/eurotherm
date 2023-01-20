@@ -4526,6 +4526,7 @@ class Model(threading.Thread):
 		# use collector labels to count collectors and circuits
 		clt_qnts = [0]*(feeds_per_collector+1)
 		tot_cirs = 0
+		tot_clts = 0
 		for e in self.msp.query('*[layer=="%s"]' % layer_text):	
 			if e.dxftype() == "MTEXT" and e.text[0] == 'C':
 				tot_clts += 1
