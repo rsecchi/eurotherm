@@ -4477,6 +4477,7 @@ class Model(threading.Thread):
 		#	os.symlink(out, slink)
 
 	def save_navision(self):
+		global scale
 
 		# Save panels
 		self.text_nav += nav_item(self.panels_120x200*2.4, 
@@ -4594,8 +4595,15 @@ class Model(threading.Thread):
 		code = '2720200120'
 		desc = 'LINEA AGG. PERT-AL-PERT + ANELLI E TERMIN. (2m)'
 		qnt = 0
-		for room in self.processed:
-			qnt += room.arrangement.strip_len
+		for e in self.msp.query('*[layer=="%s"]' % layer_panelp):
+			if e.dxftype() == "LWPOLYLINE":
+				points = list(e.vertices())	
+				mdist = 0
+				for i in range(len(points)-1):
+					mdist = max(mdist, dist(points[i], points[i+1]))
+				mdist = int(np.round(mdist*scale/100))
+				qnt += mdist
+
 		qnt = ceil(qnt/2)
 		self.text_nav += nav_item(qnt, code, desc)
 
