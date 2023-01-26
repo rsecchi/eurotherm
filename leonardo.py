@@ -91,9 +91,9 @@ panel_types = [
 		"code_half"  : "6113011002",
 		"desc_half"  : "LEONARDO 3,0 PLUS MS - 600x2000x50mm",
 		"code_full_h": "6113011001",
-		"desc_full_h": "LEONARDO 3,0 PLUS IDRO MS - 1200x2000x50mm",
+		"desc_full_h": "LEONARDO 3,0 PLUS MS - 1200x2000x50mm",
 		"code_half_h": "6113011002",
-		"desc_half_h": "LEONARDO 3,0 PLUS IDRO MS - 600x2000x50mm",
+		"desc_half_h": "LEONARDO 3,0 PLUS MS - 600x2000x50mm",
     }
 ]
 
@@ -5106,10 +5106,16 @@ def _create_model(iface):
 			block_blue_60x100 = handler + "60"
 			block_green_120x100 = handler + "120_IDRO"
 			block_green_60x100 = handler + "60_IDRO"
+
+			if handler == "LEO_30_":
+				block_green_120x100 = block_blue_120x100
+				block_green_60x100 = block_blue_60x100
+
 			area_per_feed_m2 = ptype['panels'] * 2.4
 			flow_per_m2 = ptype['flow_panel'] / 2.4
 			iface.print('Area/line = %g m2\n' % area_per_feed_m2)
 			iface.print('Flow_per_m2 = %g l/m2\n' % flow_per_m2)
+
 
 	importer.import_block(block_blue_120x100)
 	importer.import_block(block_blue_60x100)
