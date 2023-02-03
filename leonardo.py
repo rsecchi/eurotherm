@@ -944,6 +944,27 @@ class Panel:
 		self.pos = (self.xcoord, self.ycoord)
 		self.stripe = False
 
+	def center(self):
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = ay + self.height
+
+		cx = (ax+bx)/2
+		cy = (ay+by)/2
+		
+		if (self.mode==1):
+			cx, cy = cy, cx
+
+		c = cx, cy
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			c = rotate(c, rot, uv)
+
+		return c
+
 	def polyline(self):
 
 		ax = self.xcoord; bx = ax + self.width
@@ -3115,6 +3136,26 @@ class Room:
 				is_closed=True,
 				flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
 
+	def draw_probes(self, msp):
+
+		if len(self.panels) == 0:
+			return
+
+		if (self.color==bathroom_color):
+			probe_type = "sonda T"
+
+		if (self.color==valid_room_color):
+			probe_type = "sonda T_U"
+
+		x, y = self.panels[0].center()
+		x = x - 25/scale
+		y = y - 25/scale
+
+		probe = msp.add_blockref(probe_type, (x,y), 
+			dxfattribs={'xscale': 0.07/scale, 
+   						'yscale': 0.07/scale})
+		
+
 	def draw(self, msp):
 	
 		if (debug):
@@ -3129,6 +3170,8 @@ class Room:
 		self.draw_lines(msp)
 		self.draw_label(msp)
 		self.draw_passive(msp)
+
+		self.draw_probes(msp)
 
 
 class Model(threading.Thread):
@@ -5233,6 +5276,8 @@ def _create_model(iface):
 	importer.import_block("Rac_20_20_20_blu")
 	importer.import_block("Rac_20_20_20_rosso")
 	importer.import_block("Rac_10_10_dritto")
+	importer.import_block("sonda T")
+	importer.import_block("sonda T_U")
 	importer.finalize()
 
 	iface.model.start()
