@@ -1073,6 +1073,61 @@ class Panel:
 
 		block.dxf.layer = layer_panel
 
+	def poly(self):
+
+		ax = self.xcoord; bx = ax + self.width
+		ay = self.ycoord; by = self.ycoord + self.height
+
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+		
+		if (self.mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
+
+		return pline
+
+	def lux_poly(self):
+
+		global scale
+
+		if not self.size[1] == 2:
+			return
+
+		if self.size == (2,2):
+			ax = self.xcoord + 27.5/scale; bx = ax + 145/scale
+
+		if self.size == (1,2) and (self.side==0 or self.side==1):
+			ax = self.xcoord + 27.5/scale; bx = ax + 72.5/scale
+			
+		if self.size == (1,2) and (self.side==2 or self.side==3):
+			ax = self.xcoord; bx = ax + 72.5/scale
+		
+		ay = self.ycoord + 51/scale; by = ay + 18/scale
+
+		pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+
+		if (self.mode==1):
+			for i in range(0,len(pline)):
+				pline[i] = (pline[i][1], pline[i][0])
+
+		if (self.cell.room.vector):
+			room = self.cell.room
+			rot = room.rot_orig
+			uv = room.uvector
+			uv = (uv[0], -uv[1])
+			for i in range(len(pline)):
+				pline[i] = rotate(pline[i], rot, uv)
+
+		return pline
+
 
 	def draw(self, msp):
 
@@ -3030,6 +3085,36 @@ class Room:
 		pfront = miter(pfront, add_offs)	
 		return pfront
 
+	def draw_passive(self, msp):
+		global scale
+
+		hatch = msp.add_hatch(color=stripe_color)
+		hatch.set_pattern_fill("ANSI31", scale=5/scale)
+
+		hatch.paths.add_polyline_path(self.points, 
+			is_closed=True,
+			flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL)
+
+		hatch.dxf.layer = layer_panelp
+
+		for panel in self.panels:
+			hatch.paths.add_polyline_path(panel.poly(), 
+				is_closed=True,
+				flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
+
+			# draw lux
+			if panel.size[1] == 2:
+				lux = msp.add_hatch(color=stripe_color)
+				lux.set_pattern_fill("ANSI31", scale=5/scale)
+				lux.paths.add_polyline_path(panel.lux_poly(), 
+					is_closed=True)
+				
+
+		for obstacle in self.obstacles:
+			hatch.paths.add_polyline_path(obstacle.points, 
+				is_closed=True,
+				flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
+
 	def draw(self, msp):
 	
 		if (debug):
@@ -3043,6 +3128,7 @@ class Room:
 
 		self.draw_lines(msp)
 		self.draw_label(msp)
+		self.draw_passive(msp)
 
 
 class Model(threading.Thread):
