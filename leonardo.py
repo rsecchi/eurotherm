@@ -467,6 +467,7 @@ layer_panel     = 'Pannelli Leonardo'
 layer_panelp    = 'Eurotherm_prof'
 layer_link      = 'Eurotherm_link'
 layer_error     = 'Eurotherm_error'
+layer_lux       = 'Eurotherm_lux'
 layer_collector = 'Collettori'
 
 text_color = 7
@@ -3116,7 +3117,7 @@ class Room:
 			is_closed=True,
 			flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL)
 
-		hatch.dxf.layer = layer_panelp
+		hatch.dxf.layer = layer_lux
 
 		for panel in self.panels:
 			hatch.paths.add_polyline_path(panel.poly(), 
@@ -3126,10 +3127,12 @@ class Room:
 			# draw lux
 			if panel.size[1] == 2:
 				lux = msp.add_hatch(color=stripe_color)
+				lux.dxf.layer = layer_lux
 				lux.set_pattern_fill("ANSI31", scale=5/scale)
-				lux.paths.add_polyline_path(panel.lux_poly(), 
-					is_closed=True)
-				
+				luxp = panel.lux_poly()
+				lux.paths.add_polyline_path(luxp, is_closed=True)
+				pl = msp.add_lwpolyline(luxp)
+				pl.dxf.layer = layer_lux	
 
 		for obstacle in self.obstacles:
 			hatch.paths.add_polyline_path(obstacle.points, 
@@ -3204,6 +3207,7 @@ class Model(threading.Thread):
 		self.new_layer(layer_link, 0)
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_error, 0)
+		self.new_layer(layer_lux, 0)
 
 	def find_gates(self):
 		
