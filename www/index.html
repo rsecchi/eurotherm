@@ -54,6 +54,51 @@
 		}
 
 
+		function update_iface()
+		{
+			var obj = document.getElementById("ta");
+			if (obj.selectedIndex=="0" ) {
+				show_div()
+			} else {
+				hide_div()
+			}
+		}
+
+		function update() {
+			var obj = document.getElementById("control");
+			var air = document.getElementById("air");
+			var ta = document.getElementById("ta");
+			if (obj.selectedIndex=="0" ) {
+				air.style.display = 'block';
+				if (ta.selectedIndex=="0") {
+					show_div()
+				}
+			} else {
+				air.style.display = 'none';
+				hide_div()
+			}
+		}
+
+		function cold() {
+			var cnt = document.getElementById("control");
+			var ta = document.getElementById("ta");
+			var air = document.getElementById("air");
+			cnt.value = 'reg'
+			ta.value = 'ta'
+			cnt.disabled = true
+			ta.disabled = true
+			air.style.display = 'block';
+			show_div()
+		}
+
+		function warm() {
+			var cnt = document.getElementById("control");
+			var ta = document.getElementById("ta");
+			var air = document.getElementById("air");
+			cnt.disabled = false
+			ta.disabled = false	
+		}
+
 	</script>
 </head>
 
@@ -88,8 +133,8 @@
 
 	<div class="section">
 		<h4>Seleziona dettagli impianto</h4>
-			<p id="ra"><input type="radio" checked="yes" name="head" value="warm" onchange="hide_div()"/>Solo riscaldamento</p>
-  			<p id="ra"><input type="radio"  name="head" value="cold" onchange="show_div()"/>Riscaldamento/raffrescamento </p>
+			<p id="ra"><input type="radio" checked="yes" id="radio" name="head" value="warm" onchange="warm()">Solo riscaldamento</p>
+  			<p id="ra"><input type="radio"  name="head" id="radio" value="cold" onchange="cold()"=>Riscaldamento/raffrescamento </p>
 		<label for="ptype">Tipologia:</label>
 		<select name="ptype">
     		<option value="55">Leonardo 5,5</option>
@@ -98,11 +143,20 @@
 		</select>
 		<p id="clt">
 		<label for="ptype">Regolazione:</label>
-		<select name="control">
-    		<option value="reg">Con regolazione</option>
-  			<option value="noreg">Senza regolazione</option>
+		<select name="control" id="control" onchange="update()">
+    		<option value="reg"/>Con regolazione</option>
+  			<option value="noreg"/>Senza regolazione</option>
 		</select>
 		</p>
+
+		<p id="air">
+		<label for="ta" id="air_label">Trattamento Aria:</label>
+		<select name="ta" id="ta" onchange="update_iface()">
+    		<option value="ta">Con trattamento aria</option>
+  			<option value="nota">Senza trattamento aria</option>
+		</select>
+		</p>
+
 	</div>
 	<div class="section" style="display:none" id="reg">
 		<h4>Trattamento Aria</h4>
@@ -178,6 +232,7 @@
 			fileref.value = this.value.replace(/.*[\/\\]/, '');
 		};
 
+		show_div()
 	</script>
 </body>
 

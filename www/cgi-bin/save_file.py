@@ -50,12 +50,16 @@ if not os.path.exists(lock_name):
 	height = form.getvalue('height')
 
 	control = form.getvalue('control')
+	ta = form.getvalue('ta')
 
 	# client details
 	laid = form.getvalue('laid').replace(" ", "_")
 	cname = form.getvalue('cname').replace(" ", "_")
 	caddr = form.getvalue('caddr').replace(" ", "_")
 	ccomp = form.getvalue('ccomp').replace(" ", "_")
+
+	if mtype=='warm' and control=='reg' and ta=="ta":
+		mtype = 'cold'
 
 	if (mtype=='cold'):
 		mtype = regtype + "_" + mnt

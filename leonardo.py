@@ -3901,8 +3901,11 @@ class Model(threading.Thread):
 		print("DRAW DONE")
 
 	def output_html(self):
-		#if (self.mtype == "warm"):
-		#	return ""
+
+		print("self.mtype", self.mtype)
+
+		if (self.mtype == "warm"):
+			return ""
 
 		mtype = self.mtype[:-5]
 		mtype_label = ac_label[mtype]
@@ -4621,6 +4624,16 @@ class Model(threading.Thread):
 		self.text_nav += nav_item(self.panels_h_60x200*1.2, 
 				self.ptype['code_half_h'], self.ptype['desc_half_h'])
 
+		# Passive panels
+		code = '6111020101'
+		desc = 'LEONARDO PASSIVO 1200x2000x50mm'
+		qnt = 1.05*self.normal_passive_area
+		self.text_nav += nav_item(qnt, code, desc)
+		code = '6114020201'
+		desc = 'LEONARDO PASSIVO IDRO 1200x2000x50mm'
+		qnt = 1.05*self.bathroom_passive_area
+		self.text_nav += nav_item(qnt, code, desc)
+
 		# Save couplings
 		for fit in fittings:
 			(fittings[fit])['count'] = 0 
@@ -4702,15 +4715,6 @@ class Model(threading.Thread):
 		#desc = 'TESTINE 2 FILI'
 		#self.text_nav += nav_item(tot_cirs, code, desc)
 		
-		# Passive panels
-		code = '6111020101'
-		desc = 'LEONARDO PASSIVO 1200x2000x50mm'
-		qnt = 1.05*self.normal_passive_area
-		self.text_nav += nav_item(qnt, code, desc)
-		code = '6114020201'
-		desc = 'LEONARDO PASSIVO IDRO 1200x2000x50mm'
-		qnt = 1.05*self.bathroom_passive_area
-		self.text_nav += nav_item(qnt, code, desc)
 
 		# pipes 
 		code = '2112200220'
@@ -4781,104 +4785,102 @@ class Model(threading.Thread):
 		qnt = ceil(closures/4.35)
 		self.text_nav += nav_item(qnt, code, desc)
 
-
-		fpanel = self.ptype['flow_panel']
-		zones = list()
-		smartp = 0
-		smartp_b = 0
-		for room in self.processed:
-			flow = fpanel*room.active_m2/2.4
-
-			if room.color == disabled_room_color:
-				continue
-
-			if not room.zone in zones:
-				zones.append(room.zone)
-				room.zone.zone_count = 1
-				room.zone.flow = flow
-				room.zone.smartp = 0
-				room.zone.smartp_b = 0
-			else:
-				room.zone.zone_count += 1
-				room.zone.flow += flow
-
-			if (self.mtype == "warm" or 
-				room.color == bathroom_color 
-				and room.area_m2<=9):
-				room.zone.smartp_b += 1
-				smartp_b += 1
-			else:
-				room.zone.smartp += 1
-				smartp += 1
-
-		smartbases = 0
-		smartcomforts = 0
-		compamat_R = 0
-		compamat_TOP = 0
-		compamat_SUPER = 0
-		for zone in zones:
-			zone.smartbases = ceil((zone.smartp+zone.smartp_b)/8)
-			smartbases += zone.smartbases
-			smartcomforts += ceil(zone.smartbases/8)
-
-			if zone.flow < 1850:
-				compamat_R += 1
-			else:
-				if zone.flow < 4000:
-					compamat_TOP += 1
-				else:
-					compamat_SUPER +=1
-
-
-		mtype = self.mtype[:-5]
-		smartairs = 0
-		if mtype=="dehum_int":
-			smartairs = len(zones)
-
-
-		# Smart Confort
+		# if regulated
 		if self.control == "reg":
+
+			fpanel = self.ptype['flow_panel']
+			zones = list()
+			smartp = 0
+			smartp_b = 0
+			for room in self.processed:
+				flow = fpanel*room.active_m2/2.4
+
+				if room.color == disabled_room_color:
+					continue
+
+				if not room.zone in zones:
+					zones.append(room.zone)
+					room.zone.zone_count = 1
+					room.zone.flow = flow
+					room.zone.smartp = 0
+					room.zone.smartp_b = 0
+				else:
+					room.zone.zone_count += 1
+					room.zone.flow += flow
+
+				if (self.mtype == "warm" or 
+					room.color == bathroom_color 
+					and room.area_m2<=9):
+					room.zone.smartp_b += 1
+					smartp_b += 1
+				else:
+					room.zone.smartp += 1
+					smartp += 1
+
+			smartbases = 0
+			smartcomforts = 0
+			for zone in zones:
+				zone.smartbases = ceil((zone.smartp+zone.smartp_b)/8)
+				smartbases += zone.smartbases
+				smartcomforts += ceil(zone.smartbases/8)
+
+
 			code = '5150020202'
 			desc = 'TESTINE ELETTROTERMICHE 2 FILI'
 			qnt = tot_cirs
 			self.text_nav += nav_item(qnt, code, desc)
 		
-		code = '5140030101'
-		desc = 'SMARTCOMFORT 365'
-		qnt = smartcomforts
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140030101'
+			desc = 'SMARTCOMFORT 365'
+			qnt = smartcomforts
+			self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020401'
-		desc = 'SMARTPOINT TEMPERATURA'
-		qnt = smartp_b
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140020401'
+			desc = 'SMARTPOINT TEMPERATURA'
+			qnt = smartp_b
+			self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020402'
-		desc = 'SMARTPOINT TEMPERATURA / UMIDITA\''
-		qnt = smartp
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140020402'
+			desc = 'SMARTPOINT TEMPERATURA / UMIDITA\''
+			qnt = smartp
+			self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020201'
-		desc = 'SMARTBASE PER LA GESTIONE DI TESTINE, POMPA E MISCELATRICE'
-		qnt = smartbases
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140020201'
+			desc = 'SMARTBASE PER LA GESTIONE DI TESTINE, POMPA E MISCELATRICE'
+			qnt = smartbases
+			self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020202'
-		desc = 'SMARTAIR PER LA GESTIONE DELL\'UNITA\' ARIA E SERRANDE'
-		qnt = smartairs
-		self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020301'
-		desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
-		qnt = smartbases + smartairs
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140020403'
+			desc = 'SMARTPOINT EXT SONDA ESTERNA'
+			qnt = smartcomforts
+			self.text_nav += nav_item(qnt, code, desc)
 
-		code = '5140020403'
-		desc = 'SMARTPOINT EXT SONDA ESTERNA'
-		qnt = smartcomforts
-		self.text_nav += nav_item(qnt, code, desc)
+			code = '5140020404'
+			desc = 'SONDA DI MANDATA'
+			qnt = smartcomforts 
+			self.text_nav += nav_item(qnt, code, desc)
 
-		if self.control == "reg":
+
+		# If air conditioning
+		if not self.mtype == "warm":
+			compamat_R = 0
+			compamat_TOP = 0
+			compamat_SUPER = 0
+			for zone in zones:
+				if zone.flow < 1850:
+					compamat_R += 1
+				else:
+					if zone.flow < 4000:
+						compamat_TOP += 1
+					else:
+						compamat_SUPER +=1
+
+			mtype = self.mtype[:-5]
+			smartairs = 0
+			if mtype=="dehum_int":
+				smartairs = len(zones)
+
 			if compamat_R > 0:
 				code = '5330010101'
 				desc = 'COMPAMAT R'
@@ -4896,30 +4898,36 @@ class Model(threading.Thread):
 				desc = 'COMPAMAT SUPER'
 				qnt = compamat_SUPER
 				self.text_nav += nav_item(qnt, code, desc)
-		else:
-			code = '5140020404'
-			desc = 'SONDA DI MANDATA'
-			qnt = smartcomforts 
+
+			code = '5140020202'
+			desc = 'SMARTAIR PER LA GESTIONE DELL\'UNITA\' ARIA E SERRANDE'
+			qnt = smartairs
 			self.text_nav += nav_item(qnt, code, desc)
 
-		for k, cnd in enumerate(self.cnd):
-			if (self.best_ac[k]>0):
-				code = cnd['code']
-				desc = cnd['model']
-				qnt = self.best_ac[k]
-				self.text_nav += nav_item(qnt, code, desc)
-				accs = cnd['accessories'] 
-				for acc in accs:
-					if type(acc) == tuple:
-						code = accessories[acc[0]]['code']
-						desc = accessories[acc[0]]['desc']
-						num = acc[1]
-					else: 
-						code = accessories[acc]['code']
-						desc = accessories[acc]['desc']
-						num = 1
-						
-					self.text_nav += nav_item(qnt*num, code, desc)
+			code = '5140020301'
+			desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
+			qnt = smartbases + smartairs
+			self.text_nav += nav_item(qnt, code, desc)
+
+			# COMPAMAT accessories
+			for k, cnd in enumerate(self.cnd):
+				if (self.best_ac[k]>0):
+					code = cnd['code']
+					desc = cnd['model']
+					qnt = self.best_ac[k]
+					self.text_nav += nav_item(qnt, code, desc)
+					accs = cnd['accessories'] 
+					for acc in accs:
+						if type(acc) == tuple:
+							code = accessories[acc[0]]['code']
+							desc = accessories[acc[0]]['desc']
+							num = acc[1]
+						else: 
+							code = accessories[acc]['code']
+							desc = accessories[acc]['desc']
+							num = 1
+							
+						self.text_nav += nav_item(qnt*num, code, desc)
 						
 		# Abdution lines
 		# Red stripes
@@ -5348,7 +5356,18 @@ if (web_version):
 		height = sys.argv[10]
 
 		os.rename(filename, web_filename)
-		
+	
+		#print("filename", filename)
+		#print("units", units)
+		#print("ptype", ptype)
+		#print("control", control)
+		#print("laid", laid)
+		#print("cname", cname)
+		#print("caddr", caddr)
+		#print("ccomp", ccomp)
+		#print("mtype", mtype)
+		#print("height", height)
+	
 		Iface(filename, units, ptype, control, 
 			laid, cname, caddr, ccomp,
 			mtype, height)
