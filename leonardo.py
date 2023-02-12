@@ -468,6 +468,7 @@ layer_panelp    = 'Eurotherm_prof'
 layer_link      = 'Eurotherm_link'
 layer_error     = 'Eurotherm_error'
 layer_lux       = 'Eurotherm_lux'
+layer_probes    = 'Eurotherm_probes'
 layer_collector = 'Collettori'
 
 text_color = 7
@@ -3157,6 +3158,7 @@ class Room:
 		probe = msp.add_blockref(probe_type, (x,y), 
 			dxfattribs={'xscale': 0.07/scale, 
    						'yscale': 0.07/scale})
+		probe.dxf.layer = layer_probes
 		
 
 	def draw(self, msp):
@@ -3208,6 +3210,7 @@ class Model(threading.Thread):
 		self.new_layer(layer_text, text_color)
 		self.new_layer(layer_error, 0)
 		self.new_layer(layer_lux, 0)
+		self.new_layer(layer_probes, 0)
 
 	def find_gates(self):
 		
