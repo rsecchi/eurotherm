@@ -469,6 +469,7 @@ layer_link      = 'Eurotherm_link'
 layer_error     = 'Eurotherm_error'
 layer_lux       = 'Eurotherm_lux'
 layer_probes    = 'Eurotherm_probes'
+layer_joints    = 'Eurotherm_joints'
 layer_collector = 'Collettori'
 
 text_color = 7
@@ -1201,12 +1202,12 @@ class Panel:
 				pline[i] = rotate(pline[i], rot, uv)
 
 		pl = msp.add_lwpolyline(pline)
-		pl.dxf.layer = layer_panelp
+		pl.dxf.layer = layer_joints
 		pl.dxf.color = stripe_color
 		
 		hatch = msp.add_hatch(color=stripe_color)
 		hatch.paths.add_polyline_path(pline, is_closed=True)
-		hatch.dxf.layer = layer_panelp
+		hatch.dxf.layer = layer_joints
 
 	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -2156,16 +2157,18 @@ class Line:
 
 			xs, ys = sgnx*0.1/scale, sgny*0.1/scale
 			if (cpl.type != 'Rac_20_20_dritto'):
-				msp.add_blockref(cpl.type + "_rosso", orig1,
+				blk_red = msp.add_blockref(cpl.type + "_rosso", orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type + "_blu", orig2,
+				blk_blu = msp.add_blockref(cpl.type + "_blu", orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			else:
-				msp.add_blockref(cpl.type, orig1,
+				bkl_red = msp.add_blockref(cpl.type, orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				msp.add_blockref(cpl.type, orig2,
+				blk_blu = bmsp.add_blockref(cpl.type, orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			
+			blk_red.dxf.layer = layer_joints
+			blk_blu.dxf.layer = layer_joints
 			cpl.orig1 = orig1
 			cpl.orig2 = orig2
 
@@ -2199,12 +2202,12 @@ class Line:
 						spline2[i] = rotate(spline2[i], rot, uv)
 
 				pl = msp.add_lwpolyline(spline1)
-				pl.dxf.layer = layer_link
+				pl.dxf.layer = layer_joints
 				pl.dxf.color = color_warm
 				pl.dxf.lineweight = 2
 
 				pl = msp.add_lwpolyline(spline2)
-				pl.dxf.layer = layer_link
+				pl.dxf.layer = layer_joints
 				pl.dxf.color = color_cold
 				pl.dxf.lineweight = 2
 
@@ -2214,12 +2217,12 @@ class Line:
 			seg1 = [cpls[i].orig1, cpls[i+1].orig1]
 			pl1 = msp.add_lwpolyline(seg1)
 			pl1.dxf.color = color_warm
-			pl1.dxf.layer = layer_link
+			pl1.dxf.layer = layer_joints
 
 			seg2 = [cpls[i].orig2, cpls[i+1].orig2]
 			pl2 = msp.add_lwpolyline(seg2)
 			pl2.dxf.color = color_cold
-			pl2.dxf.layer = layer_link
+			pl2.dxf.layer = layer_joints
 
 	def draw_adductions(self, msp):
 
@@ -3211,6 +3214,7 @@ class Model(threading.Thread):
 		self.new_layer(layer_error, 0)
 		self.new_layer(layer_lux, 0)
 		self.new_layer(layer_probes, 0)
+		self.new_layer(layer_joints, 0)
 
 	def find_gates(self):
 		
