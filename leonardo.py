@@ -3675,7 +3675,7 @@ class Model(threading.Thread):
 				self.output.print(wstr)
 				self.output_error()
 				return
-		
+	
 		# orient room without vector
 		for room in self.processed:
 			if (not room.vector):
@@ -3683,6 +3683,19 @@ class Model(threading.Thread):
 	
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
+
+		# Check if room too large  for a collector
+		for room in self.processed:
+			area = scale * scale * room.area
+			flow = area*flow_per_m2
+			if flow > flow_per_collector:
+				wstr = "ABORT: Room %d larger than collector capacity\n" % room.pindex
+				wstr += ("Check %s layer" % layer_error + 
+					" to visualize errors\n")
+				room.poly.dxf.layer = layer_error
+				self.output.print(wstr)
+				self.output_error()
+				return
 
 		# Check if enough collectors
 		tot_area = feeds_eff = feeds_max = 0
@@ -3876,7 +3889,6 @@ class Model(threading.Thread):
 					room.attachment = dorsal.pos
 
 	def output_error(self):
-		print("Showing the errors")
 		self.doc.layers.remove(layer_panel)
 		self.doc.layers.remove(layer_link)
 		if (debug):
