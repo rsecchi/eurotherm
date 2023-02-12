@@ -3925,8 +3925,6 @@ class Model(threading.Thread):
 
 	def output_html(self):
 
-		print("self.mtype", self.mtype)
-
 		if (self.mtype == "warm"):
 			return ""
 
@@ -4129,20 +4127,46 @@ class Model(threading.Thread):
 						print("Uplink error in room", room.index)
 						break
 
-					med = room.pos
-					pline = (pos, med)
-					pl = self.msp.add_lwpolyline(pline)
-					pl.dxf.layer = layer_link
-					pl.dxf.color = 6
-					pos = med
+					# med = room.pos
+					# pline = (pos, med)
+					# pl = self.msp.add_lwpolyline(pline)
+					# pl.dxf.layer = layer_link
+					# pl.dxf.color = 6
+					# pos = med
 					if (room.uplink == room):
 						break
 					room = room.uplink
 				
-				pline = (pos, collector.pos)
+				#pline = (pos, collector.pos)
+				#pl = self.msp.add_lwpolyline(pline)
+				#pl.dxf.layer = layer_link
+				#pl.dxf.color = 6
+				#pl.dxf.lineweight = 2
+
+				dx = collector.pos[0] - pos[0]
+				dy = collector.pos[1] - pos[1]
+				d = dist(pos, collector.pos)
+				ux, uy = -dy/d, dx/d
+
+				sx = pos[0] + 5/scale*ux
+				sy = pos[1] + 5/scale*uy
+				ex = collector.pos[0] + 5/scale*ux
+				ey = collector.pos[1] + 5/scale*uy
+				pline = ((ex, ey), (sx, sy))				
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
-				pl.dxf.color = 6
+				pl.dxf.color = color_warm
+				pl.dxf.lineweight = 2
+
+				sx = pos[0] - 5/scale*ux
+				sy = pos[1] - 5/scale*uy
+				ex = collector.pos[0] - 5/scale*ux
+				ey = collector.pos[1] - 5/scale*uy
+				pline = ((ex, ey), (sx, sy))				
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_link
+				pl.dxf.color = color_cold
+				pl.dxf.lineweight = 2
 
 
 	def draw_trees(self, collector):
