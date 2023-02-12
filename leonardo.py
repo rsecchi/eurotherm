@@ -3179,8 +3179,6 @@ class Room:
 		self.draw_label(msp)
 		self.draw_passive(msp)
 
-		self.draw_probes(msp)
-
 
 class Model(threading.Thread):
 	def __init__(self, output):
@@ -4056,6 +4054,8 @@ class Model(threading.Thread):
 
 		for room in self.processed:
 			room.draw(self.msp)
+			if self.control == "reg":
+				room.draw_probes(self.msp)
 
 
 		## drawing connections
