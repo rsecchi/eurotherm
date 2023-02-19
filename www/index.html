@@ -56,7 +56,7 @@
 
 		function update_iface()
 		{
-			var obj = document.getElementById("ta");
+			var obj = document.getElementById("head");
 			if (obj.selectedIndex=="0" ) {
 				show_div()
 			} else {
@@ -133,8 +133,8 @@
 
 	<div class="section">
 		<h4>Seleziona dettagli impianto</h4>
-			<p id="ra"><input type="radio" checked="yes" id="radio" name="head" value="warm" onchange="warm()">Solo riscaldamento</p>
-  			<p id="ra"><input type="radio"  name="head" id="radio" value="cold" onchange="cold()"=>Riscaldamento/raffrescamento </p>
+			<!--p id="ra"><input type="radio" checked="yes" id="radio" name="head" value="warm" onchange="warm()">Solo riscaldamento</p-->
+  			<!--p id="ra"><input type="radio"  name="head" id="radio" value="cold" onchange="cold()"=>Riscaldamento/raffrescamento </p-->
 		<label for="ptype">Tipologia:</label>
 		<select name="ptype">
     		<option value="55">Leonardo 5,5</option>
@@ -143,17 +143,18 @@
 		</select>
 		<p id="clt">
 		<label for="ptype">Regolazione:</label>
-		<select name="control" id="control" onchange="update()">
+		<!--select name="control" id="control" onchange="update()"-->
+		<select name="control" id="control">
     		<option value="reg"/>Con regolazione</option>
   			<option value="noreg"/>Senza regolazione</option>
 		</select>
 		</p>
 
 		<p id="air">
-		<label for="ta" id="air_label">Trattamento Aria:</label>
-		<select name="ta" id="ta" onchange="update_iface()">
-    		<option value="ta">Con trattamento aria</option>
-  			<option value="nota">Senza trattamento aria</option>
+		<label for="head" id="air_label">Trattamento Aria:</label>
+		<select name="head" id="head" onchange="update_iface()">
+    		<option value="air">Con trattamento aria</option>
+  			<option value="none">Senza trattamento aria</option>
 		</select>
 		</p>
 
@@ -170,7 +171,7 @@
 		</select-->
 
 		<p id="rg">
-		<!--label for="aircond">Tipo di regolazione:</label-->
+		<label for="regulator">Tipologia:</label>
 		<select name="regulator">
     		<option value="dehum">Solo deumidificazione</option>
   			<option value="dehum_int">Deumidificazione e integrazione</option>

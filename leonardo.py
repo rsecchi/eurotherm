@@ -3810,7 +3810,7 @@ class Model(threading.Thread):
 		################################################################
 
 		summary = ""
-		if (not self.mtype == "warm"):
+		if (not self.mtype == "none"):
 			summary += self.output_html()
 		summary += '<div class="section">'
 		summary += '<h4>Relazione calcolo</h4>'
@@ -3925,7 +3925,7 @@ class Model(threading.Thread):
 
 	def output_html(self):
 
-		if (self.mtype == "warm"):
+		if (self.mtype == "none"):
 			return ""
 
 		mtype = self.mtype[:-5]
@@ -4838,38 +4838,37 @@ class Model(threading.Thread):
 		#desc = 'TESTINE 2 FILI'
 		#self.text_nav += nav_item(tot_cirs, code, desc)
 
+		fpanel = self.ptype['flow_panel']
+		zones = list()
+		smartp = 0
+		smartp_b = 0
+		for room in self.processed:
+			flow = fpanel*room.active_m2/2.4
+
+			if room.color == disabled_room_color:
+				continue
+
+			if not room.zone in zones:
+				zones.append(room.zone)
+				room.zone.zone_count = 1
+				room.zone.flow = flow
+				room.zone.smartp = 0
+				room.zone.smartp_b = 0
+			else:
+				room.zone.zone_count += 1
+				room.zone.flow += flow
+
+			if (self.mtype == "none" or 
+				room.color == bathroom_color 
+				and room.area_m2<=9):
+				room.zone.smartp_b += 1
+				smartp_b += 1
+			else:
+				room.zone.smartp += 1
+				smartp += 1
 
 		# if regulated
 		if self.control == "reg":
-
-			fpanel = self.ptype['flow_panel']
-			zones = list()
-			smartp = 0
-			smartp_b = 0
-			for room in self.processed:
-				flow = fpanel*room.active_m2/2.4
-
-				if room.color == disabled_room_color:
-					continue
-
-				if not room.zone in zones:
-					zones.append(room.zone)
-					room.zone.zone_count = 1
-					room.zone.flow = flow
-					room.zone.smartp = 0
-					room.zone.smartp_b = 0
-				else:
-					room.zone.zone_count += 1
-					room.zone.flow += flow
-
-				if (self.mtype == "warm" or 
-					room.color == bathroom_color 
-					and room.area_m2<=9):
-					room.zone.smartp_b += 1
-					smartp_b += 1
-				else:
-					room.zone.smartp += 1
-					smartp += 1
 
 			smartbases = 0
 			smartcomforts = 0
@@ -4917,7 +4916,7 @@ class Model(threading.Thread):
 
 
 		# If air conditioning
-		if not self.mtype == "warm":
+		if not self.mtype == "none":
 			compamat_R = 0
 			compamat_TOP = 0
 			compamat_SUPER = 0
@@ -4958,10 +4957,11 @@ class Model(threading.Thread):
 			qnt = smartairs
 			self.text_nav += nav_item(qnt, code, desc)
 
-			code = '5140020301'
-			desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
-			qnt = smartbases + smartairs
-			self.text_nav += nav_item(qnt, code, desc)
+			if self.control == "reg":
+				code = '5140020301'
+				desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
+				qnt = smartbases + smartairs
+				self.text_nav += nav_item(qnt, code, desc)
 
 			# COMPAMAT accessories
 			for k, cnd in enumerate(self.cnd):
@@ -5199,7 +5199,7 @@ class App:
 
 		self.scale = self.entry1.get()
 		self.inputlayer = self.var.get()
-		self.mtype = "warm"
+		self.mtype = "none"
 		self.height = 2.7
 		self.control = "reg"
 
@@ -5411,16 +5411,16 @@ if (web_version):
 
 		os.rename(filename, web_filename)
 	
-		#print("filename", filename)
-		#print("units", units)
-		#print("ptype", ptype)
-		#print("control", control)
-		#print("laid", laid)
-		#print("cname", cname)
-		#print("caddr", caddr)
-		#print("ccomp", ccomp)
-		#print("mtype", mtype)
-		#print("height", height)
+		print("filename", filename)
+		print("units", units)
+		print("ptype", ptype)
+		print("control", control)
+		print("laid", laid)
+		print("cname", cname)
+		print("caddr", caddr)
+		print("ccomp", ccomp)
+		print("mtype", mtype)
+		print("height", height)
 	
 		Iface(filename, units, ptype, control, 
 			laid, cname, caddr, ccomp,

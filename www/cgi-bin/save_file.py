@@ -38,30 +38,27 @@ if not os.path.exists(lock_name):
 	fid = form.getvalue("file")
 	web_filename = get_filename(fid)
 
-	# Receive settings
+	# DXF settings
 	fileitem =  form['filename']
 	units = form.getvalue('units')
 	ptype = form.getvalue('ptype')
-	
+
+	# Smartpoints	
+	control = form.getvalue('control')
+
+	# Air
 	mtype = form.getvalue('head')
-	mnt   = form.getvalue('inst')
-	
+	mnt   = form.getvalue('inst')	
 	regtype = form.getvalue('regulator')
 	height = form.getvalue('height')
 
-	control = form.getvalue('control')
-	ta = form.getvalue('ta')
-
-	# client details
+	# Client details
 	laid = form.getvalue('laid').replace(" ", "_")
 	cname = form.getvalue('cname').replace(" ", "_")
 	caddr = form.getvalue('caddr').replace(" ", "_")
 	ccomp = form.getvalue('ccomp').replace(" ", "_")
 
-	if mtype=='warm' and control=='reg' and ta=="ta":
-		mtype = 'cold'
-
-	if (mtype=='cold'):
+	if mtype=='air':
 		mtype = regtype + "_" + mnt
 
 	outfile = open(web_filename, 'wb')
