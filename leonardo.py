@@ -2164,7 +2164,7 @@ class Line:
 			else:
 				bkl_red = msp.add_blockref(cpl.type, orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
-				blk_blu = bmsp.add_blockref(cpl.type, orig2,
+				blk_blu = msp.add_blockref(cpl.type, orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			
 			blk_red.dxf.layer = layer_joints
@@ -3114,8 +3114,8 @@ class Room:
 	def draw_passive(self, msp):
 		global scale
 
-		hatch = msp.add_hatch(color=stripe_color)
-		hatch.set_pattern_fill("ANSI31", scale=5/scale)
+		hatch = msp.add_hatch(color=41)
+		hatch.set_pattern_fill("ANSI31", scale=2/scale)
 
 		hatch.paths.add_polyline_path(self.points, 
 			is_closed=True,
@@ -3132,7 +3132,7 @@ class Room:
 			if panel.size[1] == 2:
 				lux = msp.add_hatch(color=stripe_color)
 				lux.dxf.layer = layer_lux
-				lux.set_pattern_fill("ANSI31", scale=5/scale)
+				lux.set_pattern_fill("ANSI31", scale=2/scale)
 				luxp = panel.lux_poly()
 				lux.paths.add_polyline_path(luxp, is_closed=True)
 				pl = msp.add_lwpolyline(luxp)
@@ -3213,6 +3213,8 @@ class Model(threading.Thread):
 		self.new_layer(layer_lux, 0)
 		self.new_layer(layer_probes, 0)
 		self.new_layer(layer_joints, 0)
+
+		self.doc.layers.get(layer_lux).off()
 
 	def find_gates(self):
 		
@@ -4067,6 +4069,7 @@ class Model(threading.Thread):
 
 		##############################################################
 
+		self.doc.layers.get(layer_lux).off()
 		if (debug):
 			self.doc.layers.get(layer_box).off()
 			self.doc.layers.get(layer_panelp).off()
@@ -4658,7 +4661,7 @@ class Model(threading.Thread):
 	def save_navision(self):
 		global scale
 
-		# Save panels
+		# Radiant panels
 		self.text_nav += nav_item(self.panels_120x200*2.4, 
 				self.ptype['code_full'], self.ptype['desc_full'])
 
@@ -4681,7 +4684,7 @@ class Model(threading.Thread):
 		qnt = 1.05*self.bathroom_passive_area
 		self.text_nav += nav_item(qnt, code, desc)
 
-		# Save couplings
+		# Couplings
 		for fit in fittings:
 			(fittings[fit])['count'] = 0 
 
@@ -4712,6 +4715,16 @@ class Model(threading.Thread):
 				self.text_nav += nav_item(fit['count'],
 					fit['code'], desc)
 
+		# bent joint.
+		if not self.refit:
+			code = '6910022006'
+			desc = 'CURVA LEONARDO 20-20 (4pz)'
+			qnt1 = ceil(0.04*self.area)
+			self.text_nav += nav_item(qnt1, code, desc)
+
+
+		# Interconnection pipes #############################
+
 		# use collector labels to count collectors and circuits
 		clt_qnts = [0]*(feeds_per_collector+1)
 		tot_cirs = 0
@@ -4723,6 +4736,69 @@ class Model(threading.Thread):
 				feeds = int(tag.split("+")[0])
 				clt_qnts[feeds] += 1
 				tot_cirs += feeds
+
+		code = '2112200220'
+		desc = 'TUBO MULTISTRATO 20X2 RIV.ROSSO'
+		qnt = self.area * 0.7
+		self.text_nav += nav_item(qnt, code, desc)
+		code = '2112200120'
+		desc = 'TUBO MULTISTRATO 20X2 RIV.BLU'
+		self.text_nav += nav_item(qnt, code, desc)
+
+		code = '2720200120'
+		desc = 'LINEA AGG. PERT-AL-PERT + ANELLI E TERMIN. (2m)'
+		qnt = 0
+		for e in self.msp.query('*[layer=="%s"]' % layer_panelp):
+			if e.dxftype() == "LWPOLYLINE":
+				points = list(e.vertices())	
+				mdist = 0
+				for i in range(len(points)-1):
+					mdist = max(mdist, dist(points[i], points[i+1]))
+				mdist = int(np.round(mdist*scale/100))
+				qnt += mdist
+
+		qnt = ceil(qnt/2)
+		self.text_nav += nav_item(qnt, code, desc)
+
+		# linear joint
+		# code = '6910022005'
+		# desc = 'RACCORDO LEONARDO 20-20 (4pz)'
+		# self.text_nav += nav_item(qnt2, code, desc)
+
+		# rings
+		code = '6910022011'
+		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'
+		qnt2 = fittings['Rac_20_20_dritto']['count']
+		qnt = 2*tot_cirs + 3*2*self.joints + 2*qnt1 + 2*qnt2
+		self.text_nav += nav_item(qnt, code, desc)
+
+
+		# Control panel
+		closures = 0
+		if (self.ptype['handler']=='30'):
+			code = '6113021001'
+			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
+			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h))
+			closures += qnt
+			self.text_nav += nav_item(qnt, code, desc)
+		else:
+			code = '6110020103'
+			desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
+			qnt = ceil(0.25*self.laid_half_panels)
+			closures += qnt
+			self.text_nav += nav_item(qnt, code, desc)
+
+			code = '6112020201'
+			desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
+			qnt = ceil(0.25*self.laid_half_panels_h)
+			closures += qnt
+			self.text_nav += nav_item(qnt, code, desc)
+
+		code = '6920042001'
+		desc = 'COLLA PER QUADRI DI CHIUSURA'
+		qnt = ceil(closures/4.35)
+		self.text_nav += nav_item(qnt, code, desc)
+
 
 		tot_adpt = 0
 		for i in range(1,feeds_per_collector+1):
@@ -4761,76 +4837,7 @@ class Model(threading.Thread):
 		#code = '5150020202'
 		#desc = 'TESTINE 2 FILI'
 		#self.text_nav += nav_item(tot_cirs, code, desc)
-		
 
-		# pipes 
-		code = '2112200220'
-		desc = 'TUBO MULTISTRATO 20X2 RIV.ROSSO'
-		qnt = self.area * 0.7
-		self.text_nav += nav_item(qnt, code, desc)
-		code = '2112200120'
-		desc = 'TUBO MULTISTRATO 20X2 RIV.BLU'
-		self.text_nav += nav_item(qnt, code, desc)
-
-		code = '2720200120'
-		desc = 'LINEA AGG. PERT-AL-PERT + ANELLI E TERMIN. (2m)'
-		qnt = 0
-		for e in self.msp.query('*[layer=="%s"]' % layer_panelp):
-			if e.dxftype() == "LWPOLYLINE":
-				points = list(e.vertices())	
-				mdist = 0
-				for i in range(len(points)-1):
-					mdist = max(mdist, dist(points[i], points[i+1]))
-				mdist = int(np.round(mdist*scale/100))
-				qnt += mdist
-
-		qnt = ceil(qnt/2)
-		self.text_nav += nav_item(qnt, code, desc)
-
-		# bent joint
-		code = '6910022006'
-		desc = 'CURVA LEONARDO 20-20 (4pz)'
-		qnt1 = ceil(0.04*self.area)
-		self.text_nav += nav_item(qnt1, code, desc)
-
-		# linear joint
-		code = '6910022005'
-		desc = 'RACCORDO LEONARDO 20-20 (4pz)'
-		qnt2 = fittings['Rac_20_20_dritto']['count']
-		self.text_nav += nav_item(qnt2, code, desc)
-
-		# rings
-		code = '6910022011'
-		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'
-		qnt = 2*tot_cirs + 3*2*self.joints + 2*qnt1 + 2*qnt2
-		self.text_nav += nav_item(qnt, code, desc)
-
-
-		# Control panel
-		closures = 0
-		if (self.ptype['handler']=='30'):
-			code = '6113021001'
-			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
-			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h))
-			closures += qnt
-			self.text_nav += nav_item(qnt, code, desc)
-		else:
-			code = '6110020103'
-			desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
-			qnt = ceil(0.25*self.laid_half_panels)
-			closures += qnt
-			self.text_nav += nav_item(qnt, code, desc)
-
-			code = '6112020201'
-			desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
-			qnt = ceil(0.25*self.laid_half_panels_h)
-			closures += qnt
-			self.text_nav += nav_item(qnt, code, desc)
-
-		code = '6920042001'
-		desc = 'COLLA PER QUADRI DI CHIUSURA'
-		qnt = ceil(closures/4.35)
-		self.text_nav += nav_item(qnt, code, desc)
 
 		# if regulated
 		if self.control == "reg":
