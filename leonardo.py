@@ -470,6 +470,7 @@ layer_error     = 'Eurotherm_error'
 layer_lux       = 'Eurotherm_lux'
 layer_probes    = 'Eurotherm_probes'
 layer_joints    = 'Eurotherm_joints'
+layer_struct    = 'Eurotherm_structure'
 layer_collector = 'Collettori'
 
 text_color = 7
@@ -865,6 +866,10 @@ def project_hor(point, poly):
 	return (xmax, y)
 	
 
+def project_vect(point, v, poly):
+	return poly[0]
+
+
 def miter(poly, offs):
 
 	if len(poly)<3:
@@ -926,6 +931,98 @@ def offset(poly, off):
 	opoly.append( (poly[-1][0]+off*u[0], poly[-1][1]+off*u[1]) )
 
 	return opoly
+
+
+def line_cross(line0, line1):
+
+	a0x = line0[0][0]
+	a0y = line0[0][1]
+	a1x = line0[1][0]
+	a1y = line0[1][1]
+	b0x = line1[0][0]
+	b0y = line1[0][1]
+	b1x = line1[1][0]
+	b1y = line1[1][1]
+
+	delta  = -(a1x-a0x)*(b1y-b0y)+(b1x-b0x)*(a1y-a0y)
+	if delta==0:
+		return None
+
+	deltat = -(b0x-a0x)*(b1y-b0y)+(b1x-b0x)*(b0y-a0y)
+	deltas =  (a1x-a0x)*(b0y-a0y)-(a1y-a0y)*(b0x-a0x)
+	t = deltat/delta
+	s = deltas/delta
+
+	if not (0<=s and s<=1 and 0<=t and t<=1):
+		return None
+
+	return (b0x + s*(b1x-b0x), b0y + s*(b1y-b0y))
+
+def extend_to_poly(v, poly):
+
+	ux = v[1][0] - v[0][0]
+	uy = v[1][1] - v[0][1]
+
+	if ux==0 and uy==0:
+		return None
+
+	# find BBox
+	minx = maxx = poly[0][0]
+	miny = maxy = poly[0][1]
+	for i in range(1, len(poly)-1):
+		minx = min(minx, poly[i][0])
+		maxx = max(maxx, poly[i][0])
+		miny = min(miny, poly[i][1])
+		maxy = max(maxy, poly[i][1])
+
+	if ((maxx < v[0][0] and ux>0) or 
+		(minx > v[0][0] and ux<0) or
+		(maxy < v[0][1] and uy>0) or 
+		(miny > v[0][1] and uy<0)):
+		return None
+
+	fx = fy = MAX_DIST
+	if not ux==0:
+		if ux>0:
+			dx = maxx - v[0][0]
+		else:
+			dx = minx - v[0][0]
+		fx = dx/ux
+
+	if not uy==0:
+		if uy>0:
+			dy = maxy - v[0][1]
+		else:
+			dy = miny - v[0][1]
+		fy = dy/uy
+
+	f = 2*min(fx, fy)
+	p = (v[0][0] + f*ux, v[0][1]+f*uy)
+
+	crss = list()
+	l1 = (v[0], p)
+	for i in range(len(poly)-1):
+		pa = poly[i]
+		pb = poly[i+1]
+		l0 = (pa, pb)
+		r = line_cross(l0, l1)
+		if not r:
+			continue
+		crss.append(r)
+
+	if len(crss) == 0:
+		return None
+
+	norm = dist(v[1], v[0])
+	e = None
+	d = MAX_DIST
+	for c in crss:
+		d1 = dist(c, v[0])/norm
+		if d1>=0.99 and d1<d:
+			d = d1
+			e = c
+
+	return e
 
 # This class represents the radiating panel
 # with its characteristics
@@ -3164,6 +3261,53 @@ class Room:
 		probe.dxf.layer = layer_probes
 		
 
+	def draw_structure(self, msp):
+
+		global scale
+
+		points = list()
+		for panel in self.panels:
+			p = panel.polyline()
+			norm = dist(p[2], p[1])
+			vx = (p[2][0] - p[1][0])/norm
+			vy = (p[2][1] - p[1][1])/norm
+			print("panel.size", panel.size[1])
+			for k in range(2*panel.size[1]+1):
+				print(k)
+
+				ax = p[0][0] + k*(50/scale)*vx
+				ay = p[0][1] + k*(50/scale)*vy
+				a = (ax, ay)
+				bx = p[1][0] + k*(50/scale)*vx
+				by = p[1][1] + k*(50/scale)*vy
+				b = (bx, by)
+
+				q0 = extend_to_poly((a, b), self.poly)
+				q1 = extend_to_poly((b, a), self.poly)
+
+				if not q0 or not q1:
+					continue
+
+				d = MAX_DIST
+				for pp in points:
+					d1 = min(dist(pp, q0), dist(pp, q1))
+					if d1 < d:
+						d = d1
+
+				if d<0.1/scale:
+					continue
+
+				print(q1, q0)
+
+				points.append(q1)
+				points.append(q0)
+				pline = [q1,q0]
+				pl = msp.add_lwpolyline(pline)
+				pl.dxf.layer = layer_struct
+				pl.dxf.color = zone_color
+				pl.dxf.linetype = 'CONTINUOUS'
+
+
 	def draw(self, msp):
 	
 		if (debug):
@@ -3178,6 +3322,7 @@ class Room:
 		self.draw_lines(msp)
 		self.draw_label(msp)
 		self.draw_passive(msp)
+		self.draw_structure(msp)
 
 
 class Model(threading.Thread):
@@ -3213,6 +3358,7 @@ class Model(threading.Thread):
 		self.new_layer(layer_lux, 0)
 		self.new_layer(layer_probes, 0)
 		self.new_layer(layer_joints, 0)
+		self.new_layer(layer_struct, 0)
 
 		self.doc.layers.get(layer_lux).off()
 
@@ -5411,16 +5557,16 @@ if (web_version):
 
 		os.rename(filename, web_filename)
 	
-		print("filename", filename)
-		print("units", units)
-		print("ptype", ptype)
-		print("control", control)
-		print("laid", laid)
-		print("cname", cname)
-		print("caddr", caddr)
-		print("ccomp", ccomp)
-		print("mtype", mtype)
-		print("height", height)
+		# print("filename", filename)
+		# print("units", units)
+		# print("ptype", ptype)
+		# print("control", control)
+		# print("laid", laid)
+		# print("cname", cname)
+		# print("caddr", caddr)
+		# print("ccomp", ccomp)
+		# print("mtype", mtype)
+		# print("height", height)
 	
 		Iface(filename, units, ptype, control, 
 			laid, cname, caddr, ccomp,
