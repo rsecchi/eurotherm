@@ -4913,8 +4913,9 @@ class Model(threading.Thread):
 
 		# rings
 		code = '6910022011'
-		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'
-		qnt2 = fittings['Rac_20_20_dritto']['count']
+		desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'	
+		qnt1 = fittings['Rac_20_20_dritto']['count']
+		qnt2 = fittings['Rac_20_20_curva']['count']
 		qnt = 2*tot_cirs + 3*2*self.joints + 2*qnt1 + 2*qnt2
 		self.text_nav += nav_item(qnt, code, desc)
 
