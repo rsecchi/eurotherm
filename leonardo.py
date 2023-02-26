@@ -1406,7 +1406,7 @@ class Panel:
 			self.gapr = min(obs.hdist_from_poly(rgt), self.gapr)
 
 class Dorsal:
-	def __init__(self, grid, pos, side, room):
+	def __init__(self, grid, pos, side, room, end):
 		self.panels = list()
 		self.pos = pos
 		self.grid = grid
@@ -1419,87 +1419,105 @@ class Dorsal:
 		self.coupled = True
 
 		m = self.grid
+		cols = m.shape[1]
 		self.cost = 0
 		self.lost = 0
-		j = self.pos[1] - 2
+		j = self.pos[1]
 		i = self.pos[0]
+
+		reverse = self.reverse = False
+		step = 2
+		if j>end:
+			reverse = self.reverse = True
+			step = -2
+
+		j -= step
 
 		side = self.side
 		self.first_of_line = True
 		self.last_panel_cut = False
 		self.last_handside = 0
 
-		while(j<m.shape[1]-3):
+		while (((j<cols-3) and (j<end) and not reverse) or 
+               ((j>end) and reverse)):
 
-			j += 2
+			j += step
 
-			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]):
+			if (m[i,j] and m[i+1,j] and m[i,j+1] and m[i+1,j+1]
+				and j!=end and (j+1)!=end):
 				self.new_panel(m[i,j],(2,2),side)
 				continue
 		
 			if side==1:
-				if (m[i,j] and m[i,j+1] and
-					(not m[i+1,j]) and (not m[i+1,j+1])):
+				if ((m[i,j] and m[i,j+1] and
+					(not m[i+1,j]) and (not m[i+1,j+1]))
+					and (j!=end and (j+1)!=end)):
 					self.new_panel(m[i,j],(2,1))
 					self.cost += 0.1
 					continue
 
 				# half panels vertical
-				if m[i+1,j]:
-					if m[i,j]:
-						self.new_panel(m[i,j],(1,2),0)
-						self.cost += 1
+				if j!=end:
+					if m[i+1,j]:
+						if m[i,j]:
+							self.new_panel(m[i,j],(1,2),0)
+							self.cost += 1
+						else:
+							self.cost += 4
+							self.lost += 1	
 					else:
-						self.cost += 4
-						self.lost += 1	
-				else:
-					if m[i,j]:
-						self.new_panel(m[i,j],(1,1),0)
-						self.cost += 1
+						if m[i,j]:
+							self.new_panel(m[i,j],(1,1),0)
+							self.cost += 1
 
-				if m[i+1,j+1]:
-					if m[i,j+1]:
-						self.new_panel(m[i,j+1],(1,2),1)
-						self.cost += 1
+				if j+1!=end:
+					if m[i+1,j+1]:
+						if m[i,j+1]:
+							self.new_panel(m[i,j+1],(1,2),1)
+							self.cost += 1
+						else:
+							self.cost += 4
+							self.lost += 1	
 					else:
-						self.cost += 4
-						self.lost += 1	
-				else:
-					if m[i,j+1]:
-						self.new_panel(m[i,j+1],(1,1),1)
-						self.cost += 1
+						if m[i,j+1]:
+							self.new_panel(m[i,j+1],(1,1),1)
+							self.cost += 1
 
 			else:
-				if (m[i+1,j] and m[i+1,j+1] and
-					(not m[i,j]) and (not m[i,j+1])):
+				if ((m[i+1,j] and m[i+1,j+1] and
+					(not m[i,j]) and (not m[i,j+1]))
+					and (j!=end and j!=end)):
 					self.new_panel(m[i+1,j],(2,1))
 					self.cost += 0.1
 					continue
 
 				# half panels vertical
-				if m[i,j]:
-					if m[i+1,j]:
-						self.new_panel(m[i,j],(1,2),0)
-						self.cost += 1
+				if j!=end: 
+					if m[i,j]:
+						if m[i+1,j]:
+							self.new_panel(m[i,j],(1,2),0)
+							self.cost += 1
+						else:
+							self.cost += 4
+							self.lost += 1	
 					else:
-						self.cost += 4
-						self.lost += 1	
-				else:
-					if m[i+1,j]:
-						self.new_panel(m[i+1,j],(1,1),0)
-						self.cost += 1
+						if m[i+1,j]:
+							self.new_panel(m[i+1,j],(1,1),0)
+							self.cost += 1
 
-				if m[i,j+1]:
-					if m[i+1,j+1]:
-						self.new_panel(m[i,j+1],(1,2),1)
-						self.cost += 1
+				if (j+1)!=end:
+					if m[i,j+1]:
+						if m[i+1,j+1]:
+							self.new_panel(m[i,j+1],(1,2),1)
+							self.cost += 1
+						else:
+							self.cost += 4
+							self.lost += 1	
 					else:
-						self.cost += 4
-						self.lost += 1	
-				else:
-					if m[i+1,j+1]:
-						self.new_panel(m[i+1,j+1],(1,1),1)
-						self.cost += 1
+						if m[i+1,j+1]:
+							self.new_panel(m[i+1,j+1],(1,1),1)
+							self.cost += 1
+
 
 		# Now assign costs based on gaps
 		if (self.last_panel_cut and self.room.clt_xside == RIGHT):
@@ -1695,26 +1713,89 @@ class PanelArrangement:
 
 		return True
 
+
+	def build_facing_dorsals(self, dorsals, row, slots):
+
+		if slots>40:
+			return False
+
+		i = row    # row
+
+		split = False
+		start = 0
+		end = self.cols-3
+		cols = m.shape[1]
+
+		# dividing 4-way dorsals
+		if slots>20:
+			split = True
+
+			#print("DIVIDE row", i)
+			#print("-------")
+			#for row in range(self.rows):
+			#	for col in range(self.cols):
+			# 		if (self.grid[row,col]):
+			# 			print("X", end="")
+			# 		else:
+			# 			print(".", end="")
+			#	if (i<=row and row<=i+3):
+			# 		print(":", rows[row])
+			#	else:
+			#		print()
+
+			# calcolate breakup col
+			s = 0
+			for j in range(m.shape[1]):
+				for k in i, i+1, i+2, i+3:
+					if m[k,j]:
+						s += 1
+				if s>20:
+					end = j
+					print("found", end)
+					break
+
+		bu0 = Dorsal(self.grid, (i,0), 0, self.room, end)
+		td0 = Dorsal(self.grid, (i+2,0), 1, self.room, end)
+		left_lost0 = bu0.lost + td0.lost
+		left_cost0 = bu0.cost + td0.cost
+
+		bu1 = Dorsal(self.grid, (i,1), 0, self.room, end)
+		td1 = Dorsal(self.grid, (i+2,1), 1, self.room, end)
+		left_lost1 = bu1.lost + td1.list
+		left_cost1 = bu1.cost + td1.cost
+		
+		if left_lost0>0 and left_lost>0:
+			return None
+			
+
+		if split:
+			bu0_s = Dorsal(self.grid, (i,cols-1), 0, self.room, end-1)
+			bu1_s = Dorsal(self.grid, (i,cols-2), 0, self.room, end-1)
+			td0_s = Dorsal(self.grid, (i+2,cols-1), 1, self.room, end-1)
+			td1_s = Dorsal(self.grid, (i+2,cols-2), 1, self.room, end-1)
+
+
+
 	def build_dorsals(self, pos):
 
 		dorsals = Dorsals(self.room)
 
+		m = self.grid
+		rows = [0]*m.shape[0]
+		cols = m.shape[1]
+		for i in range(m.shape[0]):
+			for j in range(cols):
+				if m[i,j]:
+					rows[i] += 1
+
 		i = pos[0]
 		while(i<self.rows-3):
 
-			bu0 = Dorsal(self.grid, (i,0), 0, self.room)
-			bu1 = Dorsal(self.grid, (i,1), 0, self.room)
-			td0 = Dorsal(self.grid, (i+2,0), 1, self.room)
-			td1 = Dorsal(self.grid, (i+2,1), 1, self.room)
+			ts = rows[i]+rows[i+1]+rows[i+2]+rows[i+3]
 
-			b_dors = bu0
-			t_dors = td0
-			lost = b_dors.lost + t_dors.lost
-			cost = b_dors.cost + t_dors.cost
-
-			nlost = bu1.lost + td0.lost
-			ncost = bu1.cost + td1.cost 
-
+			if (self.build_facing_dorsals(i, dorsals, i, ts)):
+				i += 4
+				continue
 
 			if (nlost < lost or (nlost==lost and ncost<cost)):
 				b_dors = bu1
@@ -1727,11 +1808,12 @@ class PanelArrangement:
 
 
 			if (lost>0):
+				# end = self.cols-3
 
-				bd0 = Dorsal(self.grid, (i,0), 1, self.room)
-				bd1 = Dorsal(self.grid, (i,1), 1, self.room)
-				tu0 = Dorsal(self.grid, (i+2,0), 0, self.room)
-				tu1 = Dorsal(self.grid, (i+2,1), 0, self.room)
+				bd0 = Dorsal(self.grid, (i,0), 1, self.room, end)
+				bd1 = Dorsal(self.grid, (i,1), 1, self.room, end)
+				tu0 = Dorsal(self.grid, (i+2,0), 0, self.room, end)
+				tu1 = Dorsal(self.grid, (i+2,1), 0, self.room, end)
 
 				bd = sorted([bu0, bu1, bd0, bd1], key=lambda x: (x.lost,x.cost))
 				td = sorted([tu0, tu1, td0, td1], key=lambda x: (x.lost,x.cost))
@@ -1759,6 +1841,7 @@ class PanelArrangement:
 
 		if (not self.make_grid(origin)):
 			return
+
 
 		#if (self.room.pindex==3):
 		#	print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
