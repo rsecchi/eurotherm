@@ -26,7 +26,7 @@ from tkinter.messagebox import askyesno
 dxf_version = "AC1032"
 
 web_version = False
-debug = False
+debug = True
 
 if ezdxf.version == (0, 14, 2, 'release'):
     poly_class = ezdxf.entities.lwpolyline.LWPolyline
@@ -1578,6 +1578,9 @@ class Dorsals(list):
 		if (len(dorsal.panels)>0):
 			self.append(dorsal)
 		
+		return True
+
+		# gap check disabled
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
 
@@ -1755,10 +1758,10 @@ class PanelArrangement:
 
 
 	
-	def alloc_panels(self, origin):
+	def overlay(self, origin):
 
-		if (not self.make_grid(origin)):
-			return
+		#if (not self.make_grid(origin)):
+		#	return
 
 		#if (self.room.pindex==3):
 		#	print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
@@ -2630,15 +2633,24 @@ class Room:
 			self.bounding_box()
 			# search within a small panel range
 			sx = 0
+			slots = 0
+			best_origin = None
 			while sx<panel_width:
 				sy = 0
 				while sy<panel_height:
 					origin = (sx + self.ax, sy + self.ay)
-					self.arrangement.alloc_panels(origin)
-					self.panels = self.arrangement.dorsals.panels
-				
+					self.arrangement.make_grid(origin)	
+					if (len(self.arrangement.cells)>slots):
+						slots = len(self.arrangement.cells)
+						best_origin = origin
 					sy += search_tol
 				sx += search_tol
+
+			if best_origin:
+				print("TOTAL SLOTS:", slots)
+				self.arrangement.make_grid(best_origin)	
+				self.arrangement.overlay(best_origin)
+				self.panels = self.arrangement.dorsals.panels
 
 			if (self.vector and not self.vector_auto):
 				break
