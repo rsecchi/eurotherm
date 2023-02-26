@@ -549,6 +549,9 @@ alphabet = {
 	'9': [8,6,3,1,5,11,13,12]
 }
 
+def crp(x, y):
+	return x[0]*y[0] + x[1]*y[1]
+
 
 def nav_item(qnty, code, desc):
 
@@ -1023,6 +1026,29 @@ def extend_to_poly(v, poly):
 			e = c
 
 	return e
+
+
+def trim(poly, seg):
+	
+	crss = list()
+	for i in range(len(poly)-1):
+		line = (poly[i], poly[i+1])
+		r = line_cross(line, seg)
+		if r:
+			d = dist(seg[0], r)
+			crss.append([d, r])
+
+	l = len(crss)
+	if not (l>0 and l%2==0):
+		return []
+
+	crss.sort(key=lambda x: x[0])
+
+	cr = list()
+	for i in range(0,l,2):
+		cr.append([crss[i][1], crss[i+1][1]])
+
+	return cr
 
 # This class represents the radiating panel
 # with its characteristics
@@ -3265,47 +3291,134 @@ class Room:
 
 		global scale
 
-		points = list()
+		if len(self.panels) == 0:
+			return
+
+		p = self.panels[0].polyline()
+
+		# horizontal versor
+		norm = dist(p[2], p[1])
+		vx = (p[2][0] - p[1][0])/norm
+		vy = (p[2][1] - p[1][1])/norm
+
+		# vertical versor
+		norm = dist(p[1], p[0])
+		ux = (p[1][0] - p[0][0])/norm
+		uy = (p[1][1] - p[0][1])/norm
+
+		minx = MAX_DIST
+		maxx = -MAX_DIST
+		miny = MAX_DIST
+		maxy = -MAX_DIST
+
+		for point in self.points:
+			x, y = point[0], point[1]
+			px, py = x*vx + y*vy, x*ux + y*uy
+			minx = min(px, minx)
+			maxx = max(px, maxx)
+			miny = min(py, miny)
+			maxy = max(py, maxy)
+	
+		miny -= 10/scale
+		maxy += 10/scale 	
+		s0 = sx0, sy0 = minx*vx + miny*ux, minx*vy + miny*uy
+		q0 = qx0, qy0 = maxx*vx + miny*ux, maxx*vy + miny*uy
+		s1 = sx1, sy1 = minx*vx + maxy*ux, minx*vy + maxy*uy
+		q1 = qx1, qy1 = maxx*vx + maxy*ux, maxx*vy + maxy*uy
+		hl = dist(s0, q0) 
+
+		# projecting panels on axis
+		xcoords = list()
 		for panel in self.panels:
 			p = panel.polyline()
-			norm = dist(p[2], p[1])
-			vx = (p[2][0] - p[1][0])/norm
-			vy = (p[2][1] - p[1][1])/norm
-			print("panel.size", panel.size[1])
-			for k in range(2*panel.size[1]+1):
-				print(k)
+			x0, y0 = p[1][0], p[1][1]
+			x1, y1 = p[2][0], p[2][1]
 
-				ax = p[0][0] + k*(50/scale)*vx
-				ay = p[0][1] + k*(50/scale)*vy
-				a = (ax, ay)
-				bx = p[1][0] + k*(50/scale)*vx
-				by = p[1][1] + k*(50/scale)*vy
-				b = (bx, by)
+			for n in range(2*panel.size[0]+1):
+				ax  = vx * (x0 - sx0) + n*50/scale
+				ax += vy * (y0 - sy0)
+				xcoords.append(ax)
+		
+		xcoords.sort()
 
-				q0 = extend_to_poly((a, b), self.poly)
-				q1 = extend_to_poly((b, a), self.poly)
+		# Complete structure left and right
+		xc = list()
+		m = xcoords[0] - 50/scale
+		while(m>0):
+			xc.append(m)
+			m -= 50/scale
+		
+		m = xcoords[-1] + 50/scale
+		while(m<hl):
+			xc.append(m)
+			m += 50/scale
 
-				if not q0 or not q1:
-					continue
+		# Add structure if >60cm
+		m = xcoords[0]
+		xc.append(m)
+		for x in xcoords:
+			if (x-m < 1/scale):
+				 continue
 
-				d = MAX_DIST
-				for pp in points:
-					d1 = min(dist(pp, q0), dist(pp, q1))
-					if d1 < d:
-						d = d1
+			xc.append(x)
 
-				if d<0.1/scale:
-					continue
-
-				print(q1, q0)
-
-				points.append(q1)
-				points.append(q0)
-				pline = [q1,q0]
-				pl = msp.add_lwpolyline(pline)
+			if (x-m>60/scale):
+				n = int((x-m)/(60/scale))
+				if n>0:
+					for k in range(n):
+						xc.append(m + (k+1)*(x-m)/n)
+			m = x
+			
+		for ax in xc:
+			a0 = (minx+ax)*vx + miny*ux, (minx+ax)*vy + miny*uy
+			a1 = (minx+ax)*vx + maxy*ux, (minx+ax)*vy + maxy*uy
+			css = trim(self.points, (a0, a1))
+			for c in css:
+				pl = msp.add_lwpolyline([c[0],c[1]])
 				pl.dxf.layer = layer_struct
-				pl.dxf.color = zone_color
-				pl.dxf.linetype = 'CONTINUOUS'
+				pl.dxf.color = zone_color 
+			
+		#points = list()
+		#for panel in self.panels:
+		#	p = panel.polyline()
+		#	norm = dist(p[2], p[1])
+			# vx = (p[2][0] - p[1][0])/norm
+			# vy = (p[2][1] - p[1][1])/norm
+			# print("panel.size", panel.size[1])
+			# for k in range(2*panel.size[1]+1):
+			# 	print(k)
+
+			# 	ax = p[0][0] + k*(50/scale)*vx
+			# 	ay = p[0][1] + k*(50/scale)*vy
+			# 	a = (ax, ay)
+			# 	bx = p[1][0] + k*(50/scale)*vx
+			# 	by = p[1][1] + k*(50/scale)*vy
+			# 	b = (bx, by)
+
+			# 	q0 = extend_to_poly((a, b), self.poly)
+			# 	q1 = extend_to_poly((b, a), self.poly)
+
+			# 	if not q0 or not q1:
+			# 		continue
+
+			# 	d = MAX_DIST
+			# 	for pp in points:
+			# 		d1 = min(dist(pp, q0), dist(pp, q1))
+			# 		if d1 < d:
+			# 			d = d1
+
+			# 	if d<0.1/scale:
+			# 		continue
+
+			# 	print(q1, q0)
+
+			# 	points.append(q1)
+			# 	points.append(q0)
+			# 	pline = [q1,q0]
+			# 	pl = msp.add_lwpolyline(pline)
+			# 	pl.dxf.layer = layer_struct
+			# 	pl.dxf.color = zone_color
+			# 	pl.dxf.linetype = 'CONTINUOUS'
 
 
 	def draw(self, msp):
