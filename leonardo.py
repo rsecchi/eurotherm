@@ -4414,25 +4414,25 @@ class Model(threading.Thread):
 				d = dist(pos, collector.pos)
 				ux, uy = -dy/d, dx/d
 
-				sx = pos[0] + 5/scale*ux
-				sy = pos[1] + 5/scale*uy
-				ex = collector.pos[0] + 5/scale*ux
-				ey = collector.pos[1] + 5/scale*uy
+				sx = pos[0] + 2/scale*ux
+				sy = pos[1] + 2/scale*uy
+				ex = collector.pos[0] + 2/scale*ux
+				ey = collector.pos[1] + 2/scale*uy
 				pline = ((ex, ey), (sx, sy))				
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_warm
-				pl.dxf.lineweight = 2
+				pl.dxf.lineweight = 2/scale
 
-				sx = pos[0] - 5/scale*ux
-				sy = pos[1] - 5/scale*uy
-				ex = collector.pos[0] - 5/scale*ux
-				ey = collector.pos[1] - 5/scale*uy
+				sx = pos[0] - 2/scale*ux
+				sy = pos[1] - 2/scale*uy
+				ex = collector.pos[0] - 2/scale*ux
+				ey = collector.pos[1] - 2/scale*uy
 				pline = ((ex, ey), (sx, sy))				
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_cold
-				pl.dxf.lineweight = 2
+				pl.dxf.lineweight = 2/scale
 
 
 	def draw_trees(self, collector):
@@ -5040,7 +5040,7 @@ class Model(threading.Thread):
 		# Control panel
 		closures = 0
 		if (self.ptype['handler']=='30'):
-			code = '6113021001'
+			code = '6113021002'
 			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
 			qnt = ceil(0.25*(self.laid_half_panels+self.laid_half_panels_h))
 			closures += qnt
