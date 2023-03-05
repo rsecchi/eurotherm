@@ -3271,10 +3271,13 @@ class Room:
 		if len(self.panels) == 0:
 			return
 
-		if (self.color==bathroom_color):
+		if (self.color==bathroom_color
+				and self.area_m2<=9):
 			probe_type = "sonda T"
 
-		if (self.color==valid_room_color):
+		if (self.color==valid_room_color or
+		     (self.color==bathroom_color
+				and self.area_m2>=9)):
 			probe_type = "sonda T_U"
 
 		x, y = self.panels[0].center()
