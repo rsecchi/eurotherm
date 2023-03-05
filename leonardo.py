@@ -4422,7 +4422,7 @@ class Model(threading.Thread):
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_warm
-				pl.dxf.lineweight = 2/scale
+				pl.dxf.lineweight = 50
 
 				sx = pos[0] - 2/scale*ux
 				sy = pos[1] - 2/scale*uy
@@ -4432,7 +4432,7 @@ class Model(threading.Thread):
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_cold
-				pl.dxf.lineweight = 2/scale
+				pl.dxf.lineweight = 50
 
 
 	def draw_trees(self, collector):
