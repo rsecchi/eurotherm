@@ -3474,6 +3474,7 @@ class Model(threading.Thread):
 		self.new_layer(layer_struct, 0)
 
 		self.doc.layers.get(layer_lux).off()
+		self.doc.layers.get(layer_struct).off()
 
 	def find_gates(self):
 		
@@ -5129,6 +5130,15 @@ class Model(threading.Thread):
 
 		# if regulated
 		if self.control == "reg":
+
+			smartp = 0
+			smartp_b = 0
+			for e in self.msp.query('*[layer=="%s"]' % layer_probes):	
+				if e.block().name == "sonda T_U":
+					smartp += 1
+				else:
+					smartp_b += 1
+				
 
 			smartbases = 0
 			smartcomforts = 0
