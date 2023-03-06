@@ -3461,6 +3461,7 @@ class Model(threading.Thread):
 		self.processed = list()
 		self.obstacles = list()
 		self.zone = list()
+		self.zone_bb = list()
 		self.user_zones = list()
 		self.output = output
 		self.best_list = list()
@@ -4302,7 +4303,7 @@ class Model(threading.Thread):
 
 			write_text(self.msp, "Zone %d" % clt.zone_num, (ax, min_dist+by), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
-			self.zone.append([ax,ay,bx,by])
+			self.zone_bb.append([ax,ay,bx,by])
 
 
 		# Collectors
@@ -4352,23 +4353,16 @@ class Model(threading.Thread):
 				ss.append(e)
 
 
-		#print(len(self.msp))
-		#print(len(block))
-		#print(len(ss))
-
-		#for b in block:
-		#	print(b.dxftype())
-
 		for e in ss:
 			self.msp.unlink_entity(e)
 
 		# bounding box zones	
-		ax = self.zone[0][0]
-		ay = self.zone[0][1]
-		bx = self.zone[0][2]
-		by = self.zone[0][3]
+		ax = self.zone_bb[0][0]
+		ay = self.zone_bb[0][1]
+		bx = self.zone_bb[0][2]
+		by = self.zone_bb[0][3]
 
-		for zone in self.zone:
+		for zone in self.zone_bb:
 			ax = min(ax, zone[0])
 			ay = min(ay, zone[1])
 			bx = max(bx, zone[2])
