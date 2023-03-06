@@ -3,6 +3,7 @@
 import ezdxf
 import sys
 from pprint import pprint
+from ezdxf import bbox
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from datetime import date
@@ -327,7 +328,16 @@ w_fit = 10
 h_fit = 5
 s_fit = 7
 
+# frame geometry
+a0_ax = -74680
+a0_ay = -78829
+a0_bx = -15227
+a0_by = -36723
 
+a1_ax = -10444
+a1_ay = -79890
+a1_bx =  31439
+a1_by = -49108
 
 fittings = {
 	"Rac_20_10_20": {
@@ -3238,7 +3248,7 @@ class Room:
 		global scale
 
 		hatch = msp.add_hatch(color=41)
-		hatch.set_pattern_fill("ANSI31", scale=2/scale)
+		hatch.set_pattern_fill("ANSI31", scale=20)
 
 		hatch.paths.add_polyline_path(self.points, 
 			is_closed=True,
@@ -3255,7 +3265,7 @@ class Room:
 			if panel.size[1] == 2:
 				lux = msp.add_hatch(color=stripe_color)
 				lux.dxf.layer = layer_lux
-				lux.set_pattern_fill("ANSI31", scale=2/scale)
+				lux.set_pattern_fill("ANSI31", scale=20)
 				luxp = panel.lux_poly()
 				lux.paths.add_polyline_path(luxp, is_closed=True)
 				pl = msp.add_lwpolyline(luxp)
@@ -4292,6 +4302,7 @@ class Model(threading.Thread):
 
 			write_text(self.msp, "Zone %d" % clt.zone_num, (ax, min_dist+by), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
+			self.zone.append([ax,ay,bx,by])
 
 
 		# Collectors
@@ -4332,7 +4343,61 @@ class Model(threading.Thread):
 
 		##############################################################
 
+		# Rescale everything before printing	
+		block = self.doc.blocks.new("DRAWING")
+		ss = list()
+		for e in self.msp:
+			if not e.dxf.layer == "Cornice":
+				block.add_entity(e)
+				ss.append(e)
+
+
+		#print(len(self.msp))
+		#print(len(block))
+		#print(len(ss))
+
+		#for b in block:
+		#	print(b.dxftype())
+
+		for e in ss:
+			self.msp.unlink_entity(e)
+
+		# bounding box zones	
+		ax = self.zone[0][0]
+		ay = self.zone[0][1]
+		bx = self.zone[0][2]
+		by = self.zone[0][3]
+
+		for zone in self.zone:
+			ax = min(ax, zone[0])
+			ay = min(ay, zone[1])
+			bx = max(bx, zone[2])
+			by = max(by, zone[3])
+
+		ax = ax*scale*10
+		ay = ay*scale*10
+		bx = bx*scale*10
+		by = by*scale*10
+
+		# centering
+		if bx-ax>a1_bx-a1_ax or by-ay>a1_by-a1_ay:
+			cx = (a0_bx + a0_ax)/2
+			cy = (a0_by + a0_ay)/2
+		else:
+			cx = (a1_bx + a1_ax)/2
+			cy = (a1_by + a1_ay)/2
+
+		cx -= (bx + ax)/2
+		cy -= (by + ay)/2
+
+		orig = (cx, cy) 
+		block1 = self.msp.add_blockref("DRAWING", orig, 
+			dxfattribs={'xscale': scale*10, 'yscale': scale*10})
+
+		block1.explode()
+
 		self.doc.layers.get(layer_lux).off()
+
 		if (debug):
 			self.doc.layers.get(layer_box).off()
 			self.doc.layers.get(layer_panelp).off()
@@ -5499,7 +5564,8 @@ def _create_model(iface):
 			iface.model.refit = True
 
 	if not iface.model.refit:	
-		iface.model.doc = ezdxf.new(dxf_version)
+		#iface.model.doc = ezdxf.new(dxf_version)
+		iface.model.doc = ezdxf.readfile("frame3.dxf")
 	else:
 		iface.model.doc = iface.doc
 
@@ -5586,6 +5652,8 @@ def _create_model(iface):
 	importer.import_block(block_green_120x100)
 	importer.import_block(block_green_60x100)
 	importer.import_block(block_collector)
+	importer.import_block("LEO_LUX")
+	importer.import_block("LEO_LUX_IDRO")
 
 	# import fittings
 	importer.import_block("Rac_20_10_20_blu")
