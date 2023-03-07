@@ -1,5 +1,5 @@
 tmp          = "/var/spool/eurotherm/"
-local_dir    = "/usr/local/src/eurotherm/"
+local_dir    = "../../"
 
 web_filename = tmp + "input.dxf"
 
