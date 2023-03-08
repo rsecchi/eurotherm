@@ -5074,7 +5074,7 @@ class Model(threading.Thread):
 			self.text_nav += nav_item(clt_qnts[i],code, desc)	
 		
 		# Adaptors
-		code = '6910022011'
+		code = '4810202001'
 		desc = 'ADATTATORE'
 		qnt = 2*tot_adpt
 		self.text_nav += nav_item(qnt,code, desc)
