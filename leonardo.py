@@ -443,7 +443,7 @@ extra_len    = 20
 zone_cost = 1
 min_room_area = 1
 max_room_area = 500
-default_max_clt_distance = 1500
+default_max_clt_distance = 3000
 max_clt_break = 5
 
 feeds_per_collector = 13
@@ -3557,6 +3557,12 @@ class Model(threading.Thread):
 			leader = None
 			for room in self.processed:
 
+				# skip room that already have a collector
+				if room.fixed_collector:
+					link_item = (collector, MAX_DIST, room.uplink)
+					room.links.append(link_item)
+					continue
+
 				if room.user_zone != collector.user_zone:
 					room.walk = MAX_DIST
 
@@ -3597,22 +3603,40 @@ class Model(threading.Thread):
 					collector.zone_num = 0
 					collector.number = 0
 	
+		# Assign rooms with fixed collectors to zones
+		for room in self.rooms:
+			if room.fixed_collector:
+				collector = room.fixed_collector
+				leader = collector.contained_in.zone 
+				leader.zone_rooms.append(room)
+				room.zone = leader
+
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
 			collector.freeflow = flow_per_collector
 			collector.items = list()
+			for room in self.processed:
+				if (room.fixed_collector and 
+					room.fixed_collector == collector):
+					collector.items.append(room)
 
 		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
 
 		# trim distance vectors
 		for room in self.processed:
 			room.links.sort(key=lambda x: x[1])
-			if (room.links[0][1]> max_clt_distance):
+			if (room.links[0][1]> max_clt_distance 
+					and not room.fixed_collector):
 				self.output.print(
-					"No collectors from Room %d, " % room.pindex)
-				self.output.print("ignoring room\n")
-				self.processed.remove(room)
+					"ABORT: No collectors from Room %d\n" % room.pindex)
+				self.output.print("Check %s layer" % layer_error + 
+					" to visualize errors\n")
+
+				room.poly.dxf.layer = layer_error
+				self.output_error()
+				return False
+
 
 		bound = 0
 		for room in reversed(self.processed):
@@ -3629,6 +3653,8 @@ class Model(threading.Thread):
 
 			if (i+1 < len(room.links)):
 				del room.links[i:]
+
+		return True
 
 	def rescale_model(self):
 
@@ -3918,6 +3944,7 @@ class Model(threading.Thread):
 		# check if vector is in room or 
 		# across collector and room
 		for v in self.vectors:
+
 			p1 = (v.dxf.start[0], v.dxf.start[1])
 			p2 = (v.dxf.end[0], v.dxf.end[1])
 
@@ -3935,10 +3962,12 @@ class Model(threading.Thread):
 
 				if p1_clt and room.is_point_inside(p2):
 					room.fixed_collector = p1_clt
+					self.msp.delete_entity(v)
 					break
 
 				if p2_clt and room.is_point_inside(p1):
 					room.fixed_collector = p2_clt
+					self.msp.delete_entity(v)
 					break
 
 				if (room.contains_vector(v) and
@@ -4025,7 +4054,9 @@ class Model(threading.Thread):
 				self.output.print("WARNING: suggested %d collectors\n" % rc)
 
 		################################################################
-		self.create_trees()
+		if not self.create_trees():
+			return
+
 		# for collector in self.collectors:
 		#self.draw_trees(self.collectors[5])
 
@@ -4576,9 +4607,12 @@ class Model(threading.Thread):
 			return
 
 		room = next(room_iter)
-
+		while room and len(room.links)==0:
+			room = next(room_iter)
+			 
 		# Terminal case
 		if (room == None):
+
 			if (partial < self.best_dist):
 				# Found solution
 				self.found_one = True
@@ -4587,6 +4621,11 @@ class Model(threading.Thread):
 				self.best_list = list()
 				ir = iter(self.processed)
 				while (x:=next(ir)) != None:
+					if x.fixed_collector:
+						x.downlinks = list()
+						x.collector = x.fixed_collector
+						x.uplink = x.collector.contained_in
+						continue
 					x.downlinks = list()
 					x.uplink = x._uplink
 					x.collector = x._collector
