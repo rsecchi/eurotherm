@@ -2,6 +2,7 @@
 
 import ezdxf
 import sys
+from ctypes import *
 from pprint import pprint
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
@@ -22,11 +23,13 @@ from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
+import os
 
 dxf_version = "AC1032"
 
 web_version = False
 debug = True
+engine = CDLL("../../engine.so")
 
 if ezdxf.version == (0, 14, 2, 'release'):
     poly_class = ezdxf.entities.lwpolyline.LWPolyline
@@ -1638,6 +1641,18 @@ class Cell:
 
 # This class represents the grid over which the panels
 # are laid out.
+class POINT(Structure):
+	_fields_ = [("x",c_double), ("y",c_double)]
+
+class POLYGON(Structure):
+	_fields_ = [("poly", POINTER(POINT)),
+				("size", c_int)]
+
+class ROOM(Structure):
+	_fields_ = [("walls", POLYGON),
+				("obstacles", POINTER(POLYGON)),
+				("obs_num", c_int)]
+
 class PanelArrangement:
 
 	def __init__(self, room):
@@ -1653,7 +1668,36 @@ class PanelArrangement:
 	def len(self):
 		return len(self.cells)
 
+	# create C structures for engine
+	def c_polygon(self, poly):
+		l = len(poly)
+		POLY = POINT*l
+		tt = POLY(*poly)
+		return POLYGON(tt, l)
+
+	def c_room(self, walls, obs):
+		_room = self.c_polygon(walls)
+		_obs_num = len(obs)
+		_obs_poly = list()
+		OBS = POLYGON*_obs_num
+		for ob in obs:
+			_obs_poly.append(self.c_polygon(ob))
+		_obs = OBS(*_obs_poly)
+		return ROOM(_room, _obs, _obs_num)
+
+	def engine_grid(self):
+
+		if engine:
+			#print(self.room.points)
+			obs = list()
+			for ob in self.room.obstacles:
+				obs.append(ob.points)
+			room = self.c_room(self.room.points, obs)
+			engine.grid(room)
+
 	def make_grid(self, origin):
+
+		self.engine_grid()
 
 		self.cells = list()
 
@@ -2647,7 +2691,7 @@ class Room:
 				sx += search_tol
 
 			if best_origin:
-				print("TOTAL SLOTS:", slots)
+				#print("TOTAL SLOTS:", slots)
 				self.arrangement.make_grid(best_origin)	
 				self.arrangement.overlay(best_origin)
 				self.panels = self.arrangement.dorsals.panels
