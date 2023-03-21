@@ -3546,12 +3546,6 @@ class Model(threading.Thread):
 			leader = None
 			for room in self.processed:
 
-				# skip room that already have a collector
-				if room.fixed_collector:
-					link_item = (collector, MAX_DIST, room.uplink)
-					room.links.append(link_item)
-					continue
-
 				if room.user_zone != collector.user_zone:
 					room.walk = MAX_DIST
 
@@ -4581,17 +4575,18 @@ class Model(threading.Thread):
 		# Recursive cases
 		for link in room.links:
 			collector, room_dist, uplink = link
-			new_partial = partial + room_dist
-
+			
 			# If room if fixed to a collector, skip
 			# other collectors
-			if (room.fixed_collector and 
-				room.fixed_collector != collector):
-					continue
-
-			if (new_partial+room.bound<self.best_dist and 
+			if room.fixed_collector:
+				collector = room.fixed_collector
+				room_dist = 0
+				
+			new_partial = partial + room_dist
+			
+			if ((new_partial+room.bound<self.best_dist and 
 				collector.freespace>=room.feeds and
-				collector.freeflow>=room.flow):
+				collector.freeflow>=room.flow)):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
 				collector.freeflow  -= room.flow
