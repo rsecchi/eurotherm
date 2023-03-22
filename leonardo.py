@@ -1328,12 +1328,12 @@ class Panel:
 				pline[i] = rotate(pline[i], rot, uv)
 
 		pl = msp.add_lwpolyline(pline)
-		pl.dxf.layer = layer_joints
+		pl.dxf.layer = layer_panel
 		pl.dxf.color = stripe_color
 		
 		hatch = msp.add_hatch(color=stripe_color)
 		hatch.paths.add_polyline_path(pline, is_closed=True)
-		hatch.dxf.layer = layer_joints
+		hatch.dxf.layer = layer_panel
 
 	def draw_profile(self, msp):
 		ax = self.xcoord; bx = ax + self.width
@@ -3602,12 +3602,6 @@ class Model(threading.Thread):
 			leader = None
 			for room in self.processed:
 
-				# skip room that already have a collector
-				if room.fixed_collector:
-					link_item = (collector, MAX_DIST, room.uplink)
-					room.links.append(link_item)
-					continue
-
 				if room.user_zone != collector.user_zone:
 					room.walk = MAX_DIST
 
@@ -4366,7 +4360,7 @@ class Model(threading.Thread):
 			
 				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 				pl = self.msp.add_lwpolyline(pline)
-				pl.dxf.layer = layer_panel
+				pl.dxf.layer = layer_text
 				pl.dxf.color = zone_color
 				pl.dxf.linetype = 'CONTINUOUS'
 			else:
@@ -4637,17 +4631,18 @@ class Model(threading.Thread):
 		# Recursive cases
 		for link in room.links:
 			collector, room_dist, uplink = link
-			new_partial = partial + room_dist
-
+			
 			# If room if fixed to a collector, skip
 			# other collectors
-			if (room.fixed_collector and 
-				room.fixed_collector != collector):
-					continue
-
-			if (new_partial+room.bound<self.best_dist and 
+			if room.fixed_collector:
+				collector = room.fixed_collector
+				room_dist = 0
+				
+			new_partial = partial + room_dist
+			
+			if ((new_partial+room.bound<self.best_dist and 
 				collector.freespace>=room.feeds and
-				collector.freeflow>=room.flow):
+				collector.freeflow>=room.flow)):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
 				collector.freeflow  -= room.flow
@@ -5092,6 +5087,19 @@ class Model(threading.Thread):
 				tot_clts += 1
 				tag = e.text.split()[1][1:-1]
 				feeds = int(tag.split("+")[0])
+
+				if (feeds<=0):
+					self.output.print(
+						"ABORT: Label %s not recognized as a collector name\n" % e.text)
+					self.output_error()
+					return
+
+				if (feeds>=feeds_per_collector):
+					self.output.print(
+						"ABORT: Too many lines in collector %s\n" % e.text)
+					self.output_error()
+					return
+					
 				clt_qnts[feeds] += 1
 				tot_cirs += feeds
 
@@ -5106,7 +5114,7 @@ class Model(threading.Thread):
 		code = '2720200120'
 		desc = 'LINEA AGG. PERT-AL-PERT + ANELLI E TERMIN. (2m)'
 		qnt = 0
-		for e in self.msp.query('*[layer=="%s"]' % layer_panelp):
+		for e in self.msp.query('*[layer=="%s"]' % layer_panel):
 			if e.dxftype() == "LWPOLYLINE":
 				points = list(e.vertices())	
 				mdist = 0
