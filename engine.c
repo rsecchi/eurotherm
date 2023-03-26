@@ -62,18 +62,30 @@ double yp = q->y;
 
 int cross(point* a, point* b)
 {
+	double dd, dt, ds;
+	double dax, day, dbx, dby, d0x, d0y;
+
 	/* differentials */
-	double dax = a[1].x - a[0].x;
-	double day = a[1].y - a[0].y;
-	double dbx = b[1].x - b[0].x;
-	double dby = b[1].y - b[0].y;
-	double d0x = a[0].x - b[0].x;
-	double d0y = a[0].y - b[0].y;
+	dax = a[1].x - a[0].x;
+	day = a[1].y - a[0].y;
+	dbx = b[1].x - b[0].x;
+	dby = b[1].y - b[0].y;
+	d0x = a[0].x - b[0].x;
+	d0y = a[0].y - b[0].y;
+
+	/*
+	printf("dax=%lf\n", dax);
+	printf("day=%lf\n", day);
+	printf("dbx=%lf\n", dbx);
+	printf("dby=%lf\n", dby);
+	printf("d0x=%lf\n", d0x);
+	printf("d0y=%lf\n", d0y);
+	*/
 
 	/* determinants */
-	double dd = -dax * dby + dbx * day;
-	double dt =  d0x * dby - dbx * d0y;
-	double ds = -dax * d0y + d0x * day;
+	dd = -dax * dby + dbx * day;
+	dt =  d0x * dby - dbx * d0y;
+	ds = -dax * d0y + d0x * day;
 
 	if (dd==0)
 		return NO_CROSS;
@@ -137,16 +149,14 @@ int i,j,res,t;
 	vbox[4] = vbox[0];
 
 	for(i=0; i<pgon->len-1; i++) {
-		printf("i=%d\n", i);
 		x = pgon->poly[i].x;
 		y = pgon->poly[i].y;
 		if (bb->xmin<x && x<bb->xmax && 
 			bb->ymin<y && y<bb->ymax)
 			return 0; 
-		printf("A\n");
 
 		t = 0;
-		for(j=0; j<5; j++) {
+		for(j=0; j<4; j++) {
 
 			res = cross(&pgon->poly[i], &vbox[j]);
 
@@ -186,10 +196,10 @@ int main() {
 	pgon.poly[6] = (point){0,0};
 	pgon.len = 7;
 
-	mbox.xmin = 0.3;
-	mbox.xmax = 0.6;
-	mbox.ymin = 0.3;
-	mbox.ymax = 1.6;
+	mbox.xmin = 1.7;
+	mbox.xmax = 2.01;
+	mbox.ymin = 1.7;
+	mbox.ymax = 2;
 
 	if (is_box_inside(&mbox, &pgon)) {
 		printf("INSIDE\n");
