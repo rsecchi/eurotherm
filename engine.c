@@ -548,7 +548,7 @@ int maxs, offs, line;
 int maxb, offb;
 point crn;
 box bb;
-int jh, jhp;
+int jh;
 int *scr, *row;
 int w, h;
 int i, j, ib=0, hsize;
@@ -600,9 +600,12 @@ int top, btm, count;
 	print_table();
 
 	/* select strings */
-	j = jhp = jh = h-1;
+	j = jh = h-1;
 	scr = score[offb];
 	maxs = scr[jh];
+	if (maxs==0)
+		return;
+
 	str heap[h];
 	block blk[h];
 
@@ -610,24 +613,14 @@ int top, btm, count;
 
 	/* select rows */
 	while(j>=0) {
-		if (maxs > scr[j]) {
+		printf("j=%d maxs=%d\n", j, maxs);
+		if (maxs > scr[j] || j==0) {
+
+			if (j==0) jh=0;
+
 			/* get line */
 			row = tbl[offb][jh];
 			count_row(row, w, &ph, jh);
-
-			/*
-			count = 0;
-			for(i=0; i<w-1; i++) {
-				if (row[i]) {
-					count++;
-					c[*n].row  = jh;
-					c[*n].col  = i;
-					c[*n].x = 5*offb + i*50 + bb.xmin;
-					c[*n].y = 5*jh + bb.ymin;
-					(*n)++;
-				}
-			}
-			*/
 
 			j = jh - 12;
 			if (j<0 || scr[j]<=0)
