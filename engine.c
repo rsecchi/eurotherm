@@ -11,6 +11,7 @@
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX_VALS 1000
+#define MAX_ITER 1000000
 
 enum mode {INSIDE, OUTSIDE, INTERSECT};
 
@@ -59,6 +60,7 @@ struct {
 } table;
 
 void* tblb;
+int iter;
 
 /* check if p is inside poly */
 int inside(point *q, polygon* pgon)
@@ -423,8 +425,9 @@ int i, count, line;
 int align_score(block *blk)
 {
 int i, j, w;
-int score=0, count;
+int count;
 int top, btm;
+int hscore, vscore;
 
 	top = blk->sp[0].j;
 	btm = blk->sp[blk->size-1].j;
@@ -437,6 +440,8 @@ int top, btm;
 	typedef int (*table_p)[w];
 	table_p tbl = (table_p)(table.tbl);	
 
+	hscore = 0;
+	/* count potential+cumulated horizontal joins */
 	for(j=top-12; j>=btm; j-=12) {
 		count = 0;
 		for(i=0; i<w; i++) {
@@ -445,21 +450,43 @@ int top, btm;
 				count++;
 				continue;
 			}
-			score += count/2;
+			hscore += count/2;
 			count = 0;
 
 			if ( (tbl[j][i]==2 && tbl[j+12][i]==2) ||
 			     (tbl[j][i]==2 && tbl[j+12][i]==1 &&
 				 tbl[j+12][i]==1) )
 			{
-				score++;
+				hscore++;
 				i++;	
 			}
-
 		}
+		hscore += count/2;
 	}
 
-	return score;
+	/* count potential+cumulated vertical joins */
+	vscore = 0;
+	for(j=top; j>=btm; j-=12) {
+		count = 0;
+		for(i=0; i<w; i++) {
+			if (tbl[j][i]==1) {
+				count++;
+				continue;
+			}
+			if (count>2)
+				vscore += (count/2)-1;
+			count = 0;
+
+			if (i<w-1 && tbl[j][i]==3 
+					  && tbl[j][i+1]==2)
+				vscore++;
+
+		}
+		if (count>2)
+			vscore += (count/2)-1;
+	}
+	
+	return hscore + vscore;
 }
 
 void align_cells(block *blk, int lvl)
@@ -470,6 +497,10 @@ int top, btm;
 int pnls;
 int best_sofar, hope_for;
 str* sp;
+
+	iter++;
+	if (iter>MAX_ITER)
+		return;
 
 	printf("LVL=%d\n", lvl);
 	print_block(blk);
@@ -507,7 +538,6 @@ str* sp;
 		return;
 	}
 
-
 	ic = sp[lvl].i;
 	jc = sp[lvl].j;
 
@@ -522,7 +552,7 @@ str* sp;
 			tbl[jc][ic-sc+k+1] = 3;
 		}
 		tbl[jc][ic-sc+2*j] = 0;
-	
+
 		printf("&\n");
 		print_block(blk);
 		best_sofar = blk->best_align;
@@ -548,10 +578,9 @@ int maxs, offs, line;
 int maxb, offb;
 point crn;
 box bb;
-int jh;
-int *scr, *row;
+int *scr;
 int w, h;
-int i, j, ib=0, hsize;
+int i, j, jh, ib=0, hsize;
 int jc, ic, sc, k;
 int top, btm, count;
 
@@ -599,42 +628,28 @@ int top, btm, count;
 
 	print_table();
 
-	/* select strings */
-	j = jh = h-1;
+	/* select rows */
+	j = h-1;
 	scr = score[offb];
-	maxs = scr[jh];
-	if (maxs==0)
-		return;
-
 	str heap[h];
-	block blk[h];
-
 	str *ph = heap;
 
 	/* select rows */
-	while(j>=0) {
-		printf("j=%d maxs=%d\n", j, maxs);
-		if (maxs > scr[j] || j==0) {
+	while(j>=0 && scr[j]>0) {
 
-			if (j==0) jh=0;
+		while(j>0 && scr[j]==scr[j-1])
+			j--;
 
-			/* get line */
-			row = tbl[offb][jh];
-			count_row(row, w, &ph, jh);
-
-			j = jh - 12;
-			if (j<0 || scr[j]<=0)
-				break;
-
-			maxs = scr[j];
-	
-		}
-		jh = j;
-		j--;
+		/* get line */
+		count_row(tbl[offb][j], w, &ph, j);
+		
+		/* next row */
+		j -= 12;
 	}
 
 
-	/* group blocks */
+	/* group in blocks */
+	block blk[h];
 	hsize = ph-heap;
 	j = 0;
 
@@ -662,9 +677,6 @@ int top, btm, count;
 	}
 
 	printf("\n===> BLOCKS <==================\n");
-	table.tbl = &tbl[offb];
-	table.w = w;
-	table.h = h;
 
 	/* allocate even strings */
 	for(i=0; i<ib; i++) {
@@ -691,7 +703,9 @@ int top, btm, count;
 	
 	for(k=0; k<ib; k++)
 	{
+		iter = 0;
 		align_cells(&blk[k], 0);	
+		printf("iter=%d\n", iter);
 		print_best_bl(&blk[k]);
 
 		top = blk[k].sp[0].j;
