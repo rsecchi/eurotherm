@@ -29,7 +29,8 @@ dxf_version = "AC1032"
 
 web_version = False
 debug = True
-engine = CDLL("../../engine.so")
+engine = CDLL("engine.so")
+#engine = None
 
 if ezdxf.version == (0, 14, 2, 'release'):
     poly_class = ezdxf.entities.lwpolyline.LWPolyline
@@ -1651,7 +1652,15 @@ class POLYGON(Structure):
 class ROOM(Structure):
 	_fields_ = [("walls", POLYGON),
 				("obstacles", POINTER(POLYGON)),
-				("obs_num", c_int)]
+				("obs_num", c_int) ]
+
+
+class CELL(Structure):
+	_fields_ = [("group", c_int),
+				("row", c_int),
+				("col", c_int),
+				("x", c_double),
+				("y", c_double)]
 
 class PanelArrangement:
 
@@ -1686,18 +1695,68 @@ class PanelArrangement:
 		return ROOM(_room, _obs, _obs_num)
 
 	def engine_grid(self):
+		global panel_width, scale
 
-		if engine:
-			#print(self.room.points)
-			obs = list()
-			for ob in self.room.obstacles:
-				obs.append(ob.points)
-			room = self.c_room(self.room.points, obs)
-			engine.grid(room)
+		self.cells = list()
+
+		w = ceil(scale*(self.room.bx-self.room.ax)/50)
+		h = ceil(scale*(self.room.by-self.room.ay)/5)
+		cell_no = self.cell_no = c_int()
+		clist = self.clist = (CELL*(w*h))()
+
+		print("ENGINE:", w, h)
+		# print(self.room.points)
+
+		points_s = list()
+		for point in self.room.points:
+			pp = point[0]*scale, point[1]*scale
+			points_s.append(pp)
+
+		#print(points_s)
+
+		obs = list()
+		for ob in self.room.obstacles:
+			_ob = list()
+			for point in ob.points:
+				pp = point[0]*scale, point[1]*scale
+				_ob.append(pp)
+			obs.append(_ob)
+
+		#print(obs)
+
+		room = self.c_room(points_s, obs)
+		engine.grid(room, byref(clist), byref(cell_no))
+
+		print("MADE:", cell_no)
+		groups = list()
+		for i in range(cell_no.value):
+			if not clist[i].group in groups:
+				groups.append(clist[i].group)
+
+		self.grids = list()
+		for group in groups:
+			block = list()
+			for i in range(cell_no.value):
+				if not clist[i].group is group:
+					continue
+				pos = (clist[i].row, clist[i].col)
+				sax = pos[1]*panel_width + clist[i].x/scale
+				say = pos[0]*panel_height + clist[i].y/scale
+				box = (sax, sax+panel_width, say, say+panel_height)
+				cell = Cell(pos, box, self.room, self.mode)
+				self.cells.append(cell)
+				cell.origin = (clist[i].x/scale, clist[i].y/scale)
+				block.append(cell)
+
+			maxr = max([b.pos[0] for b in block]) + 7
+			maxc = max([b.pos[1] for b in block]) + 3
+			m = np.full((maxr, maxc), None)
+			for cell in block:
+				m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
+			origin = block[0].origin
+			self.grids.append((m, block, origin, (maxr, maxc)))
 
 	def make_grid(self, origin):
-
-		self.engine_grid()
 
 		self.cells = list()
 
@@ -1738,7 +1797,6 @@ class PanelArrangement:
 
 		for cell in self.cells:
 			m[(cell.pos[0]+3, cell.pos[1]+1)] = cell
-
 
 		return True
 
@@ -1807,32 +1865,39 @@ class PanelArrangement:
 		#if (not self.make_grid(origin)):
 		#	return
 
-		#if (self.room.pindex==3):
-		#	print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
+		print("ROOM index:", self.room.pindex)
+		if (self.room.pindex==2):
+			print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
 	
-		#	print("room", self.room.pindex, self.mode, end="")
-		#	if (self.room.clt_xside==LEFT):
-		#		print(" LEFT ",end="")
-		#	else:
-		#		print(" RIGHT ",end="")
-		#	if (self.room.clt_yside==TOP):
-		#		print("TOP")
-		#	else:
-		#		print("BOTTOM")
+			print("room", self.room.pindex, self.mode, end="")
+			if (self.room.clt_xside==LEFT):
+				print(" LEFT ",end="")
+			else:
+				print(" RIGHT ",end="")
+			if (self.room.clt_yside==TOP):
+				print("TOP")
+			else:
+				print("BOTTOM")
 
-		#	for row in range(self.rows):
-		#		for col in range(self.cols):
-		#			if (self.grid[row,col]):
-		#				print("X", end="")
-		#			else:
-		#				print(".", end="")
-		#		print()
+			for row in range(self.rows):
+				for col in range(self.cols):
+					if (self.grid[row,col]):
+						print(".", end="")
+					else:
+						print("X", end="")
+				print()
 
 		#for j in range(0,2):
+
+		print("ORIGIN", origin)
+
 		for i in range(0,4):
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
+			print("trial_dorsals:", trial_dorsals)
+			print("trial_dorsals.elems", trial_dorsals.elems)
+			print("self_dorsals.elems", self.dorsals.elems)
 			if ((not trial_dorsals == None ) and
 				((trial_dorsals.elems > self.dorsals.elems) or
 				(trial_dorsals.elems == self.dorsals.elems and
@@ -2673,29 +2738,54 @@ class Room:
 				self.clt_yside = BOTTOM 
 
 		self.arrangement.mode = 0   ;# horizontal
+		max_cell_no = 0
 		while self.arrangement.mode < 2:
 			self.bounding_box()
 			# search within a small panel range
 			sx = 0
 			slots = 0
 			best_origin = None
-			while sx<panel_width:
-				sy = 0
-				while sy<panel_height:
-					origin = (sx + self.ax, sy + self.ay)
-					self.arrangement.make_grid(origin)	
-					if (len(self.arrangement.cells)>slots):
-						slots = len(self.arrangement.cells)
-						best_origin = origin
-					sy += search_tol
-				sx += search_tol
 
-			if best_origin:
-				#print("TOTAL SLOTS:", slots)
-				self.arrangement.make_grid(best_origin)	
-				self.arrangement.overlay(best_origin)
-				self.panels = self.arrangement.dorsals.panels
+			if not engine:
+				while sx<panel_width:
+					sy = 0
+					while sy<panel_height:
+						origin = (sx + self.ax, sy + self.ay)
+						self.arrangement.make_grid(origin)	
+						if (len(self.arrangement.cells)>slots):
+							slots = len(self.arrangement.cells)
+							best_origin = origin
+						sy += search_tol
+					sx += search_tol
 
+				if best_origin:
+					#print("TOTAL SLOTS:", slots)
+					self.arrangement.make_grid(best_origin)	
+					self.arrangement.overlay(best_origin)
+					self.panels = self.arrangement.dorsals.panels
+
+			else:
+				origin = (self.ax, self.ay)
+				self.arrangement.engine_grid()				
+				
+				if (self.arrangement.cell_no.value > max_cell_no):
+					max_cell_no = self.arrangement.cell_no.value
+					print("NEW BEST MODE")	
+					self.panels = list()
+					for elem in self.arrangement.grids:
+						if not len(elem[1])>0:
+							continue
+
+						origin = elem[2]
+						self.arrangement.grid = elem[0]
+						self.arrangement.rows = elem[3][0]
+						self.arrangement.cols = elem[3][1]
+						self.arrangement.dorsals.elems = 0
+						self.arrangement.overlay(origin)
+						print("PANELS:", len(self.arrangement.dorsals.panels))
+						self.panels += self.arrangement.dorsals.panels
+						print("PANELS tot:", len(self.panels))
+						
 			if (self.vector and not self.vector_auto):
 				break
 

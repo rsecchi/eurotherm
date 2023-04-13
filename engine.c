@@ -13,6 +13,8 @@
 #define MAX_VALS 1000
 #define MAX_ITER 1000000
 
+// #define DEBUG
+
 enum mode {INSIDE, OUTSIDE, INTERSECT};
 
 typedef struct {
@@ -36,6 +38,7 @@ typedef struct {
 } box;
 
 typedef struct {
+	int group;
 	int row, col;
 	double x, y;
 } cell;
@@ -314,11 +317,12 @@ int* score;
 
 	for(j=0; j<h; j++) {
 		printf("[");
-		for(i=0; i<w; i++)
+		for(i=0; i<w; i++) {
 			if (tbl[j][i])
 				printf(".");
 			else
 				printf("X");
+		}
 		printf("] score[%d]=%d\n", j, score[j]);
 	}
 }
@@ -502,9 +506,11 @@ str* sp;
 	if (iter>MAX_ITER)
 		return;
 
+#ifdef DEBUG
 	printf("LVL=%d\n", lvl);
 	print_block(blk);
 	printf("align_score=%d\n", align_score(blk));
+#endif
 
 	w = table.w;
 	typedef int (*table_p)[w];
@@ -517,10 +523,13 @@ str* sp;
 
 	/* terminal case */
 	if (lvl==blk->size) {
+#ifdef DEBUG
 		printf("reach terminal\n");
+#endif
 		blk->best_align = align_score(blk);
+#ifdef DEBUG
 		printf("total alignment: %d\n", blk->best_align);
-
+#endif
 		/* copy best solution */
 		table_p tblb = (table_p)(blk->tbl);	
 		for(j=top; j>=btm; j-=12) 
@@ -543,7 +552,9 @@ str* sp;
 
 	/* recursive cases */
 	pnls = sp[lvl].count/2;
+#ifdef DEBUG
 	printf("ic=%d jc=%d lvl=%d pnls=%d\n", ic, jc, lvl, pnls);
+#endif
 
 	for(j=0; j<=pnls; j++) {
 		for(i=0; i<pnls; i++) {
@@ -553,18 +564,24 @@ str* sp;
 		}
 		tbl[jc][ic-sc+2*j] = 0;
 
+#ifdef DEBUG
 		printf("&\n");
 		print_block(blk);
+#endif
 		best_sofar = blk->best_align;
 		hope_for = align_score(blk);
-		printf("best_sofar=%d hope_for=%d\n", best_sofar, hope_for);
-
+#ifdef DEBUG
+		printf("best_sofar=%d hope_for=%d\n", 
+			best_sofar, hope_for);
+#endif
 		if (best_sofar < hope_for)
 			align_cells(blk, lvl+1);
 
 	}
 
+#ifdef DEBUG
 	printf("\n");
+#endif
 
 	/* clear table belore leaving */
 	for(i=0; i<sc; i++)
@@ -596,6 +613,8 @@ int top, btm, count;
 
 	*n = 0;
 
+	printf("ENTERING ENGINE: %d %d\n", w, h);
+
 	/* scan offsets */
 	maxb = 0;
 	for(offs=0; offs<10; offs++) {
@@ -621,12 +640,17 @@ int top, btm, count;
 		
 	}
 
+	if (maxb==0)
+		return;
+
 	table.tbl = tbl[offb];
 	table.score = score[offb];
 	table.w = w;
 	table.h = h;
 
+#ifdef DEBUG
 	print_table();
+#endif
 
 	/* select rows */
 	j = h-1;
@@ -647,15 +671,16 @@ int top, btm, count;
 		j -= 12;
 	}
 
-
 	/* group in blocks */
 	block blk[h];
 	hsize = ph-heap;
 	j = 0;
 
+#ifdef DEBUG
 	printf("\n===> STR  <==================\n");
 	for(i=0; i<hsize; i++)
 		printf("%2d. j=%d\n ", i, heap[i].j);
+#endif
 
 	while(j<hsize) {
 		/* prepare block */
@@ -676,11 +701,15 @@ int top, btm, count;
 		ib++;
 	}
 
+#ifdef DEBUG
 	printf("\n===> BLOCKS <==================\n");
+#endif
 
 	/* allocate even strings */
 	for(i=0; i<ib; i++) {
+#ifdef DEBUG
 		printf("block %d %d\n", i, blk[i].size);
+#endif
 		for(j=0; j<blk[i].size; j++) {
 			sc = blk[i].sp[j].count;
 			if (sc%2!=0)
@@ -693,11 +722,12 @@ int top, btm, count;
 				tbl[offb][jc][ic-sc+k] = 2;
 				tbl[offb][jc][ic-sc+k+1] = 3;
 			}
-
+#ifdef DEBUG
 			printf("\t (%d,%d) %d\n", 
 				blk[i].sp[j].i, 
 				blk[i].sp[j].j,
 				blk[i].sp[j].count);
+#endif
 		}
 	}
 	
@@ -705,8 +735,11 @@ int top, btm, count;
 	{
 		iter = 0;
 		align_cells(&blk[k], 0);	
+
+#ifdef DEBUG
 		printf("iter=%d\n", iter);
 		print_best_bl(&blk[k]);
+#endif
 
 		top = blk[k].sp[0].j;
 		btm = blk[k].sp[blk[k].size-1].j;
@@ -720,10 +753,13 @@ int top, btm, count;
 			for(i=0; i<w; i++) {
 				if (tbl[j][i]==2) {
 					count++;
-					c[*n].row  = j;
-					c[*n].col  = i;
-					c[*n].x = 5*offb + i*50 + bb.xmin;
-					c[*n].y = 5*j + bb.ymin;
+					c[*n].row  = (j-btm)/12;
+					c[*n].col  = i/2;
+					c[*n].x = bb.xmin + offb*5;
+					c[*n].y = bb.ymin + btm*5;
+					if (i%2==1)
+						c[*n].x += 50;
+					c[*n].group = k*2 + i%2;
 					(*n)++;
 				}
 			}
