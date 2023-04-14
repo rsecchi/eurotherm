@@ -29,7 +29,7 @@ dxf_version = "AC1032"
 
 web_version = False
 debug = True
-engine = CDLL("engine.so")
+engine = CDLL("./engine.so")
 #engine = None
 
 if ezdxf.version == (0, 14, 2, 'release'):

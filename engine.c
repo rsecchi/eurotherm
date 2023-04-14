@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <strings.h>
+#include <string.h>
 #define EPS 1e-6
 
 #define NO_CROSS 0
