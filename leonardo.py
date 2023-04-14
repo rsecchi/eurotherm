@@ -1889,15 +1889,10 @@ class PanelArrangement:
 
 		#for j in range(0,2):
 
-		print("ORIGIN", origin)
-
 		for i in range(0,4):
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
-			print("trial_dorsals:", trial_dorsals)
-			print("trial_dorsals.elems", trial_dorsals.elems)
-			print("self_dorsals.elems", self.dorsals.elems)
 			if ((not trial_dorsals == None ) and
 				((trial_dorsals.elems > self.dorsals.elems) or
 				(trial_dorsals.elems == self.dorsals.elems and
