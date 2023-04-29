@@ -28,6 +28,7 @@ dxf_version = "AC1032"
 
 web_version = False
 debug = False
+frame_enabled = False
 
 if ezdxf.version == (0, 14, 2, 'release'):
     poly_class = ezdxf.entities.lwpolyline.LWPolyline
@@ -3248,7 +3249,10 @@ class Room:
 		global scale
 
 		hatch = msp.add_hatch(color=41)
-		hatch.set_pattern_fill("ANSI31", scale=20)
+		if (frame_enabled):
+			hatch.set_pattern_fill("ANSI31", scale=20)
+		else:
+			hatch.set_pattern_fill("ANSI31", scale=2/scale)
 
 		hatch.paths.add_polyline_path(self.points, 
 			is_closed=True,
@@ -3265,7 +3269,10 @@ class Room:
 			if panel.size[1] == 2:
 				lux = msp.add_hatch(color=stripe_color)
 				lux.dxf.layer = layer_lux
-				lux.set_pattern_fill("ANSI31", scale=20)
+				if (frame_enabled):
+					lux.set_pattern_fill("ANSI31", scale=20)
+				else:
+					lux.set_pattern_fill("ANSI31", scale=2/scale)
 				luxp = panel.lux_poly()
 				lux.paths.add_polyline_path(luxp, is_closed=True)
 				pl = msp.add_lwpolyline(luxp)
@@ -4369,51 +4376,54 @@ class Model(threading.Thread):
 
 		##############################################################
 
-		# Rescale everything before printing	
-		block = self.doc.blocks.new("DRAWING")
-		ss = list()
-		for e in self.msp:
-			if not e.dxf.layer == "Cornice":
-				block.add_entity(e)
-				ss.append(e)
+		if (frame_enabled):
+			# Rescale everything before printing	
+			block = self.doc.blocks.new("DRAWING")
+			ss = list()
+			for e in self.msp:
+				if not e.dxf.layer == "Cornice":
+					block.add_entity(e)
+					ss.append(e)
 
 
-		for e in ss:
-			self.msp.unlink_entity(e)
+			for e in ss:
+				self.msp.unlink_entity(e)
 
-		# bounding box zones	
-		ax = self.zone_bb[0][0]
-		ay = self.zone_bb[0][1]
-		bx = self.zone_bb[0][2]
-		by = self.zone_bb[0][3]
+			# bounding box zones	
+			ax = self.zone_bb[0][0]
+			ay = self.zone_bb[0][1]
+			bx = self.zone_bb[0][2]
+			by = self.zone_bb[0][3]
 
-		for zone in self.zone_bb:
-			ax = min(ax, zone[0])
-			ay = min(ay, zone[1])
-			bx = max(bx, zone[2])
-			by = max(by, zone[3])
+			for zone in self.zone_bb:
+				ax = min(ax, zone[0])
+				ay = min(ay, zone[1])
+				bx = max(bx, zone[2])
+				by = max(by, zone[3])
 
-		ax = ax*scale*10
-		ay = ay*scale*10
-		bx = bx*scale*10
-		by = by*scale*10
+			ax = ax*scale*10
+			ay = ay*scale*10
+			bx = bx*scale*10
+			by = by*scale*10
 
-		# centering
-		if bx-ax>a1_bx-a1_ax or by-ay>a1_by-a1_ay:
-			cx = (a0_bx + a0_ax)/2
-			cy = (a0_by + a0_ay)/2
-		else:
-			cx = (a1_bx + a1_ax)/2
-			cy = (a1_by + a1_ay)/2
+			# centering
+			if bx-ax>a1_bx-a1_ax or by-ay>a1_by-a1_ay:
+				cx = (a0_bx + a0_ax)/2
+				cy = (a0_by + a0_ay)/2
+			else:
+				cx = (a1_bx + a1_ax)/2
+				cy = (a1_by + a1_ay)/2
 
-		cx -= (bx + ax)/2
-		cy -= (by + ay)/2
+			cx -= (bx + ax)/2
+			cy -= (by + ay)/2
 
-		orig = (cx, cy) 
-		block1 = self.msp.add_blockref("DRAWING", orig, 
-			dxfattribs={'xscale': scale*10, 'yscale': scale*10})
+			orig = (cx, cy) 
+			block1 = self.msp.add_blockref("DRAWING", orig, 
+				dxfattribs={'xscale': scale*10, 'yscale': scale*10})
 
-		block1.explode()
+			block1.explode()
+
+		##############################################################
 
 		self.doc.layers.get(layer_lux).off()
 
@@ -5605,8 +5615,10 @@ def _create_model(iface):
 			iface.model.refit = True
 
 	if not iface.model.refit:	
-		#iface.model.doc = ezdxf.new(dxf_version)
-		iface.model.doc = ezdxf.readfile("frame3.dxf")
+		if (frame_enabled):
+			iface.model.doc = ezdxf.readfile("frame3.dxf")
+		else:
+			iface.model.doc = ezdxf.new(dxf_version)
 	else:
 		iface.model.doc = iface.doc
 
