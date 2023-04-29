@@ -5693,8 +5693,8 @@ def _create_model(iface):
 	importer.import_block(block_green_120x100)
 	importer.import_block(block_green_60x100)
 	importer.import_block(block_collector)
-	importer.import_block("LEO_LUX")
-	importer.import_block("LEO_LUX_IDRO")
+	importer.import_block("LEO_LUX_120")
+	importer.import_block("LEO_LUX_120_IDRO")
 
 	# import fittings
 	importer.import_block("Rac_20_10_20_blu")
