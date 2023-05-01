@@ -1,17 +1,17 @@
 #!/usr/local/bin/python3 -u
 
 import ezdxf
-import sys
+import sys, os
 from pprint import pprint
 from ezdxf import bbox
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from datetime import date
 
-
 import openpyxl
-import docx
+from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
+import docx
 import queue
 import bisect
 import threading
@@ -518,7 +518,7 @@ sheet_breakdown = [
 	('Dettaglio Stanze 30p', 82.3, 80.9)
 ]
 
-show_panel_list = True
+#show_panel_list = True
 
 alphabet = {
 	' ': [],
@@ -559,6 +559,9 @@ alphabet = {
 	'8': [3,1,5,9,12,14,11,3],
 	'9': [8,6,3,1,5,11,13,12]
 }
+
+
+
 
 def crp(x, y):
 	return x[0]*y[0] + x[1]*y[1]
@@ -1060,6 +1063,51 @@ def trim(poly, seg):
 		cr.append([crss[i][1], crss[i+1][1]])
 
 	return cr
+
+
+class Word:
+
+	@classmethod
+	def getv(cls, val):
+		num = "{:0,.2f}".format(val)
+		num = num.replace(',','$')
+		num = num.replace('.',',')
+		num = num.replace('$','.')
+		return num
+
+	@classmethod
+	def euro(cls, val):
+		eur = '\u20AC '
+		num = cls.getv(val)
+		return eur + num
+
+	@classmethod
+	def date(cls):
+		today = date.today()
+		str_date = str(today.day) 
+		str_date +=  '/' + str(today.month) 
+		str_date +=  '/' + str(today.year)
+		return str_date
+
+	def __init__(self, doc):
+		self.document = docx.Document(doc)
+
+	def write(self, para, text):
+		self.document.paragraphs[para].runs[0].text = text
+
+	def writetab(self, tabnum, cell, text):
+		tab = self.document.tables[tabnum]
+		tab.cell(*cell).paragraphs[0].runs[0].text = text
+
+	def gettab(self, tabnum, cell):
+		tab = self.document.tables[tabnum]
+		num = tab.cell(*cell).paragraphs[0].runs[0].text
+
+		num = num.replace('.','')
+		num = num.replace(',','.')
+		
+		return float(num)
+
 
 # This class represents the radiating panel
 # with its characteristics
@@ -4826,6 +4874,13 @@ class Model(threading.Thread):
 
 		no_collectors = len(self.collectors)
 
+		thin_left = Border(left=Side(style='thin'))
+		thin_right = Border(right=Side(style='thin'))
+		thin_left_top = Border(left=Side(style='thin'),
+						top=Side(style='thin'))
+		thin_right_top = Border(right=Side(style='thin'),
+						top=Side(style='thin'))
+
 		# copy total area
 		ws1['B14'] = self.area
 		ws2['B14'] = self.area
@@ -4873,142 +4928,178 @@ class Model(threading.Thread):
 		ws3['G14'] = ws3['G18'] = no_collectors 
 		ws3['G14'] = ws3['G18'] = no_collectors 
 
-		if show_panel_list:
-			for sheet, warm_coef, cool_coef, wsh in sheet_bd:
-				ws = wb.create_sheet(sheet)
 
-				ws.row_dimensions[3].height = 32
+		for sheet, warm_coef, cool_coef, wsh in sheet_bd:
+			#ws = wb.create_sheet(sheet)
+			ws = wsh
 
-				# header
-				for i in range(66,85):
-					ws.column_dimensions[chr(i)].width = 8
-					ws[chr(i)+'3'].alignment = \
+			ws['A22'] = sheet
+			ws.row_dimensions[3].height = 32
+
+			# header
+			for i in range(65,85):
+				ws.column_dimensions[chr(i)].width = 10
+				ws[chr(i)+'23'].alignment = \
+					Alignment(wrapText=True, 
+						vertical ='center',
+						horizontal ='center')
+
+			ws['A23'] = "Zona"
+			ws['B23'] = "Collettore"
+			ws['C23'] = "Stanza"
+
+			ws['D23'] = "Attiva\n[m2]"
+			ws['E23'] = "Area\n[m2]"
+			ws['F23'] = "% cop."
+			ws['G23'] = "linee"
+
+			ws['H23'] = "Pannelli\n200x120"
+			ws['I23'] = "Pannelli\n200x60"
+			ws['J23'] = "Pannelli\n100x120"
+			ws['K23'] = "Pannelli\n100x60"
+				
+			#ws.column_dimensions['M'].width = 2
+
+			ws['L22'] = 'Riscaldamento'
+			ws['L23'] = "Q, resa\n[W]"
+			ws['M23'] = "Q, tot\n[W]"
+			ws['N23'] = "Portata\n[kg/h]"
+
+			#ws.column_dimensions['Q'].width = 2
+
+			ws['O22'] = 'Raffrescamento'
+			ws['O23'] = "Q, resa\n[W]"
+			ws['P23'] = "Q, tot\n[W]"
+			ws['Q23'] = "Portata\n[kg/h]"
+
+			set_border(ws, '23', "ABCDEFGHIJKLMNOPQ")
+			ws['A23'].border = thin_left_top
+			ws['B23'].border = thin_left_top
+			ws['G23'].border = thin_left_top
+			ws['L23'].border = thin_left_top
+			ws['O23'].border = thin_left_top
+			ws['Q23'].border = thin_right_top
+
+			self.processed.sort(key=lambda x: 
+				(x.collector.zone_num, x.collector.number, x.pindex))
+
+			zone = 0
+			index = 24
+			number = -1
+			for room in self.processed:
+
+				ws['A'+str(index)].border = thin_left
+				ws['B'+str(index)].border = thin_left
+				ws['G'+str(index)].border = thin_left
+				ws['L'+str(index)].border = thin_left
+				ws['O'+str(index)].border = thin_left
+				ws['Q'+str(index)].border = thin_right
+
+				# body
+				for i in range(65,82):
+					pos = chr(i)+str(index)
+					ws[pos].alignment = \
 						Alignment(wrapText=True, 
 							vertical ='center',
 							horizontal ='center')
+					color = "D0D0D0"
+					if (index%2==0 and i>65):
+						color = "F0F0F0"
+					ws[pos].fill = PatternFill(start_color=color, 
+							fill_type = "solid")
+
+				while (room.collector.zone_num>zone):
+					zone += 1
+					pos = 'A' + str(index)
+					ws[pos] = "Zona %d" % zone
+					set_border(ws,str(index), 'B')
+				
+				if (room.collector.number != number):
+					number = room.collector.number
+					set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
+					ws['A'+str(index)].border = thin_left_top
+					ws['B'+str(index)].border = thin_left_top
+					ws['G'+str(index)].border = thin_left_top
+					ws['L'+str(index)].border = thin_left_top
+					ws['O'+str(index)].border = thin_left_top
+					ws['Q'+str(index)].border = thin_right_top
 
 
-				ws['B3'] = "Zona"
-				ws['C3'] = "Collettore"
-				ws['D3'] = "Stanza"
+				pos = 'B' + str(index)
+				ws[pos] = room.collector.name
+				ws[pos].alignment = Alignment(horizontal='center')
+				
+				pos = 'C' + str(index)
+				ws[pos] = room.pindex
+				ws[pos].alignment = Alignment(horizontal='center')
 
-				ws['E3'] = "Attiva\n[m2]"
-				ws['F3'] = "Area\n[m2]"
-				ws['G3'] = "% cop."
-				ws['H3'] = "linee"
+				pos = 'E' + str(index)
+				ws[pos] = room.area_m2
+				ws[pos].number_format = "0.0"
 
-				ws['I3'] = "Pannelli\n200x120"
-				ws['J3'] = "Pannelli\n200x60"
-				ws['K3'] = "Pannelli\n100x120"
-				ws['L3'] = "Pannelli\n100x60"
-					
-				ws.column_dimensions['M'].width = 2
-
-				ws['O2'] = 'Riscaldamento'
-				ws['N3'] = "Q, resa\n[W]"
-				ws['O3'] = "Q, tot\n[W]"
-				ws['P3'] = "Portata\n[kg/h]"
-
-				ws.column_dimensions['Q'].width = 2
-
-				ws['S2'] = 'Raffrescamento'
-				ws['R3'] = "Q, resa\n[W]"
-				ws['S3'] = "Q, tot\n[W]"
-				ws['T3'] = "Portata\n[kg/h]"
-
-				set_border(ws, '3', "BCDEFGHIJKLNOPRST")
-
-				self.processed.sort(key=lambda x: 
-					(x.collector.zone_num, x.collector.number, x.pindex))
-
-				zone = 0
-				index = 4
-				number = -1
-				for room in self.processed:
-
-					while (room.collector.zone_num>zone):
-						zone += 1
-						pos = 'B' + str(index)
-						ws[pos] = "Zone %d" % zone
-						set_border(ws,str(index), 'B')
-					
-					if (room.collector.number != number):
-						number = room.collector.number
-						set_border(ws, str(index), "CDEFGHIJKLNOPRST")
-
-					pos = 'C' + str(index)
-					ws[pos] = room.collector.name
-					ws[pos].alignment = Alignment(horizontal='center')
-					
-					pos = 'D' + str(index)
-					ws[pos] = room.pindex
-					ws[pos].alignment = Alignment(horizontal='center')
-
-					pos = 'F' + str(index)
-					ws[pos] = room.area_m2
-					ws[pos].number_format = "0.0"
-
-					if (room.active_m2==0):
-						index += 1
-						continue
-
-					pos = 'E' + str(index)
-					ws[pos] = room.active_m2
-					ws[pos].number_format = "0.0"
-
-					pos = 'G' + str(index)
-					ws[pos] = room.ratio
-					ws[pos].number_format = "0.0"
-
-					pos = 'H' + str(index)
-					ws[pos] = room.actual_feeds
-
-					if (room.room_rep['panels_120x200']>0):
-						pos = 'I' + str(index)
-						ws[pos] = room.room_rep['panels_120x200']
-
-					if (room.room_rep['panels_60x200']>0):
-						pos = 'J' + str(index)
-						ws[pos] = room.room_rep['panels_60x200']
-
-					if (room.room_rep['panels_120x100']>0):
-						pos = 'K' + str(index)
-						ws[pos] = room.room_rep['panels_120x100']
-
-					if (room.room_rep['panels_60x100']>0):
-						pos = 'L' + str(index)
-						ws[pos] = room.room_rep['panels_60x100']
-
-
-					# heating 
-					pos = 'N' + str(index)
-					ws[pos] = radiated = room.active_m2 * warm_coef
-					ws[pos].number_format = "0"
-
-					pos = 'O' + str(index)
-					ws[pos] = output = radiated * 1.1
-					ws[pos].number_format = "0"
-
-					pos = 'P' + str(index)
-					ws[pos] = 3.6*output/(4.186*wsh['K14'].value)
-					ws[pos].number_format = "0"
-
-					# cooling
-					pos = 'R' + str(index)
-					ws[pos] = absorbed = room.active_m2 * cool_coef
-					ws[pos].number_format = "0"
-
-					pos = 'S' + str(index)
-					ws[pos] = output = absorbed * 1.1
-					ws[pos].number_format = "0"
-
-					pos = 'T' + str(index)
-					ws[pos] = 3.6*output/(4.186*wsh['K18'].value)
-					ws[pos].number_format = "0"
-
-
-					#ws[pos_area].number_format = "0.00"
+				if (room.active_m2==0):
 					index += 1
+					continue
+
+				pos = 'D' + str(index)
+				ws[pos] = room.active_m2
+				ws[pos].number_format = "0.0"
+
+				pos = 'F' + str(index)
+				ws[pos] = room.ratio
+				ws[pos].number_format = "0.0"
+
+				pos = 'G' + str(index)
+				ws[pos] = room.actual_feeds
+
+				if (room.room_rep['panels_120x200']>0):
+					pos = 'H' + str(index)
+					ws[pos] = room.room_rep['panels_120x200']
+
+				if (room.room_rep['panels_60x200']>0):
+					pos = 'I' + str(index)
+					ws[pos] = room.room_rep['panels_60x200']
+
+				if (room.room_rep['panels_120x100']>0):
+					pos = 'J' + str(index)
+					ws[pos] = room.room_rep['panels_120x100']
+
+				if (room.room_rep['panels_60x100']>0):
+					pos = 'K' + str(index)
+					ws[pos] = room.room_rep['panels_60x100']
+
+
+				# heating 
+				pos = 'L' + str(index)
+				ws[pos] = radiated = room.active_m2 * warm_coef
+				ws[pos].number_format = "0"
+
+				pos = 'M' + str(index)
+				ws[pos] = output = radiated * 1.1
+				ws[pos].number_format = "0"
+
+				pos = 'N' + str(index)
+				ws[pos] = 3.6*output/(4.186*wsh['K14'].value)
+				ws[pos].number_format = "0"
+
+				# cooling
+				pos = 'O' + str(index)
+				ws[pos] = absorbed = room.active_m2 * cool_coef
+				ws[pos].number_format = "0"
+
+				pos = 'P' + str(index)
+				ws[pos] = output = absorbed * 1.1
+				ws[pos].number_format = "0"
+
+				pos = 'Q' + str(index)
+				ws[pos] = 3.6*output/(4.186*wsh['K18'].value)
+				ws[pos].number_format = "0"
+
+
+				#ws[pos_area].number_format = "0.00"
+				index += 1
+
+			set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
 
 
 		if (web_version):
@@ -5399,44 +5490,92 @@ class Model(threading.Thread):
 		print(self.text_nav, file = f, end="")
 		f.close()
 
+
+	def entry(self, row, val):
+
+		self.document.writetab(2, (row,5), Word.getv(val))
+		price = self.document.gettab(2, (row,6))
+		val = Word.euro(val*price)
+		self.document.writetab(2, (row,7), val)	
+
+
 	def save_in_word(self):
 
-		document = docx.Document("file.docx")
+		global scale
 
-		today = date.today()
-		str_date = str(today.day) + '/' + str(today.month) + '/' + str(today.year)
-		document.paragraphs[24].text = 'Data: ' + str_date
-		document.paragraphs[25].text = 'Cliente: ' + self.cname
-		document.paragraphs[26].text = 'Rif. Cantiere: ' + self.caddr
-		document.paragraphs[27].text = 'Commessa: no. Ref.: ' + self.ccomp
+		self.document = doc = Word("quote.docx")
+		document = doc.document
 
-		# table costs
-		mq = "%.2f" % self.area
-		document.tables[0].cell(1,1).text = mq
-		document.tables[0].cell(2,1).text = mq
-		document.tables[0].cell(3,1).text = mq
+		today = Word.date()
 
-		cost1_mq = float(document.tables[0].cell(1,2).text.replace(",","."))
-		cost2_mq = float(document.tables[0].cell(2,2).text.replace(",","."))
-		cost3_mq = float(document.tables[0].cell(3,2).text.replace(",","."))		
+		doc.write(44,'Data: ' + today)
+		doc.write(45,'Cliente: ' + self.cname)
+		doc.write(46,'Rif. Cantiere: ' + self.caddr)
+		doc.write(47,'Commessa: no. Ref.: ' + self.ccomp)
 
-		t1 = "%.2f" % (self.area*cost1_mq)	
-		t2 = "%.2f" % (self.area*cost2_mq)	
-		t3 = "%.2f" % (self.area*cost3_mq)	
-		tot1 = 'EUR ' + t1.replace(".",",")
-		tot2 = 'EUR ' + t2.replace(".",",")
-		tot3 = 'EUR ' + t3.replace(".",",")
-	
-		document.tables[0].cell(1,3).text = tot1
-		document.tables[0].cell(2,3).text = tot2
-		document.tables[0].cell(3,3).text = tot3
+		#######################################################
+		# table 1
+		tt = document.tables[0].cell(1,2).text
+		eur = document.tables[0].cell(1,4).text[0]
+
+		unit = tt[1:]
+		mq = "%.1f" % self.area + unit
+
+		# first line
+		doc.writetab(0, (1,2), mq)
+		v1 = self.area * 57
+		num = Word.euro(v1)
+		doc.writetab(0, (1,4), num)
+
+		# second line
+		doc.writetab(0, (2,2), mq)
+		v2 = self.area * 15
+		num = Word.euro(v2) 
+		doc.writetab(0, (2,4), num)
 		
+		# total
+		num = Word.euro(v1+v2) 
+		doc.writetab(1, (0,1), num)
+
+		#######################################################		
+		# table 2 
+		obs_small = obs_medium = 0
+		for room in self.processed:
+			for obs in room.obstacles:
+				obs_area =  obs.area*10000*scale*scale
+				if obs_area<75:
+					obs_small += 1 
+
+				if 75 <= obs_area<= 400:
+					obs_medium += 1 
+
+
+		self.entry(4, obs_medium)
+		self.entry(6, obs_small)
+		self.entry(10, self.area)
+
+		#ext11
+
+		#ext12
+		self.entry(12, self.perimeter*scale/100)
+
+		# pictures of design
+		ret = os.system("python3 dxf2img.py "+self.outname+" > /dev/null")
+
+		img = self.outname[:-4] + ".png"
+		document.paragraphs[132].alignment = 1
+		r = document.paragraphs[132].add_run()
+		r.add_picture(img, width=docx.shared.Inches(6.0))
+
+
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
 		else:
 			out = self.filename[:-4] + ".doc"	
 
 		document.save(out)
+		print("DOCUMENT SAVED")	
+
 
 class App:
 
