@@ -46,7 +46,7 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	ftypes = ["dxf", "txt", "xlsx", "dat", "doc"]
+	ftypes = ["dxf", "txt", "xlsx", "dat", "doc", "png"]
 
 	output = {}
 	for ftype in ftypes:
@@ -70,10 +70,20 @@ else:
 
 	print('</ul></div>')
 
+
+	if (os.path.exists(output["png"])):
+		fimage = open(output["txt"], "r")
+		ff = os.path.basename(os.readlink(output["png"]))
+		print('<div class="section" >')
+		# <img src="img_girl.jpg" alt="Girl in a jacket">
+		print('<h4>Pianta</h4>')
+		print('<div style="text-align: center;" >')
+		print('<img src="/output/%s" width="500">' % ff) 
+		print("</div></div>")
+
 	if (os.path.exists(output["txt"])):
 		fin = open(output["txt"], "r")
 		print(fin.read())
-
 
 	if os.path.exists(logfile):
 		flog = open(logfile, "r")

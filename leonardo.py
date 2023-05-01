@@ -4193,11 +4193,15 @@ class Model(threading.Thread):
 		else:
 			self.doc.saveas(self.outname)
 
+
+
 		##############################################################
 		# save data in XLS
 
 		self.save_in_xls()
 		self.save_navision()
+		self.thumbnail()
+
 		if not self.refit and self.laid != "without":
 			self.save_in_word()
 
@@ -5559,14 +5563,11 @@ class Model(threading.Thread):
 		#ext12
 		self.entry(12, self.perimeter*scale/100)
 
-		# pictures of design
-		ret = os.system("python3 dxf2img.py "+self.outname+" > /dev/null")
-
+		# insert thumbnail
 		img = self.outname[:-4] + ".png"
 		document.paragraphs[132].alignment = 1
 		r = document.paragraphs[132].add_run()
 		r.add_picture(img, width=docx.shared.Inches(6.0))
-
 
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
@@ -5575,6 +5576,13 @@ class Model(threading.Thread):
 
 		document.save(out)
 		print("DOCUMENT SAVED")	
+
+
+	def thumbnail(self):
+		# pictures of design
+		os.system("python3 dxf2img.py "+self.outname+" > /dev/null")
+		print("THUMBNAIL DONE")
+
 
 
 class App:
