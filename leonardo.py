@@ -2482,6 +2482,7 @@ class Room:
 		self.area = self._area()
 		self.pos = self._barycentre()
 		self.perimeter = self._perimeter()
+		self.collector = None
 
 	def _area(self):
 		a = 0
@@ -3689,6 +3690,10 @@ class Model(threading.Thread):
 
 		bound = 0
 		for room in reversed(self.processed):
+			if (room.fixed_collector or 
+				room.color==disabled_room_color):
+				room.bound = 0
+				continue
 			room.bound = bound
 			bound += room.links[0][1]
 			#print(room.pindex, room.bound, room.links[0][1])
@@ -4105,6 +4110,12 @@ class Model(threading.Thread):
 		################################################################
 		if not self.create_trees():
 			return
+
+		# Disabled room with collector forms its own zone
+		for room in self.processed:
+			if (room.color==disabled_room_color and room.zone and
+				not room.collector):
+					room.collector = room.zone	
 
 		# for collector in self.collectors:
 		#self.draw_trees(self.collectors[5])
@@ -4677,6 +4688,8 @@ class Model(threading.Thread):
 				self.best_list = list()
 				ir = iter(self.processed)
 				while (x:=next(ir)) != None:
+					if x.color == disabled_room_color:
+						continue
 					if x.fixed_collector:
 						x.downlinks = list()
 						x.collector = x.fixed_collector
@@ -4688,15 +4701,23 @@ class Model(threading.Thread):
 
 				for collector in self.collectors:
 					for room in collector.items:
+						if (room.color == disabled_room_color
+							or room.fixed_collector):
+							continue
 						room.uplink.downlinks.append(room)
 					item = (collector, copy(collector.items))
 					self.best_list.append(item)
 				return
 
+		# skip disabled room
+		if room.color == disabled_room_color:
+			self.connect_rooms(copy(room_iter), partial)
+			return
+
 		# Recursive cases
 		for link in room.links:
 			collector, room_dist, uplink = link
-			
+		
 			# If room if fixed to a collector, skip
 			# other collectors
 			if room.fixed_collector:
@@ -5196,7 +5217,11 @@ class Model(threading.Thread):
 				tag = e.text.split()[1][1:-1]
 				feeds = int(tag.split("+")[0])
 
-				if (feeds<=0):
+				if (feeds==0 and not self.refit):
+					self.output.print(
+						"WARNING: Collector %s unused\n" % e.text[:-6])
+
+				if (feeds<=0 and self.refit):
 					self.output.print(
 						"ABORT: Label %s not recognized as a collector name\n" % e.text)
 					self.output_error()
