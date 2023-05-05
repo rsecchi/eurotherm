@@ -4570,20 +4570,13 @@ class Model(threading.Thread):
 					if x.color == disabled_room_color:
 						continue
 					if x.fixed_collector:
-						x.downlinks = list()
 						x.collector = x.fixed_collector
 						x.uplink = x.collector.contained_in
 						continue
-					x.downlinks = list()
 					x.uplink = x._uplink
 					x.collector = x._collector
 
 				for collector in self.collectors:
-					for room in collector.items:
-						if (room.color == disabled_room_color
-							or room.fixed_collector):
-							continue
-						room.uplink.downlinks.append(room)
 					item = (collector, copy(collector.items))
 					self.best_list.append(item)
 				return
