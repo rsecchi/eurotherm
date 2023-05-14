@@ -10,6 +10,7 @@
 #define MAX_GAP 20.0
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 #define MIN(a,b)  (((a)<(b))?(a):(b))
+#define POINT   5
 
 #define BOTTOM  0x00000001
 #define RIGHT   0x00000002
@@ -101,6 +102,8 @@ typedef struct dorsal {
 	int cover, cost;
 	int pcover, pcost;
 	int ploc;
+	uint32_t score;
+	point inp;
 
 	struct dorsal* next;
 } dorsal;
@@ -222,6 +225,7 @@ int sig;
 		oy = ctx->orig.y + 5*dp->j - 60;
 		dx = (flgs & RIGHT)?100:0;
 
+		reg_pnl(ctx, dp->inp.x, dp->inp.y, 20, 20, POINT);
 
 		if ((flgs & FULL_WHOLE) == FULL_WHOLE) {
 			/* full panel */
@@ -257,11 +261,11 @@ int sig;
 			}
 
 			if (sig==0x01) {
-				reg_pnl(ctx, ox+200-dx, oy+60, 100, 60, dir);
+				reg_pnl(ctx, ox+100, oy+60, 100, 60, dir);
 				continue;
 			}
 			if (sig==0x02) {
-				reg_pnl(ctx, ox+200-dx, oy, 100, 60, dir);
+				reg_pnl(ctx, ox+100, oy, 100, 60, dir);
 				continue;
 			}
 		} 
@@ -280,7 +284,7 @@ dorsal* d;
 			printf("W");
 		else
 			printf("T");
-		printf("[%d]=%d  ",d->i, d->cover);
+		printf("[%d]=%d  ",d->i, d->ploc);
 	}
 	printf("\n");
 }
@@ -292,6 +296,8 @@ dorsal *d, *best;
 uint32_t sigW, sigT;
 int costW, coverW, coverT, costT, cW, cT;
 int coverB, costB;
+double ox, oy, dx, dy;
+point anchor;
 
 	if (j<12)
 		return NULL;
@@ -304,6 +310,7 @@ int coverB, costB;
 	best = NULL;
 	for(k=0; k<w-2; k++)
 	{
+		/* calculate grid indexes */
 		i  = (flgs & RIGHT)?(w-1-k-2):k;
 		i2 = (flgs & RIGHT)?(w-1-k):(k-2);
 		i4 = (flgs & RIGHT)?(w-1-k+2):(k-4);
@@ -317,10 +324,23 @@ int coverB, costB;
 		d[i].j = j;
 		d[i].next = NULL;
 
+		/* check capacity */
+
+		/* base point */
+		ox = ctx->orig.x + 50*i - 100;
+		oy = ctx->orig.y + 5*j - 60;
+		dx = (flgs & RIGHT)?100:0;
+		dy = (flgs & BOTTOM)?0:60;
+
+
 		/* eval cost full panel */	
-		costW = coverW = 0;
+		anchor.x = ox + 3*dx;
+		anchor.y = oy + 2*dy;
+
+		cW = costW = coverW = 0;
 		sigW = 0;
-		if (k>=2 ) {
+		if (k>=2 && hdist(&anchor, &(ctx->rp->walls))>=20.) {
+			/* check gap for full panel */
 
 			sigW = qs[j][i2]*2 + qs[j][i]
 				  +qs[j-12][i2]*4 + qs[j-12][i]*8;
@@ -337,26 +357,34 @@ int coverB, costB;
 		}
 
 		/* eval cost truncated panel */
-		sigT = qs[j][i] + 2*qs[j-12][i];
-		if (j==20)
-			printf("sigT=%d\n\n", sigT);
+		/* check gap for truncated panel */
+		anchor.x = ox + 100 + dx;
+		anchor.y = oy + 2*dy;
+		cT = costT = coverT = 0;
+		sigT = 0;
+		if (hdist(&anchor, &(ctx->rp->walls))>=20.) {
 
-		costT = coverT = 0;
-		if (k>=2) {
-			coverT = d[i2].cover; 
-			costT  = d[i2].cost;
+			sigT = qs[j][i] + 2*qs[j-12][i];
+			if (j==20)
+				printf("sigT=%d\n\n", sigT);
+
+			if (k>=2) {
+				coverT = d[i2].cover; 
+				costT  = d[i2].cost;
+			}	
+
+			cT = coverFP_T[flgs & DIR_MSK][sigT];
+			coverT += coverFP_T[flgs & DIR_MSK][sigT];
+			costT  +=  costFP_T[flgs & DIR_MSK][sigT];
+
+			if (j==20) {
+				printf("i=%d   cW=%d sigW=%d, ",i,  coverW, sigW);
+				printf("sigT=%d ", sigT);
+				printf("cT=%d\n", coverT);
+			}
 		}
-		cT = coverFP_T[flgs & DIR_MSK][sigT];
-		coverT += coverFP_T[flgs & DIR_MSK][sigT];
-		costT  +=  costFP_T[flgs & DIR_MSK][sigT];
 
-		if (j==20) {
-			printf("i=%d   cW=%d sigW=%d, ",i,  coverW, sigW);
-			printf("sigT=%d ", sigT);
-			printf("cT=%d\n", coverT);
-		}
-
-		// choose best between W and T, update dorsal 
+		/* select best between full or truncated */  
 		if ( (coverW>coverT) ||
 			 (coverW==coverT && costW<costT) )
 		{
@@ -366,9 +394,17 @@ int coverB, costB;
 			d[i].cover = coverW;
 			d[i].cost = costW;
 			d[i].ploc = cW;
-			if (k>=4) d[i].next = &d[i4];
+			if (k>=4) {
+				if (d[i4].ploc)
+					d[i].next = &d[i4];
+				else
+					d[i].next = d[i4].next;
+			}
 			d[i].sig = sigW;
 			d[i].flags |= WHOLE;
+
+			d[i].inp.x = ox + 3*dx;
+			d[i].inp.y = oy + 2*dy;
 		} else {
 			if (j==20)
 				printf("   CHOOSE T\n");
@@ -376,11 +412,19 @@ int coverB, costB;
 			d[i].cover = coverT;
 			d[i].cost = costT;
 			d[i].ploc = cT;
-			if (k>=2) d[i].next = &d[i2];
+			if (k>=2) {
+				if (d[i2].ploc)
+					d[i].next = &d[i2];
+				else
+					d[i].next = d[i2].next;
+			}
 			d[i].sig = sigT;
+
+			d[i].inp.x = ox + 100 + dx;
+			d[i].inp.y = oy + 2*dy;
 		}
 
-		/* update overall cover/cost */
+		/* update dorsal score */
 		if ( (d[i].ploc==0 || d[i].cover<coverB) || 
 			 (d[i].cover==coverB && d[i].cost>costB))
 		{
@@ -389,15 +433,16 @@ int coverB, costB;
 			d[i].cover = coverB;
 			d[i].cost = costB;
 			d[i].next = best;
+			d[i].ploc = 0;
 		} else {
 			if (j==20)
 				printf("update\n");
 			coverB = d[i].cover;
 			costB = d[i].cost;
 			best = &d[i];
-		}
 
-		
+		}
+	
 		if (j==20) {
 			printf("coverB=%d costB=%d   d[i].cover=%d d[i].cost=%d\n",	
 				coverB, costB, d[i].cover, d[i].cost);
@@ -426,7 +471,7 @@ int j, w, h;
 
 	for(j=0; j<h; j++) {
 		/* eval j-th line */
-		make_dorsal(FULL_BTM_RIGHT, j, ctx);
+		make_dorsal(FULL_TOP_LEFT, j, ctx);
 
 	}
 
@@ -451,7 +496,6 @@ table ctx;
 	h = ctx.h = ceil((bb.ymax - bb.ymin - 60)/5);
 	ctx.pnls = c;
 	ctx.idx = n;
-
 	
 	int grid[10][h][w];
 	
