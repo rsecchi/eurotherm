@@ -346,28 +346,36 @@ fittings = {
 		"code":      "6910022007",
 		"symbol": [ 
 					[(0,0),(0,h_fit)], 
-					[(-w_fit,0),(w_fit,0)]]
+					[(-w_fit,0),(w_fit,0)]],
+		"open":  "Rac_20_10_20",
+		"close": "Rac_20_10"
 	},
 	"Rac_20_10": {
 		"desc":      "20-10",
 		"code":      "6910022107",
 		"symbol": [
 					[(0,0),(0,h_fit)], 
-					[(0,0),(w_fit,0)]]
+					[(0,0),(w_fit,0)]],
+		"open":  "Rac_20_10_20",
+		"close": "Rac_20_10"
 	},
 	"Rac_20_10_20_10": {
 		"desc":      "20-10-20-10",
 		"code":      "6910022003",
 		"symbol": [
 					[(0,-h_fit),(0,h_fit)], 
-					[(-w_fit,0),(w_fit,0)]]
+					[(-w_fit,0),(w_fit,0)]],
+		"open":  "Rac_20_10_20_10",
+		"close": "Rac_10_20_10"
 	},
 	"Rac_10_20_10": {
 		"desc":      "10-20-10",
 		"code":      "6910022103",
 		"symbol": [
 					[(0,-h_fit),(0,h_fit)], 
-					[(0,0),(w_fit,0)]]
+					[(0,0),(w_fit,0)]],
+		"open":  "Rac_20_10_20_10",
+		"close": "Rac_10_20_10"
 	},
 	"Rac_20_10_10_20": {
 		"desc":      "20-10-10-20",
@@ -375,7 +383,9 @@ fittings = {
 		"symbol": [
 					[(s_fit,0),(s_fit,h_fit)], 
 					[(-w_fit,0),(w_fit,0)], 
-					[(-s_fit,0),(-s_fit,h_fit)]]
+					[(-s_fit,0),(-s_fit,h_fit)]],
+		"open":  "Rac_20_10_10_20",
+		"close": "Rac_20_10_10"
 	},
 	"Rac_20_10_10": {
 		"desc":      "20-10-10",
@@ -383,7 +393,9 @@ fittings = {
 		"symbol": [
 					[(s_fit,0),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
-					[(-s_fit,0),(-s_fit,h_fit)]]
+					[(-s_fit,0),(-s_fit,h_fit)]],
+		"open":  "Rac_20_10_20_10",
+		"close": "Rac_20_10_10"
 	},
 	"Rac_10_20_10_10": {
 		"desc":      "10-20-10-10",
@@ -391,7 +403,9 @@ fittings = {
 		"symbol": [
 					[(s_fit,0),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
-					[(-s_fit,0),(-s_fit,h_fit)]]
+					[(-s_fit,0),(-s_fit,h_fit)]],
+		"open":  "Rac_10_20_10_10",
+		"close": "Rac_10_20_10_10"
 	},
 	"Rac_20_10_10_20_10_10": {
 		"desc":      "20-10-10-20-10-10",
@@ -399,7 +413,9 @@ fittings = {
 		"symbol": [
 					[(s_fit,-h_fit),(s_fit,h_fit)], 
 					[(-w_fit,0),(w_fit,0)], 
-					[(-s_fit,-h_fit),(-s_fit,h_fit)]]
+					[(-s_fit,-h_fit),(-s_fit,h_fit)]],
+		"open":  "Rac_20_10_10_20_10_10",
+		"close": "Rac_10_10_20_10_10"
 	},
 	"Rac_10_10_20_10_10": {
 		"desc":      "10-10-20-10-10",
@@ -407,27 +423,37 @@ fittings = {
 		"symbol":   [
 					[(s_fit,-h_fit),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
-					[(-s_fit,0),(-s_fit,h_fit)]]
+					[(-s_fit,0),(-s_fit,h_fit)]],
+		"open":  "Rac_20_10_10_20_10_10",
+		"close": "Rac_10_10_20_10_10"
 	},
 	"Rac_20_20_dritto": {
 		"desc":      "20-20 Dritto",
 		"code":      "6910022005",
-		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]],
+		"open":  "Rac_20_20_dritto",
+		"close": "Rac_20_20_dritto"
 	},
 	"Rac_20_20_curva": {
 		"desc":      "20-20 Curva",
 		"code":      "6910022006",
-		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]], 
+		"open": "Rac_20_20_curva",
+		"close": "Rac_20_20_curva"
 	},
 	"Rac_20_20_20": {
 		"desc":      "20-20-20 (4pz)",
 		"code":      "6910022009",
-		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]],
+		"open": "Rac_20_20_20",
+		"close": "Rac_20_20_20"
 	},
 	"Rac_10_10": {
 		"desc":      "10-10",
 		"code":      "6910022013",
-		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]] 
+		"symbol":   [[(s_fit,-h_fit),(s_fit,h_fit)]],
+		"open": "Rac_10_10",
+		"close": "Rac_10_10"
 	}
 }
 
@@ -2455,7 +2481,6 @@ class Room:
 		# Check if the polyine is open with large final gap
 		n = len(p)-1
 		if (abs(p[0][0]-p[n][0])>tol or abs(p[0][1]-p[n][1])>tol):
-			self.errorstr = "Error: open polyline in Zone %d \n" % self.index 
 			self.ignore = True
 			return
 
@@ -2913,6 +2938,7 @@ class Room:
 			if cir.flip:
 				line.sgn = -1
 			self.lines.append(line)
+			overflow = False
 
 			for cpl in cir.couplings:
 				if (cpl.type == "invalid"):
@@ -2923,10 +2949,16 @@ class Room:
 					fitflow = fpanel * fit["panel"].size[1]/4
 					cpl.flow += fitflow
 
-				if line.flow + cpl.flow > fline:
-					if (cpl.type[-5:] == "_open"):
-						cpl.type = cpl.type[:-5] + "_end"
-						cpl.flip = cir.flip
+				if (line.flow + cpl.flow > fline) and not overflow:
+					cpl.type = fittings[cpl.type]["close"]
+					head = cir.couplings[0]
+					head.type = fittings[head.type]["open"]
+					index = cir.couplings.index(cpl)
+					tail = cir.couplings[index-1]
+					tail.type = fittings[tail.type]["close"]
+					tail.flip = not tail.flip
+					overflow = True
+
 					line = Line(self)
 					line.sgn = 1
 					line.level = cir.couplings[-1].pos[1]
@@ -3666,10 +3698,10 @@ class Model(threading.Thread):
 			collector.freespace = feeds_per_collector 
 			collector.freeflow = flow_per_collector
 			collector.items = list()
-			for room in self.processed:
-				if (room.fixed_collector and 
-					room.fixed_collector == collector):
-					collector.items.append(room)
+			#for room in self.processed:
+			#	if (room.fixed_collector and 
+			#		room.fixed_collector == collector):
+			#		collector.items.append(room)
 
 		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
 
@@ -3765,7 +3797,7 @@ class Model(threading.Thread):
 				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
 				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
-				self.Textinfo.insert(END, wstr)
+				self.output.print(wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		query = self.msp.query(searchstr)
@@ -3777,11 +3809,17 @@ class Model(threading.Thread):
 		tot = 0
 		# Create list of rooms
 		for poly in query:
-			tot += Room(poly, self.output).area
+			rm = Room(poly, self.output)
+			if rm.ignore:
+				wstr = "ABORT: Open polyline in layer %s\n" % self.inputlayer
+				self.output.print(wstr)
+				return False
+			tot += rm.area
 			n += 1
 
 		scale = pow(10, ceil(log10(sqrt(n/tot))))
 		self.output.print("Autoscale: 1 unit = %g cm\n" % scale)
+		return True
 
 	def check_polyline_color(self, poly):
 
@@ -3814,7 +3852,8 @@ class Model(threading.Thread):
 		if (self.scale == "auto"):
 			scale = default_scale
 			self.rescale_model()
-			self.autoscale()
+			if not self.autoscale():
+				return
 		else:
 			scale = float(self.scale)
 
@@ -4139,6 +4178,7 @@ class Model(threading.Thread):
 			self.output.print("CRITICAL: Could not connect rooms\n")
 			return
 
+
 		#self.draw_uplinks()
 		#self.draw_trees(self.collectors[3])
 
@@ -4199,6 +4239,10 @@ class Model(threading.Thread):
 
 		##############################################################
 
+		# resize collectors
+		if not self.refit:
+			self.resize_collectors()
+
 		if not self.refit:
 			self.draw()
 		else:
@@ -4211,12 +4255,28 @@ class Model(threading.Thread):
 
 		self.save_in_xls()
 		self.save_navision()
-		self.thumbnail()
 
 		if not self.refit and self.laid != "without":
 			self.save_in_word()
 
 		print("ALL DONE")
+
+
+	def resize_collectors(self):
+
+		for collector, items in self.best_list:
+			collector.inputs = 0
+			for item in items:
+				arrng = item.arrangement
+				if not hasattr(arrng, "couplings"):
+					continue
+
+				for cpl in arrng.couplings:
+					if cpl.type == "invalid":
+						continue
+
+					if not cpl.type is fittings[cpl.type]["open"]:
+						collector.inputs += 1
 
 	def populating_model(self):
 
@@ -4398,15 +4458,17 @@ class Model(threading.Thread):
 
 			write_text(self.msp, "Zone %d" % clt.zone_num, (ax, min_dist+by), 
 				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT)
-			self.zone_bb.append([ax,ay,bx,by])
+			if not clt.user_zone:
+				self.zone_bb.append([ax,ay,bx,by])
 
 
 		# Collectors
 		for collector, items in self.best_list:
-			feeds = 0
-			for room in items:
-				feeds += room.actual_feeds
-			collector.req_feeds = feeds
+			#feeds = 0
+			#for room in items:
+			#	feeds += room.actual_feeds
+			#collector.req_feeds = feeds
+			feeds = collector.inputs
 			collector.label = " (%d+%d)" % (feeds, feeds)
 			txt = collector.name + collector.label
 			xc, yc = collector.pos[0], collector.pos[1]
@@ -4705,6 +4767,27 @@ class Model(threading.Thread):
 		# skip disabled room
 		if room.color == disabled_room_color:
 			self.connect_rooms(copy(room_iter), partial)
+			return
+
+		# if collector is fixed, just to that case
+		if room.fixed_collector:
+			collector = room.fixed_collector
+			room_dist = 0
+			
+			new_partial = partial + room_dist
+			
+			if ((new_partial+room.bound<self.best_dist and 
+				collector.freespace>=room.feeds and
+				collector.freeflow>=room.flow)):
+				collector.items.append(room)
+				collector.freespace -= room.feeds
+				collector.freeflow  -= room.flow
+				room._uplink = collector.contained_in 
+				room._collector = collector
+				self.connect_rooms(copy(room_iter), new_partial)
+				collector.items.remove(room)
+				collector.freespace += room.feeds
+				collector.freeflow += room.flow
 			return
 
 		# Recursive cases
@@ -5524,6 +5607,7 @@ class Model(threading.Thread):
 	def save_in_word(self):
 
 		global scale
+		self.thumbnail()
 
 		self.document = doc = Word("quote.docx")
 		document = doc.document
