@@ -3228,6 +3228,22 @@ class Room:
 		self.lines = [x for x in self.lines if x.joined]
 		self.draw_connectors(msp)
 
+
+	def attach_pos(self, cpl):
+
+		# shift axis if single-sided dorsal
+		axis = 0
+		if not cpl.circuit.is_double():
+			axis = 0.2*(0.5-cpl.is_at_top())
+
+		print("AXIS = ", axis)
+		# calculate positions
+		pos_warm = cpl.pos[0], cpl.pos[1]+axis + 0.05
+		pos_cold = cpl.pos[0], cpl.pos[1]+axis - 0.05
+
+		return pos_warm, pos_cold
+
+
 	def draw_connectors(self, msp):
 	
 		arrng = self.arrangement
@@ -3272,24 +3288,26 @@ class Room:
 
 		for line in self.lines:
 
-			# determine the position of the first line
+			# determine the position of the first coupling
 			first = line.lines[0]
-			start = first.couplings[-1].pos
+			cpl = first.couplings[-1]
+			sw, sc = self.attach_pos(cpl)
+
 
 			for i in range(1,len(line.lines)):
 				last = line.lines[i]
-				end = last.couplings[-1].pos
-				p0 = self.path(start, end, ofs)
-				msp.add_lwpolyline(p0)
+				cpl = last.couplings[-1]
+				ew, ec = self.attach_pos(cpl)
 
-		#for i, p in enumerate(front):
-		#	front[i] = (p[0]+1, p[1])
+				path_warm = self.path(sw, ew, ofs+0.02)
+				path_cold = self.path(sc, ec, ofs-0.02)
+				pw = msp.add_lwpolyline(path_warm)
+				pc = msp.add_lwpolyline(path_cold)
+				pw.dxf.color = color_warm
+				pc.dxf.color = color_cold
+				pw.dxf.layer = layer_link
+				pc.dxf.layer = layer_link
 
-		#print("self.front", front)
-		#mittens = miter(front, 0.1)
-		#pfront = []
-		#for p in mittens:
-		#	pfront.append(self.abs(p))
 		return
 
 		# UNREACHED
@@ -3400,8 +3418,7 @@ class Room:
 		for p in fc:
 			pfront.append(self.abs(p))
 
-
-		pfront = miter(pfront, add_offs)	
+		#pfront = miter(pfront, add_offs)	
 		return pfront
 
 	def draw_passive(self, msp):
