@@ -404,7 +404,7 @@ fittings = {
 					[(s_fit,0),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]],
-		"open":  "",
+		"open":  "split",
 		"close": "Rac_10_20_10_10"
 	},
 	"Rac_20_10_10_20_10_10": {
@@ -1882,6 +1882,7 @@ class PanelArrangement:
 					self.best_grid = self.cells
 					self.alloc_mode = self.mode
 					self.alloc_clt_xside = self.room.clt_xside
+					self.alloc_clt_yside = self.room.clt_yside
 					self.origin = origin
 
 
@@ -2422,6 +2423,8 @@ class Line:
 	def draw_cpls_link(self, msp, cpls):
 
 		for i in range(len(cpls)-1):
+			if cpls[i].type == "invalid":
+				continue
 			seg1 = [cpls[i].orig1, cpls[i+1].orig1]
 			pl1 = msp.add_lwpolyline(seg1)
 			pl1.dxf.color = color_warm
@@ -3238,23 +3241,13 @@ class Room:
 
 	def draw_dorsal_joints(self, msp, orig_w, orig_c):
 
+		svec = [+1, -1, -1, +1]
 		arrng = self.arrangement
-		print("Y SIDE:", self.clt_yside)
 
+		sig = 2*arrng.alloc_clt_xside + arrng.alloc_mode
+		sgny = svec[sig]
 
-		if self.clt_yside == TOP:
-			sgny = 1
-		else:
-			sgny = -1
-
-		if (arrng.alloc_mode == 0):
-			rot = 90
-			sgny = -sgny
-		else:
-			rot = 0
-
-		#dx = collector.pos[0] - self.pos[0]
-		#dy = collector.pos[1] - self.pos[1]
+		rot = 90 * (arrng.alloc_mode == 0)
 
 		if (self.vector):
 			rot += self.rot_angle
@@ -3262,10 +3255,10 @@ class Room:
 		xs, ys = 0.1/scale, sgny*0.1/scale
 
 		msp.add_blockref("Rac_20_20_20_rosso", orig_w,
-			dxfattribs={'xscale': xs, 'yscale': ys*sgny, 'rotation': rot})
+			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 
 		msp.add_blockref("Rac_20_20_20_blu", orig_c,
-			dxfattribs={'xscale': xs, 'yscale': ys*sgny, 'rotation': rot})
+			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 
 		self.collector.inputs -= 1
 
@@ -4394,8 +4387,31 @@ class Model(threading.Thread):
 				if not hasattr(arrng, "couplings"):
 					continue
 
+
+				found = False
 				for cpl in arrng.couplings:
 					if cpl.type == "invalid":
+						continue
+
+					if cpl.type == "split":
+						cpl.type = "invalid"
+						f0 = cpl.fits[0]
+						f1 = cpl.fits[1]
+						f2 = cpl.fits[2]
+						if f0['side'] == f1['side']:
+							cp0 = Coupling([f0, f1])
+							cp1 = Coupling([f2])
+						else:
+							if f0['side'] == f1['side']:
+								cp0 = Coupling([f0, f2])
+								cp1 = Coupling([f1])
+							else:
+								cp0 = Coupling([f1, f2])
+								cp1 = Coupling([f0])
+						cp0.type = "Rac_20_10_20_10"
+						cp1.type = "Rac_20_10_20"
+						arrng.couplings.append(cp0)
+						arrng.couplings.append(cp1)
 						continue
 
 					if not cpl.type is fittings[cpl.type]["open"]:
