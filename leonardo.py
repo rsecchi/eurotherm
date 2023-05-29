@@ -3257,7 +3257,7 @@ class Room:
 		#dy = collector.pos[1] - self.pos[1]
 
 		if (self.vector):
-			rot += room.rot_angle
+			rot += self.rot_angle
 
 		xs, ys = 0.1/scale, sgny*0.1/scale
 
