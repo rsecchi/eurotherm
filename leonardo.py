@@ -2979,13 +2979,6 @@ class Room:
 		ff = [x.flow for x in lines_res]
 		groups, flow = self.find_groups(ff)
 
-
-		print("residual lines")
-		for l in lines_res:
-			print(l.flow, l.level)
-		print("groups", groups)
-
-
 		if len(lines_res)==0:
 			return
 
@@ -3236,12 +3229,19 @@ class Room:
 		if not cpl.circuit.is_double():
 			axis = 0.2*(0.5-cpl.is_at_top())
 
-		print("AXIS = ", axis)
 		# calculate positions
 		pos_warm = cpl.pos[0], cpl.pos[1]+axis + 0.05
 		pos_cold = cpl.pos[0], cpl.pos[1]+axis - 0.05
 
 		return pos_warm, pos_cold
+
+	def draw_dorsal_joints(self, msp, orig_w, orig_c):
+
+		msp.add_blockref("Rac_20_20_20_rosso", orig_w,
+			dxfattribs={'xscale': 1, 'yscale': 1, 'rotation': 0})
+
+		msp.add_blockref("Rac_20_20_20_blu", orig_c,
+			dxfattribs={'xscale': 1, 'yscale': 1, 'rotation': 0})
 
 
 	def draw_connectors(self, msp):
@@ -3284,7 +3284,7 @@ class Room:
 			tail = True
 
 		self.front = front
-		ofs = 0.1*(2*(cside==LEFT)-1)
+		ofs = 0.13*(2*(cside==LEFT)-1)
 
 		for line in self.lines:
 
@@ -3299,14 +3299,17 @@ class Room:
 				cpl = last.couplings[-1]
 				ew, ec = self.attach_pos(cpl)
 
-				path_warm = self.path(sw, ew, ofs+0.02)
-				path_cold = self.path(sc, ec, ofs-0.02)
-				pw = msp.add_lwpolyline(path_warm)
-				pc = msp.add_lwpolyline(path_cold)
+				pwarm = self.path(sw, ew, ofs+0.03)
+				pcold = self.path(sc, ec, ofs-0.03)
+				pw = msp.add_lwpolyline(pwarm)
+				pc = msp.add_lwpolyline(pcold)
 				pw.dxf.color = color_warm
 				pc.dxf.color = color_cold
 				pw.dxf.layer = layer_link
 				pc.dxf.layer = layer_link
+
+				# Adding 20-20-20 connectors
+				self.draw_dorsal_joints(msp, pwarm[-2], pcold[-2])
 
 		return
 
@@ -3409,10 +3412,10 @@ class Room:
 		if ps[1] < pe[1]:
 			fc = [p for p in fc if ps[1]<=p[1] and p[1]<=pe[1]]	
 			fc = [s, ps] + fc + [pe, e]
-			fc.reverse()
 		else:
 			fc = [p for p in fc if pe[1]<=p[1] and p[1]<=ps[1]]	
 			fc = [e, pe] + fc + [ps, s]
+			fc.reverse()
 
 		pfront = []
 		for p in fc:
