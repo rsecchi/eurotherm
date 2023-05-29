@@ -404,7 +404,7 @@ fittings = {
 					[(s_fit,0),(s_fit,h_fit)], 
 					[(-s_fit,0),(w_fit,0)], 
 					[(-s_fit,0),(-s_fit,h_fit)]],
-		"open":  "Rac_10_20_10_10",
+		"open":  "",
 		"close": "Rac_10_20_10_10"
 	},
 	"Rac_20_10_10_20_10_10": {
@@ -2508,6 +2508,7 @@ class Room:
 		self.pos = self._barycentre()
 		self.perimeter = self._perimeter()
 		self.collector = None
+		self.inputs = 0 
 
 	def _area(self):
 		a = 0
@@ -3237,11 +3238,36 @@ class Room:
 
 	def draw_dorsal_joints(self, msp, orig_w, orig_c):
 
+		arrng = self.arrangement
+		print("Y SIDE:", self.clt_yside)
+
+
+		if self.clt_yside == TOP:
+			sgny = 1
+		else:
+			sgny = -1
+
+		if (arrng.alloc_mode == 0):
+			rot = 90
+			sgny = -sgny
+		else:
+			rot = 0
+
+		#dx = collector.pos[0] - self.pos[0]
+		#dy = collector.pos[1] - self.pos[1]
+
+		if (self.vector):
+			rot += room.rot_angle
+
+		xs, ys = 0.1/scale, sgny*0.1/scale
+
 		msp.add_blockref("Rac_20_20_20_rosso", orig_w,
-			dxfattribs={'xscale': 1, 'yscale': 1, 'rotation': 0})
+			dxfattribs={'xscale': xs, 'yscale': ys*sgny, 'rotation': rot})
 
 		msp.add_blockref("Rac_20_20_20_blu", orig_c,
-			dxfattribs={'xscale': 1, 'yscale': 1, 'rotation': 0})
+			dxfattribs={'xscale': xs, 'yscale': ys*sgny, 'rotation': rot})
+
+		self.collector.inputs -= 1
 
 
 	def draw_connectors(self, msp):
@@ -4363,7 +4389,6 @@ class Model(threading.Thread):
 	def resize_collectors(self):
 
 		for collector, items in self.best_list:
-			collector.inputs = 0
 			for item in items:
 				arrng = item.arrangement
 				if not hasattr(arrng, "couplings"):
@@ -4559,6 +4584,10 @@ class Model(threading.Thread):
 			if not clt.user_zone:
 				self.zone_bb.append([ax,ay,bx,by])
 
+		for room in self.processed:
+			room.draw(self.msp)
+			if self.control == "reg":
+				room.draw_probes(self.msp)
 
 		# Collectors
 		for collector, items in self.best_list:
@@ -4584,10 +4613,6 @@ class Model(threading.Thread):
 
 			block.dxf.layer = layer_panel
 
-		for room in self.processed:
-			room.draw(self.msp)
-			if self.control == "reg":
-				room.draw_probes(self.msp)
 
 
 		## drawing connections
