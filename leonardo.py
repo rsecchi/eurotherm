@@ -2928,6 +2928,8 @@ class Room:
 
 	def make_lines(self, fline, fpanel):
 
+		self.fline = fline
+
 		lines_res = list()
 		for cir in self.arrangement.circuits:
 			cir.flow = cir.size * fpanel
@@ -2973,37 +2975,87 @@ class Room:
 			line.facing = True
 			lines_res.append(line)
 
-		lines_res.sort(key=lambda x: x.flow)
+		lines_res.sort(key=lambda x: x.level)
+		ff = [x.flow for x in lines_res]
+		groups, flow = self.find_groups(ff)
+
+
+		print("residual lines")
+		for l in lines_res:
+			print(l.flow, l.level)
+		print("groups", groups)
+
 
 		if len(lines_res)==0:
 			return
 
+		for group in groups:
+			line = Line(self, joined=True)
+			self.lines.append(line)
+			for index in group:
+				line.lines.append(lines_res[index])
+				line.flow += lines_res[index].flow
+				line.couplings += lines_res[index].couplings.copy()
+				line.level = lines_res[index].level
+
+		# self.lines = lines_res
+		
 		# join residual lines using first-fit decreasing
-		joined_lines = list()
-		while lines_res:
-			line = lines_res.pop()
-			for l in joined_lines:
-				if l.flow + line.flow < fline:
-					l.couplings += line.couplings.copy()
-					l.flow += line.flow
-					l.lines += [line]
-					break
-			else:
-				nl = Line(self, joined=True)
-				nl.lines.append(line)
-				nl.couplings = line.couplings.copy()
-				nl.flow = line.flow
-				nl.level = line.couplings[-1].pos[1]
-				joined_lines.append(nl)
+		# joined_lines = lines_res
+
+
+		#while lines_res:
+		#	print("line flow = ", line.flow, line.level)
+		#	line = lines_res.pop()
+		#	for l in joined_lines:
+		#		if l.flow + line.flow < fline:
+		#			l.couplings += line.couplings.copy()
+		#			l.flow += line.flow
+		#			l.lines += [line]
+		#			break
+		#	else:
+		#		nl = Line(self, joined=True)
+		#		nl.lines.append(line)
+		#		nl.couplings = line.couplings.copy()
+		#		nl.flow = line.flow
+		#		nl.level = line.couplings[-1].pos[1]
+		#		joined_lines.append(nl)
 
 	
-		for line in joined_lines:
-			if line.joined and len(line.lines)==1:
-				line.lines[0].joined = False
-				self.lines.append(line.lines[0])
-			else:
-				self.lines.append(line)
+		#for line in joined_lines:
+		#	if line.joined and len(line.lines)==1:
+		#		line.lines[0].joined = False
+		#		self.lines.append(line.lines[0])
+		#	else:
+		#		self.lines.append(line)
 
+
+	def find_groups(self, numbers, index=0):
+		groups = []
+		group = []
+		current_sum = 0
+		minflow = 0
+
+		for i in range(index, len(numbers)):
+			current_sum += numbers[i]
+			if current_sum > self.fline:
+				break
+
+			group.append(i)
+
+			test, flow = self.find_groups(numbers, i+1)
+			test = [group] + test
+
+			if flow == 0:
+				flow = current_sum
+			else:
+				flow = min(current_sum, flow)  
+			if (not groups or len(test)<len(groups)
+				or (len(test)==len(groups) and flow>minflow)):
+				groups = deepcopy(test)
+				minflow = flow
+
+		return groups, minflow
 
 	# Reporting Room
 	def report(self):
@@ -3162,8 +3214,6 @@ class Room:
 		return self.room_rep
 
 
-
-
 	def draw_label(self, msp):
 
 		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
@@ -3175,7 +3225,8 @@ class Room:
 			line.draw_couplings(msp)
 			line.draw_adductions(msp)
 
-		#self.draw_connectors(msp)
+		self.lines = [x for x in self.lines if x.joined]
+		self.draw_connectors(msp)
 
 	def draw_connectors(self, msp):
 	
@@ -3217,6 +3268,31 @@ class Room:
 			tail = True
 
 		self.front = front
+		ofs = 0.1*(2*(cside==LEFT)-1)
+
+		for line in self.lines:
+
+			# determine the position of the first line
+			first = line.lines[0]
+			start = first.couplings[-1].pos
+
+			for i in range(1,len(line.lines)):
+				last = line.lines[i]
+				end = last.couplings[-1].pos
+				p0 = self.path(start, end, ofs)
+				msp.add_lwpolyline(p0)
+
+		#for i, p in enumerate(front):
+		#	front[i] = (p[0]+1, p[1])
+
+		#print("self.front", front)
+		#mittens = miter(front, 0.1)
+		#pfront = []
+		#for p in mittens:
+		#	pfront.append(self.abs(p))
+		return
+
+		# UNREACHED
 
 		for line in filter(lambda x: not x.joined, self.lines):
 			if not line.facing:
@@ -3225,7 +3301,7 @@ class Room:
 		self.lines.sort(key=lambda x: x.level)
 
 		# determine line position
-		for line in filter(lambda x: not x.joined, self.lines):
+		for line in self.lines: 
 			if line.level >= self.thr:
 				line.plvl = self.sup
 				self.sup += 1
@@ -3241,7 +3317,7 @@ class Room:
 			fw = -fw
 
 		for k, line in enumerate(self.lines):
-	
+
 			if not hasattr(line, 'plvl'):
 				continue
 
@@ -3254,7 +3330,7 @@ class Room:
 			ec = cn[0] + fw*0.1, cn[1] + k*0.3 - 0.08
 	
 			if not line.joined:
-				
+	
 				ss = 1
 				if line.plvl<0:
 					ss = -1
@@ -3288,6 +3364,8 @@ class Room:
 				pw.dxf.layer = layer_link
 				pc.dxf.layer = layer_link
 			else:
+
+				print("draw path")
 				for l in line.lines:
 					pos = l.couplings[-1].pos
 					sw = pos[0], pos[1] + 0.08
@@ -6073,5 +6151,8 @@ if (web_version):
 
 else:
 	App()
+
+
+
 
 
