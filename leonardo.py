@@ -23,6 +23,7 @@ from copy import copy, deepcopy
 from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import askyesno
+class Object: pass
 
 dxf_version = "AC1032"
 
@@ -2268,6 +2269,7 @@ class Line:
 		# contains a list of lines
 		self.joined = joined
 		self.lines = list()
+		self.final = None
 
 	def draw_couplings(self, msp):
 		global panel_width, panel_height
@@ -2281,6 +2283,14 @@ class Line:
 		w = panel_width
 		h = panel_height
 		x0, y0 = arrng.origin
+
+		if self.final:
+			final = Object()
+			final.type = "Rac_20_20_dritto"
+			final.pos = self.final
+			final.circuit = self.couplings[0].circuit
+			self.couplings += [final]
+
 		for cpl in self.couplings:
 
 			if cpl.type == "invalid":
@@ -2930,6 +2940,20 @@ class Room:
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
+	def add_final_cpl(self, head, xmin, xmax):
+		for fit in head.fits:
+			pos = fit['pos']
+			if fit['last']:
+				s, h = fit['panel'].size
+				h0, smin = fit['panel'].cell.pos
+				smax = smin + s
+				if smin < xmin:
+					return (smin, pos[1])
+				if smax > xmax:
+					return (smax, pos[1])
+		return None
+
+
 	def make_lines(self, fline, fpanel):
 
 		self.fline = fline
@@ -2947,6 +2971,7 @@ class Room:
 			overflow = False
 
 			for cpl in cir.couplings:
+
 				if (cpl.type == "invalid"):
 					continue
 
@@ -2957,19 +2982,26 @@ class Room:
 
 				if (line.flow + cpl.flow > fline) and not overflow:
 					cpl.type = fittings[cpl.type]["close"]
+					if cir.flip:
+						cpl.flip = not cpl.flip
 					head = cir.couplings[0]
 					head.type = fittings[head.type]["open"]
+
+					# adds a final linear joint if needed
+					line.final = self.add_final_cpl(head, cir.xmin, cir.xmax)
+
 					index = cir.couplings.index(cpl)
 					tail = cir.couplings[index-1]
 					tail.type = fittings[tail.type]["close"]
-					tail.flip = not tail.flip
+					if not cir.flip:
+						tail.flip = not tail.flip
 					overflow = True
 
 					line = Line(self)
-					line.sgn = 1
+					#line.sgn = 1
 					line.level = cir.couplings[-1].pos[1]
-					if cir.flip:
-						line.sgn = -1
+					#if cir.flip:
+					#	line.sgn = -1
 					self.lines.append(line)
 
 				line.couplings.append(cpl)
