@@ -3,7 +3,6 @@
 import ezdxf
 import sys, os
 from pprint import pprint
-from ezdxf import bbox
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from datetime import date
