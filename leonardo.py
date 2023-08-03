@@ -3011,6 +3011,31 @@ class Room:
 			line.facing = True
 			lines_res.append(line)
 
+		# convert split couplings
+		for line in self.lines:
+			for cpl in line.couplings:
+				if cpl.type == "split":
+					cpl.type = "invalid"
+					f0 = cpl.fits[0]
+					f1 = cpl.fits[1]
+					f2 = cpl.fits[2]
+					if f0['side'] == f1['side']:
+						cp0 = Coupling([f0, f1])
+						cp1 = Coupling([f2])
+					else:
+						if f0['side'] == f2['side']:
+							cp0 = Coupling([f0, f2])
+							cp1 = Coupling([f1])
+						else:
+							cp0 = Coupling([f1, f2])
+							cp1 = Coupling([f0])
+					cp0.type = "Rac_20_10_20_10"
+					cp1.type = "Rac_20_10_20"
+					cp0.circuit = cpl.circuit
+					cp1.circuit = cpl.circuit
+					line.couplings.append(cp0)
+					line.couplings.append(cp1)
+
 		lines_res.sort(key=lambda x: x.level)
 		ff = [x.flow for x in lines_res]
 		groups, flow = self.find_groups(ff)
@@ -4419,31 +4444,9 @@ class Model(threading.Thread):
 				if not hasattr(arrng, "couplings"):
 					continue
 
-
 				found = False
 				for cpl in arrng.couplings:
 					if cpl.type == "invalid":
-						continue
-
-					if cpl.type == "split":
-						cpl.type = "invalid"
-						f0 = cpl.fits[0]
-						f1 = cpl.fits[1]
-						f2 = cpl.fits[2]
-						if f0['side'] == f1['side']:
-							cp0 = Coupling([f0, f1])
-							cp1 = Coupling([f2])
-						else:
-							if f0['side'] == f1['side']:
-								cp0 = Coupling([f0, f2])
-								cp1 = Coupling([f1])
-							else:
-								cp0 = Coupling([f1, f2])
-								cp1 = Coupling([f0])
-						cp0.type = "Rac_20_10_20_10"
-						cp1.type = "Rac_20_10_20"
-						arrng.couplings.append(cp0)
-						arrng.couplings.append(cp1)
 						continue
 
 					if not cpl.type is fittings[cpl.type]["open"]:
