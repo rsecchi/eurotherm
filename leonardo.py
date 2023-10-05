@@ -511,7 +511,8 @@ layer_struct    = 'Eurotherm_structure'
 layer_collector = 'Collettori'
 
 text_color = 7
-box_color = 8               ;# cyan
+box_color = 8               ;# grey
+neutral_color = 8           ;# grey
 collector_color = 1         ;# red
 disabled_room_color = 6     ;# magenta
 valid_room_color = 5        ;# blue
@@ -4005,6 +4006,7 @@ class Model(threading.Thread):
 				 poly.dxf.color == bathroom_color or
 				 poly.dxf.color == valid_room_color or
 				 poly.dxf.color == zone_color or
+				 poly.dxf.color == neutral_color or
 				 poly.dxf.color == disabled_room_color)):
 			return False
 		return True
@@ -4094,7 +4096,8 @@ class Model(threading.Thread):
 				   room.color == bathroom_color):
 					self.valid_rooms.append(room)
 
-				if (room.color == obstacle_color):
+				if (room.color == obstacle_color or
+				    room.color == neutral_color):
 					self.obstacles.append(room)
 
 				if (room.color == disabled_room_color):
@@ -4281,7 +4284,15 @@ class Model(threading.Thread):
 		tot_area = feeds_eff = feeds_max = 0
 		flow_eff = flow_max = 0
 		for room in self.processed:
-			area = scale * scale * room.area
+
+			if room.color == disabled_room_color:
+				continue
+
+			obs_area_tot = 0
+			for obs in room.obstacles:
+				obs_area_tot += obs.area * scale * scale
+			area = scale * scale * room.area - obs_area_tot
+
 			room.feeds_eff = ceil(area/area_per_feed_m2*target_eff)
 			room.feeds_max = ceil(area/area_per_feed_m2)
 			feeds_eff += room.feeds_eff
@@ -4308,10 +4319,9 @@ class Model(threading.Thread):
 				(100*target_eff, flow_eff))
 		self.output.print("Estimated flow for 100%% cover: %d l/h\n" % flow_max)
 		if (feeds_eff > available_feeds or flow_eff > available_flow):
-			self.output.print("ABORT: Too few collectors\n")
-			self.output.print("Please insert at least %d collectors\n" %
+			self.output.print("WARNING: Possible insufficient collectors\n")
+			self.output.print("WARNING: Suggested insert at least %d collectors\n" %
 				ceil(flow_eff/flow_per_collector))
-			return
 
 		if (feeds_max > available_feeds or flow_max > available_flow):
 			rc = ceil(flow_eff/flow_per_collector)
@@ -4989,6 +4999,8 @@ class Model(threading.Thread):
 				collector.freeflow += room.flow
 					
 	def print_report(self):
+
+		global scale
 		
 		txt = "\n ------- Room Report ----------\n\n"
 
@@ -5035,10 +5047,25 @@ class Model(threading.Thread):
 				self.bathroom_area += rep['area']
 				self.bathroom_active_area += rep['active_area'] 
 				self.bathroom_passive_area += rep['area'] - rep['active_area']
+
+				# grey areas are not included in passive
+				grey_tot = 0
+				for obs in room.obstacles:
+					if obs.color == neutral_color:
+						grey_tot += obs.area * scale * scale
+				self.bathroom_passive_area -= grey_tot
+
 			else:
 				self.normal_area += rep['area']
 				self.normal_active_area += rep['active_area']
 				self.normal_passive_area += rep['area'] - rep['active_area']
+
+				# grey areas are not included in passive
+				grey_tot = 0
+				for obs in room.obstacles:
+					if obs.color == neutral_color:
+						grey_tot += obs.area * scale * scale
+				self.normal_passive_area -= grey_tot
 
 			if (room.color == valid_room_color):
 				p2x2 += rep['panels_120x200']
@@ -5115,7 +5142,7 @@ class Model(threading.Thread):
 		p2x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
 		self.panels_60x200 = p2x1_tot = p2x1 + p2x1_cut 
 		p1x1_spr = abs(p1x1_r-p1x1_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, 2*h)
+		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_cut, p1x1_spr) 
 
 		# Requirements waterproof panels
@@ -5128,7 +5155,7 @@ class Model(threading.Thread):
 		p2x1_h_cut = min(p1x1_h_r,p1x1_h_l) + abs(p1x1_h_r-p1x1_h_l)
 		self.panels_h_60x200 = p2x1_h_tot = p2x1_h + p2x1_h_cut 
 		p1x1_h_spr = abs(p1x1_h_r-p1x1_h_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x1_h_tot, 2*w, 2*h)
+		smtxt += "  %d panels %dx%d, \n" % (p2x1_h_tot, 2*w, h)
 		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_h_cut, p1x1_h_spr) 
 
 		return smtxt + txt
