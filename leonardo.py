@@ -491,7 +491,7 @@ default_collector_size = 60
 default_search_tol = 5
 default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
-default_wall_depth = 50
+default_wall_depth = 101
 
 # pipes geometry in cm
 default_add_offs = 10
@@ -2900,7 +2900,6 @@ class Room:
 		
 
 	def add_gates(self, room):
-		
 		p1 = self.points
 		p2 = room.points
 		for i in range(0, len(p1)-1):
