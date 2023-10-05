@@ -3,7 +3,7 @@
 import cgi, os, sys
 import cgitb
 import time
-import subprocess
+from subprocess import Popen, STDOUT, PIPE, run
 import fcntl
 
 
@@ -21,7 +21,35 @@ def schedule_script(fname, units, ptype, control,
 	cmd = "at now <<< '%s %s %s %s %s %s %s %s %s %s %s > %s 2> %s'" % (script,
 		 fname, units, ptype, control, laid, cname, caddr, ccomp, 
 		mtype, height, logfile, logfile)
-	subprocess.Popen(['/bin/bash', '-c', cmd])
+
+	cmd1 = "/usr/bin/python3 %s %s %s %s %s %s %s %s %s %s %s" % (script,
+		 fname, units, ptype, control, laid, cname, caddr, ccomp, 
+		mtype, height)
+
+	cmd2 = "python3 %s %s %s %s %s %s %s %s %s %s %s > %s 2> %s" % (script,
+		 fname, units, ptype, control, laid, cname, caddr, ccomp, 
+		mtype, height, logfile, logfile)
+
+
+	# The following code is from:
+	# https://mail.python.org/pipermail/python-list/2001-March/085332.html
+
+	sys.stdout.flush()
+	sys.stderr.flush()
+
+	if os.fork() == 0:
+		fileout = os.open(logfile, os.O_CREAT|os.O_WRONLY|os.O_TRUNC)
+		os.dup2(fileout, sys.stdout.fileno())
+		os.dup2(fileout, sys.stderr.fileno())
+		os.close(fileout)
+
+		devnull = os.open("/dev/null", os.O_RDONLY)
+		os.dup2(devnull, sys.stdin.fileno())
+		os.close(devnull)
+
+		Popen(['/bin/bash', '-c', cmd1])
+		exit(0)
+
 #############################################
 
 
@@ -72,4 +100,5 @@ print(ff.read() % os.path.basename(web_filename))
 
 
 #print(os.path.basename(form.getvalue("file")))
+
 
