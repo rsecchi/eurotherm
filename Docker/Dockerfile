@@ -6,5 +6,8 @@ COPY httpd.conf /usr/local/apache2/conf/httpd.conf
 
 RUN apt-get update && apt-get -y install python3-full python3-ezdxf python3-openpyxl python3-docx python3-numpy
 
+RUN mkdir /var/spool/eurotherm
+
+RUN chown www-data /var/spool/eurotherm
 
 
