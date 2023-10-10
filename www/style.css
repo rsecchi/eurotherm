@@ -1,16 +1,101 @@
-body{
-	font-family: Arial;
-    width: 750px;
+/*
+html, body {
+  height: 100%;
+	width: 100%;
+  margin: 0;
+  padding: 0;
+}
+*/ 
+
+.body{
+	font-family: 'IBM Plex Sans', sans-serif;
+    width: auto;
 	background: #F2F3F4;
 }
 
+/* IMMAGINE DI SFONDO PROVA
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  width: 100%;
+  height: 100%;
+  background: rgba(242, 243, 244, 0.0) url('/Users/simone/Desktop/eurotherm-main/www/bg-panel.png') no-repeat center bottom;
+  background-size: auto;
+}
+*/ 
 
-div.navmenu  {
-	display: block;
-	height: 20px;
-	background: grey;
+.form-group {
+    flex-wrap: wrap; /* Per gestire il wrapping dei div quando lo spazio è insufficiente */ 
+	margin: 0 auto;
+	display: flex;
+  	align-items: center;
+	justify-content: center;
+	font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: gainsboro;
+  height: 100px !important;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.box-testo {
+	font-family: 'IBM Plex Sans', sans-serif !important;
+}
+
+.left {
+  /* Allinea il primo div (con l'immagine) a sinistra */
+	margin-left: 80px;
+}
+
+.center {
+  /* Allinea il secondo div (con i link) al centro */
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+
+
+.right {
+  /* Allinea il terzo div (con le immagini ita e eng) a destra */
+	margin-right: 80px;
+}
+
+.ita {
+	margin-right: 8px;
+	
+}
+.box {
+	 font-family: 'IBM Plex Sans', sans-serif;
+	border-radius: 5px;
 	padding: 5px;
-	margin: 2px;
+}
+
+.icona {
+	margin-right: 5px;
+}
+
+.p {
+	 font-family: 'IBM Plex Sans', sans-serif; 
+}
+
+.strong {
+    font-weight: bolder;
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+
+
+a.flex-sm-fill.text-sm-center.nav-link.active {
+	color: #FFFFFF;
+	background-color: #dc3545;
+}
+
+a.flex-sm-fill.text-sm-center.nav-link {
+	color: gray;
 }
 
 
@@ -18,47 +103,25 @@ div.navmenu  {
 	color: yellow;
 }
 
-.navmenu ul {
-	color: white;
-	padding: 0px;
-	margin: 0px;
-}
-.navmenu li {
-	color: white;
-	display: inline;
-	float: left;
-	margin-left: 5px;
-
-}
-
-.navmenu li:hover {
-	background: lightsalmon;
-}
-
-.navmenu a {
-	color: white;
-	display: block;
-	width: 100px;
-}
-
 button#submit {
-    margin-left: 50px;
+    margin: 0 auto;
 }
 
 input#dxfinput {
     margin: 0px;
-    width: 200px;
+    width: auto;
 }
 
-label {
+.label {
     display: block;
     float: left;
-    width: 170px;
+    width: 230px;
+	font-family: 'IBM Plex Sans', sans-serif;
 }
 
-label, input, p#ra, p#rg, p#out {
-    margin: 3px;
-    font-size: 12px;
+.label, input, p#ra, p#rg, p#out, #cli_name, #cli_address, #cli_company,  {
+     font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 .header {
@@ -70,6 +133,7 @@ label, input, p#ra, p#rg, p#out {
 h1 {
     text-align: left;
     margin-left: 10px;
+	font-family: 'IBM Plex Sans', sans-serif;
 }
 
 h3 {
@@ -80,15 +144,34 @@ h3 {
     font-size: 16px;
 }
 
-
 .section {
-    border: 2px solid grey;
+	flex: 1;
     text-align: left;
-    width: 610px;
-    padding: 10px;
-    margin-left: 50px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    padding: 20px;
+	width: auto;
+    max-width: 600px; /* You can adjust this value based on your design preferences */
+    margin: 15px; /* This will center the div horizontally */
+    border: 1px solid #ccc; /* Just for demonstration purposes */
+	border-radius: 10px;
+	font-family: 'IBM Plex Sans', sans-serif;
+}
+
+
+.placeholder {
+	width: auto;
+	height: 30px;
+	font-size: 14px;
+	border-radius: 5px;
+	padding: 8px;
+	border: 1px solid;
+}
+
+.placeholder#height {
+	width: 45px !important;
+}
+
+.spunta {
+	margin-right: 10px;
 }
 .section span {
 	width: 150px;
@@ -137,7 +220,8 @@ h3 {
 }
 
 .section select {
-	font-size: 12px;
+	font-size: 14px;
+	height: 30px;
 }
 
 .section p#mtype {
@@ -154,7 +238,8 @@ h3 {
     padding: 0px;
     margin: 0px;
 	margin-bottom: 20px;
-    font-family: Arial;
+    font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 .section p#suggest {
@@ -164,24 +249,33 @@ h3 {
 	font-size: 12px;
 }
 
-button#submit {
-    margin-left: 50px;
+.btn {
+	font-family: 'IBM Plex Sans', sans-serif;
 }
 
 input#dxfinput {
     margin: 0px;
-    width: 200px;
+    width: auto;
+}
+
+.input .placeholder #height {
+	width: auto;
 }
 
 label {
     display: block;
     float: left;
     width: 150px;
+	font-size: 16px;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 .header {
     background: white;
     color: white;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 
@@ -192,29 +286,33 @@ h3 {
     margin-left: 30px;
     margin-top: 30px;
     font-size: 16px;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
-
-button#submit {
-    margin-left: 50px;
-}
 
 input#dxfinput {
     margin: 0px;
-    width: 200px;
+    width: auto;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 label {
     display: block;
     float: left;
     width: 150px;
+	font-size: 15px;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
-
 
 
 h1 {
     text-align: left;
     margin-left: 10px;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
 h3 {
@@ -223,10 +321,14 @@ h3 {
     margin-left: 30px;
     margin-top: 30px;
     font-size: 16px;
+	font-family: 'IBM Plex Sans', sans-serif;
+   
 }
 
-label {
-    font-size: 12px;
+.btn-outline-secondary {
+    color: #6c757d;
+    background-color: transparent;
+    background-image: none;
+    border-color: #6c757d;
+    margin-right: 20px;
 }
-
-

@@ -1,0 +1,38 @@
+
+
+.form-group {
+    flex-wrap: wrap; /* Per gestire il wrapping dei div quando lo spazio è insufficiente */ 
+	margin: 0 auto;
+	display: flex;
+  	align-items: center;
+	justify-content: center;
+	font-family: 'IBM Plex Sans', sans-serif !important;
+
+}
+
+.form-control {
+	margin-top: 5px;
+}
+
+.form-floating {
+	margin-top: 10px;
+	font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+	
+}
+
+
+
+.section {
+	flex: 1;
+    text-align: left;
+    padding: 20px;
+	width: auto;
+    max-width: 400px; /* You can adjust this value based on your design preferences */
+    margin: 15px; /* This will center the div horizontally */
+}

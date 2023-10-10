@@ -3,73 +3,52 @@
 <html lang="it">
 
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Eurotherm Leonardo Planner</title>
-	<link rel="icon" href="tab_logo.png">
-
-	<style>
-
-	body {
-		font-family: Arial;
-		width: 750px;
-	}
-
-	.header {
-		background: black;
-		color: white;
-		padding-bottom: 6px;
-	}
-
-	.loginbox {
-		border: 3px solid #7d4646;
-		border-radius: 5px;
-		padding: 10px;
-		margin: 20px;
-		margin-left: 150px;
-		margin-top: 80px;
-		width: 400px;
-	}
-
-	.loginbox label {
-		width: 100px;
-		margin-left: 40px;
-		display: inline-block;	
-	}
-
-	.loginbox input#login {
-		margin-left: 300px;
-	}
-
-	</style>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eurotherm Leonardo Planner</title>
+	<link href="https://fonts.cdnfonts.com/css/ibm-plex-sans" rel="stylesheet">
+  <link href="/Users/simone/Desktop/eurotherm-main/www/style-login.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  
 </head>
-
+	
 <body>
+<div class="form-group" >
+		<div class="section" >
+<img src="logo-leonardo-planner-1.png" alt="" width="250" class="img-fluid mx-auto d-block mb-5">
+
+<div class="form-floating">
+  <a> Email</a>
+	<input type="email" class="form-control" name="httpd_username" id="floatingInput" placeholder="name@example.com">
+</div>
+    <div class="form-floating">
+		<a>Password</a>
+      <input type="password" class="form-control" id="floatingPassword"  name="httpd_password" placeholder="Password">
+</div>
 
 
-	<div class="header">
-		<div class="container">
-			<h1>
-			<img src="logo.png" alt="">
-			LEONARDO PLANNER</h1>
-		</div>
-	</div>
+                                                            <div class="row">
+                                                          <div class="container container--mini">
+<form name="loginform" id="loginform" action="" method="post">
+   <div class="form-group">
+          <input type="submit" name="wp-submit" id="wp-submit" class="btn btn-block btn-danger mt-3" value="Accedi">
+          <input type="hidden" name="redirect_to" value="">
+    </div>
 
-	<div class="loginbox">
-		<form method="POST" action="">
-			<p id="user">
-				<label>username:</label>
-				<input type="text" name="httpd_username" value="" />
-			</p>
-			<p id="passwd">
-				<label>password: </label>
-				<input type="password" name="httpd_password" value="" />
-			</p>
-			<input id="login" type="submit" name="login" value="Login" />
-		</form>
-	<div>
+    </form>
+    <p class="small text-center text-gray-soft">Non hai ancora un account? <a href="">Registrati</a></p>
+</div>
+            </div>
+</div>
+
+</form>
+	
+	
+
 
 
 </body>
+	
+	
 
 </html>
