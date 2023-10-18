@@ -1,7 +1,6 @@
 #!/bin/bash
 
-docker build --network=host -t eurotherm:devel .
-#docker build --network=host -t eurotherm:prod -f Dockerfile.prod .
+docker build --network=host -t eurotherm:prod -f Dockerfile.prod .
 
 #docker login
 #docker tag eurotherm:devel raffauser/leonardoplanner:devel
