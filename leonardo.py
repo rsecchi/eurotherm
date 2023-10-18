@@ -4813,12 +4813,14 @@ class Model(threading.Thread):
 				dx = collector.pos[0] - pos[0]
 				dy = collector.pos[1] - pos[1]
 				d = dist(pos, collector.pos)
-				ux, uy = -dy/d, dx/d
 
+				ux, uy = -dy/d, dx/d
+				u1x, u1y = dx/d, dy/d
 				sx = pos[0] + 2/scale*ux
 				sy = pos[1] + 2/scale*uy
-				ex = collector.pos[0] + 2/scale*ux
-				ey = collector.pos[1] + 2/scale*uy
+
+				ex = collector.pos[0] + 2/scale*ux - 30*u1x/scale
+				ey = collector.pos[1] + 2/scale*uy - 30*u1y/scale
 				pline = ((ex, ey), (sx, sy))				
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
@@ -4827,9 +4829,9 @@ class Model(threading.Thread):
 
 				sx = pos[0] - 2/scale*ux
 				sy = pos[1] - 2/scale*uy
-				ex = collector.pos[0] - 2/scale*ux
-				ey = collector.pos[1] - 2/scale*uy
-				pline = ((ex, ey), (sx, sy))				
+				ex = collector.pos[0] - 2/scale*ux - 30*u1x/scale
+				ey = collector.pos[1] - 2/scale*uy - 30*u1y/scale
+				pline = ((ex, ey), (sx, sy))
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = layer_link
 				pl.dxf.color = color_cold
