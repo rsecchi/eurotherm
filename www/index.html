@@ -1,184 +1,191 @@
 <!DOCTYPE html>
 
 <html lang="it">
-	
+
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Eurotherm Leonardo Planner</title>
-	<link href="https://fonts.cdnfonts.com/css/ibm-plex-sans" rel="stylesheet">
-  <link href="style.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-  <script>
-    function hide_div() {
-      var mydiv = document.getElementById("reg");
-      mydiv.style.display = 'none';
-    }
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Eurotherm Leonardo Planner</title>
+    <link href="https://fonts.cdnfonts.com/css/ibm-plex-sans" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+        crossorigin="anonymous">
+    <script>
+        function hide_div() {
+            var mydiv = document.getElementById("reg");
+            mydiv.style.display = 'none';
+        }
 
-    function show_div() {
-      var mydiv = document.getElementById("reg");
-      mydiv.style.display = 'block';
-    }
+        function show_div() {
+            var mydiv = document.getElementById("reg");
+            mydiv.style.display = 'block';
+        }
 
-		function validate_form()
-		{
-			fname = document.forms["leodata"]["filename"].value
-			if (fname=="") {
-				window.alert("File non inserito")
-				return false
-			}
-			mtype = document.forms["leodata"]["head"].value
-			if (mtype=="cold") {
-				height = document.forms["leodata"]["height"].value
-				hval = parseFloat(height.replace(",", "."))
-				if (hval<1 || hval>10 || isNaN(hval)) {
-					window.alert("Altezza media non valida")
-					return false
-				}
-			}
-			return true
-		}
+        function validate_form() {
+            fname = document.forms["leodata"]["filename"].value
+            if (fname == "") {
+                window.alert("File non inserito")
+                return false
+            }
+            mtype = document.forms["leodata"]["head"].value
+            if (mtype == "cold") {
+                height = document.forms["leodata"]["height"].value
+                hval = parseFloat(height.replace(",", "."))
+                if (hval < 1 || hval > 10 || isNaN(hval)) {
+                    window.alert("Altezza media non valida")
+                    return false
+                }
+            }
+            return true
+        }
 
-		function show_client()
-		{
-			var mydiv = document.getElementById("client");
-			mydiv.style.display = 'none';
-		}
+        function show_client() {
+            var mydiv = document.getElementById("client");
+            mydiv.style.display = 'none';
+        }
 
-		function hide_client()
-		{
-			var mydiv = document.getElementById("client");
-			mydiv.style.display = 'block';
-		}
+        function hide_client() {
+            var mydiv = document.getElementById("client");
+            mydiv.style.display = 'block';
+        }
 
 
-		function update_iface()
-		{
-			var obj = document.getElementById("head");
-			if (obj.selectedIndex=="0" ) {
-				show_div()
-			} else {
-				hide_div()
-			}
-		}
+        function update_iface() {
+            var obj = document.getElementById("head");
+            if (obj.selectedIndex == "0") {
+                show_div()
+            } else {
+                hide_div()
+            }
+        }
 
-		function update() {
-			var obj = document.getElementById("control");
-			var air = document.getElementById("air");
-			var ta = document.getElementById("ta");
-			if (obj.selectedIndex=="0" ) {
-				air.style.display = 'block';
-				if (ta.selectedIndex=="0") {
-					show_div()
-				}
-			} else {
-				air.style.display = 'none';
-				hide_div()
-			}
-		}
+        function update() {
+            var obj = document.getElementById("control");
+            var air = document.getElementById("air");
+            var ta = document.getElementById("ta");
+            if (obj.selectedIndex == "0") {
+                air.style.display = 'block';
+                if (ta.selectedIndex == "0") {
+                    show_div()
+                }
+            } else {
+                air.style.display = 'none';
+                hide_div()
+            }
+        }
 
-		function cold() {
-			var cnt = document.getElementById("control");
-			var ta = document.getElementById("ta");
-			var air = document.getElementById("air");
-			cnt.value = 'reg'
-			ta.value = 'ta'
-			cnt.disabled = true
-			ta.disabled = true
-			air.style.display = 'block';
-			show_div()
-		}
+        function cold() {
+            var cnt = document.getElementById("control");
+            var ta = document.getElementById("ta");
+            var air = document.getElementById("air");
+            cnt.value = 'reg'
+            ta.value = 'ta'
+            cnt.disabled = true
+            ta.disabled = true
+            air.style.display = 'block';
+            show_div()
+        }
 
-		function warm() {
-			var cnt = document.getElementById("control");
-			var ta = document.getElementById("ta");
-			var air = document.getElementById("air");
-			cnt.disabled = false
-			ta.disabled = false	
-		}
-
-	</script>
+        function warm() {
+            var cnt = document.getElementById("control");
+            var ta = document.getElementById("ta");
+            var air = document.getElementById("air");
+            cnt.disabled = false
+            ta.disabled = false
+        }
+    </script>
 </head>
 
 <body>
-		
-<nav class="nav nav-pills flex-column flex-sm-row">
-  <div class="left">
-    <a href="index.html" class="d-inline-flex link-body-emphasis text-decoration-none">
-      <img src="logo-leonardo-planner-2.png" width="120" height="auto">
-    </a>
-  </div>
 
-  <div class="center">
-    <a id="home-link" class="flex-sm-fill text-sm-center nav-link" aria-current="page" href="/Users/simone/Desktop/eurotherm-main/www/index.html"><strong>Home</strong></a>
-    <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link" href="/Users/simone/Desktop/eurotherm-main/www/cgi-bin/save_file.py"><strong>Risultati</strong></a>
-    <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link" href="/Users/simone/Desktop/eurotherm-main/www/cgi-bin/archive.py"><strong>Archivio</strong></a>
-    <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link" href="https://www.eurotherm.info/it/contatti"><strong>Contatti</strong></a>  </div>
+    <nav class="nav nav-pills flex-column flex-sm-row">
+        <div class="left">
+            <a href="index.html" class="d-inline-flex link-body-emphasis text-decoration-none">
+                <img src="logo-leonardo-planner-2.png" width="120" height="auto">
+            </a>
+        </div>
 
-  <div class="right"> 
-    <a href="/Users/simone/Desktop/eurotherm-main/www/index.html">
-    <img src="ita.png" width="20px" class="ita">
-    </a>
-    <a href="/Users/simone/Desktop/eurotherm-main/www/index_eng.html">
-      <img src="eng.png" width="20px">
-    </a>
-  </div>
-</nav>
-	
-	<div class="px-4 pt-5 text-center box-testo">
-    <h1 class="display-4 fw-bold text-body-emphasis text-center"><strong>Benvenuto in Leonardo Planner</strong></h1>
-    <div class="col-lg-10 mx-auto">
-      <p class="lead mb-4">Compila tutti i campi richiesti, inclusi i dettagli del progetto e carica il tuo file con estensione dxf. Il nostro strumento elaborerà le informazioni fornite per creare un progetto di massima personalizzato, offrendoti il massimo comfort e rendimento energetico. Scegli Leonardo, la soluzione ideale per il riscaldamento e raffrescamento del tuo spazio!</p>
-      </div>
+        <div class="center">
+            <a id="home-link" class="flex-sm-fill text-sm-center nav-link" aria-current="page"
+                href="/Users/simone/Desktop/eurotherm-main/www/index.html"><strong>Home</strong></a>
+            <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link"
+                href="/Users/simone/Desktop/eurotherm-main/www/cgi-bin/save_file.py"><strong>Risultati</strong></a>
+            <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link"
+                href="/Users/simone/Desktop/eurotherm-main/www/cgi-bin/archive.py"><strong>Archivio</strong></a>
+            <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link"
+                href="https://www.eurotherm.info/it/contatti"><strong>Contatti</strong></a>
+        </div>
+
+        <div class="right">
+            <a href="/Users/simone/Desktop/eurotherm-main/www/index.html">
+                <img src="ita.png" width="20px" class="ita">
+            </a>
+            <a href="/Users/simone/Desktop/eurotherm-main/www/index_eng.html">
+                <img src="eng.png" width="20px">
+            </a>
+        </div>
+    </nav>
+
+    <div class="px-4 pt-5 text-center box-testo">
+        <h1 class="display-4 fw-bold text-body-emphasis text-center"><strong>Benvenuto in Leonardo
+                Planner</strong></h1>
+        <div class="col-lg-10 mx-auto">
+            <p class="lead mb-4">Compila tutti i campi richiesti, inclusi i dettagli del progetto e
+                carica il tuo file con estensione dxf. Il nostro strumento elaborerà le informazioni
+                fornite per creare un progetto di massima personalizzato, offrendoti il massimo
+                comfort e rendimento energetico. Scegli Leonardo, la soluzione ideale per il
+                riscaldamento e raffrescamento del tuo spazio!</p>
+        </div>
     </div>
 
 
-	<form action="/Users/simone/Desktop/eurotherm-main/www/cgi-bin/save_file.py" 
-		  method="post" 
-		  name="leodata"
-		  autocomplete="off"
-		  onsubmit="return validate_form()"
-		  enctype="multipart/form-data">
+    <form action="cgi-bin/save_file.py" method="post" name="leodata" autocomplete="off"
+        onsubmit="return validate_form()" enctype="multipart/form-data">
 
-	<input name="file" id="fileid" hidden/>
-		
-	  <div class="form-group">
-		<div class="section">
-		<h4><img src="soffitto.png" alt="" width="50" height="50" class="icona img-fluid"/>&nbsp;<strong>Seleziona i dettagli dell'impianto</strong></h4>
-			<!--p id="ra"><input type="radio" checked="yes" id="radio" name="head" value="warm" onchange="warm()">Solo riscaldamento</p-->
-  			<!--p id="ra"><input type="radio"  name="head" id="radio" value="cold" onchange="cold()"=>Riscaldamento/raffrescamento </p-->
-      		<p id="type" class="nome_menu text-left">
-            <label for="ptype5" class="label">Tipologia di sistema a soffitto:</label>
-				
-            <select name="ptype" class="box">
-                <option value="55">Leonardo 5,5</option>
-                <option value="35">Leonardo 3,5</option>
-                <option value="30">Leonardo 3,0 plus</option>
-            </select>
-      		</p>
-<p id="clt" class="nome_menu">
-	  <label for="ptype" class="label">Regolazione Smart365:</label>
-		<!--select name="control" id="control" onchange="update()"-->
-		<select name="control" class="box" id="control">
-    		<option value="reg">Con regolazione</option>
-  			<option value="noreg">Senza regolazione</option>
-		</select>
-	  </p>
+        <input name="file" id="fileid" hidden />
 
-		<p id="air" class="nome_menu">
-		<label for="head" class="label" id="air_label">Trattamento aria:</label>
-		<select name="head" class="box" id="head" onchange="update_iface()">
-    		<option value="air">Con trattamento aria</option>
-  			<option value="none">Senza trattamento aria</option>
-		</select>
-	  </p>
+        <div class="form-group">
+            <div class="section">
+                <h4><img src="soffitto.png" alt="" width="50" height="50"
+                        class="icona img-fluid" />&nbsp;<strong>Seleziona i dettagli
+                        dell'impianto</strong></h4>
+                <!--p id="ra"><input type="radio" checked="yes" id="radio" name="head" value="warm" onchange="warm()">Solo riscaldamento</p-->
+                <!--p id="ra"><input type="radio"  name="head" id="radio" value="cold" onchange="cold()"=>Riscaldamento/raffrescamento </p-->
+                <p id="type" class="nome_menu text-left">
+                    <label for="ptype5" class="label">Tipologia di sistema a soffitto:</label>
 
-	</div>
+                    <select name="ptype" class="box">
+                        <option value="55">Leonardo 5,5</option>
+                        <option value="35">Leonardo 3,5</option>
+                        <option value="30">Leonardo 3,0 plus</option>
+                    </select>
+                </p>
+                <p id="clt" class="nome_menu">
+                    <label for="ptype" class="label">Regolazione Smart365:</label>
+                    <!--select name="control" id="control" onchange="update()"-->
+                    <select name="control" class="box" id="control">
+                        <option value="reg">Con regolazione</option>
+                        <option value="noreg">Senza regolazione</option>
+                    </select>
+                </p>
 
-	<div class="section" style="display:none" id="reg">
-<h4><img src="VMC.png" alt="" width="50" height="50" class="icona img-fluid"/>&nbsp;&nbsp;<strong>Ventilazione Meccanica Controllata</strong></h4>
-		<!--label for="regulator">Regolazione:</label>
+                <p id="air" class="nome_menu">
+                    <label for="head" class="label" id="air_label">Trattamento aria:</label>
+                    <select name="head" class="box" id="head" onchange="update_iface()">
+                        <option value="air">Con trattamento aria</option>
+                        <option value="none">Senza trattamento aria</option>
+                    </select>
+                </p>
+
+            </div>
+
+            <div class="section" style="display:none" id="reg">
+                <h4><img src="VMC.png" alt="" width="50" height="50"
+                        class="icona img-fluid" />&nbsp;&nbsp;<strong>Ventilazione Meccanica
+                        Controllata</strong></h4>
+                <!--label for="regulator">Regolazione:</label>
 		<select name="regulator">
     		<option value="None">Senza regolazione</option>
   			<option value="SPT">SmartPoint T + Testine 230 V, 2 fili</option>
@@ -186,127 +193,145 @@
   			<option value="head">Testine 230 V, 2 fili</option>
 		</select-->
 
-		<p id="rg" class="nome_menu">
-		<label for="regulator" class="label">Tipologia:</label>
-		<select name="regulator" class="box">
-    		<option value="dehum">Solo deumidificazione</option>
-  			<option value="dehum_int">Deumidificazione e integrazione</option>
-  			<option value="dehum_int_ren">Deumidificazione, integrazione e rinnovo</option>
-		</select>
-		</p>
+                <p id="rg" class="nome_menu">
+                    <label for="regulator" class="label">Tipologia:</label>
+                    <select name="regulator" class="box">
+                        <option value="dehum">Solo deumidificazione</option>
+                        <option value="dehum_int">Deumidificazione e integrazione</option>
+                        <option value="dehum_int_ren">Deumidificazione, integrazione e rinnovo
+                        </option>
+                    </select>
+                </p>
 
-		<p id="rg1" class="nome_menu">
-		<label for="inst" class="label">Installazione:</label>
-		<select name="inst" class="box">
-    		<option value="vert">Verticale</option>
-  			<option value="horz">Orizzontale</option>
-		</select>
-		</p>
+                <p id="rg1" class="nome_menu">
+                    <label for="inst" class="label">Installazione:</label>
+                    <select name="inst" class="box">
+                        <option value="vert">Verticale</option>
+                        <option value="horz">Orizzontale</option>
+                    </select>
+                </p>
 
-	  <p id="rg2">
-		<label for="height" class="label">Altezza media in metri:</label>
-		<input name="height" type="text" class="placeholder" id="height" value="2.7">
-	  </p>
+                <p id="rg2">
+                    <label for="height" class="label">Altezza media in metri:</label>
+                    <input name="height" type="text" class="placeholder" id="height" value="2.7">
+                </p>
 
-	</div>
-</div>
+            </div>
+        </div>
 
-<div class="form-group">
-	<div class="section">
-		<h4><img src="posa.png" alt="" width="50" height="50" class="icona img-fluid"/>&nbsp;&nbsp;<strong>Servizio di posa in opera Eurass</strong></h4>
-	  <p id="ra"><input name="laid" type="radio" class="spunta" onchange="show_client()" value="without" checked="yes" />Senza Posa</p>
-	  <p id="ra1"><input  name="laid" type="radio" class="spunta" onchange="hide_client()" value="with"/>Con Posa</p>
+        <div class="form-group">
+            <div class="section">
+                <h4><img src="posa.png" alt="" width="50" height="50"
+                        class="icona img-fluid" />&nbsp;&nbsp;<strong>Servizio di posa in opera
+                        Eurass</strong></h4>
+                <p id="ra"><input name="laid" type="radio" class="spunta" onchange="show_client()"
+                        value="without" checked="yes" />Senza Posa</p>
+                <p id="ra1"><input name="laid" type="radio" class="spunta" onchange="hide_client()"
+                        value="with" />Con Posa</p>
 
-		<div id="client" style="display:none">
-		  <p><label for="cli_name" class="label">Cliente:</label>
-		  <input name="cname" type="text" class="placeholder" id="cli_name" placeholder="Nome cliente"> </p>
-			
-			<p><label for="cli_address" class="label">Indirizzo Cantiere:</label>
-			<input name="caddr" type="text" class="placeholder" id="cli_address" placeholder="Indirizzo"></p>
-			<p><label for="cli_company" class="label">Agenzia:</label>
-			<input name="ccomp" type="text" class="placeholder" id="cli_company" placeholder="Nome agenzia"></p>
-		</div>
-	</div>
-	<div class="section">
-    <h4><img src="upload.png" alt="" width="50" height="50" class="icona img-fluid"/>&nbsp;&nbsp;<strong>Carica il file in formato .DXF</strong></h4>
-    <p>
-<input type="file" id="dxfinput" name="filename" accept=".dxf" />
-    </p>
+                <div id="client" style="display:none">
+                    <p><label for="cli_name" class="label">Cliente:</label>
+                        <input name="cname" type="text" class="placeholder" id="cli_name"
+                            placeholder="Nome cliente">
+                    </p>
 
-    <p>
-        <label for="units" class="label">Unit&agrave; di misura:</label>
-        <select name="units" class="box"> 
-            <option value="auto">Automatico</option>
-            <option value="0.1">Millimetri</option>
-            <option value="1">Centimetri</option>
-            <option value="100">Metri</option>
-        </select>
-    </p>
-</div>
+                    <p><label for="cli_address" class="label">Indirizzo Cantiere:</label>
+                        <input name="caddr" type="text" class="placeholder" id="cli_address"
+                            placeholder="Indirizzo">
+                    </p>
+                    <p><label for="cli_company" class="label">Agenzia:</label>
+                        <input name="ccomp" type="text" class="placeholder" id="cli_company"
+                            placeholder="Nome agenzia">
+                    </p>
+                </div>
+            </div>
+            <div class="section">
+                <h4><img src="upload.png" alt="" width="50" height="50"
+                        class="icona img-fluid" />&nbsp;&nbsp;<strong>Carica il file in formato
+                        .DXF</strong></h4>
+                <p>
+                    <input type="file" id="dxfinput" name="filename" accept=".dxf" />
+                </p>
 
-	</div>
+                <p>
+                    <label for="units" class="label">Unit&agrave; di misura:</label>
+                    <select name="units" class="box">
+                        <option value="auto">Automatico</option>
+                        <option value="0.1">Millimetri</option>
+                        <option value="1">Centimetri</option>
+                        <option value="100">Metri</option>
+                    </select>
+                </p>
+            </div>
+        </div>
 
-</form>
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-sm-6 text-center">
-		<button type="button" class="btn btn-lg btn-danger btn-calcola">Calcola</button>
-    </div>
-  </div>
-</div>
+        <div class="form-group">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-sm-6 text-center">
+                        <!--button type="submit" class="btn btn-lg btn-danger btn-calcola">Calcola</button-->
+
+                        <button type="submit" id="submit">Calcola</button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </form>
 
 
 
-	<script>
+    <script>
+        document.getElementById("dxfinput").onchange = function() {
+            fileref = document.getElementById("fileid");
+            fileref.value = this.value.replace(/.*[\/\\]/, '');
+        };
 
-		document.getElementById("dxfinput").onchange = function () {
-			fileref = document.getElementById("fileid");
-			fileref.value = this.value.replace(/.*[\/\\]/, '');
-		};
+        show_div()
 
-		show_div()
-		
-  function checkFormCompletion() {
-    const filename = document.forms["leodata"]["filename"].value;
-    const ptype = document.forms["leodata"]["ptype"].value;
-    const control = document.forms["leodata"]["control"].value;
-    const head = document.forms["leodata"]["head"].value;
-    const height = document.forms["leodata"]["height"].value;
-    const cname = document.forms["leodata"]["cname"].value;
-    const caddr = document.forms["leodata"]["caddr"].value;
-    const ccomp = document.forms["leodata"]["ccomp"].value;
+        function checkFormCompletion() {
+            const filename = document.forms["leodata"]["filename"].value;
+            const ptype = document.forms["leodata"]["ptype"].value;
+            const control = document.forms["leodata"]["control"].value;
+            const head = document.forms["leodata"]["head"].value;
+            const height = document.forms["leodata"]["height"].value;
+            const cname = document.forms["leodata"]["cname"].value;
+            const caddr = document.forms["leodata"]["caddr"].value;
+            const ccomp = document.forms["leodata"]["ccomp"].value;
 
-    const isFormComplete = filename !== "" &&
-      ptype !== "" &&
-      control !== "" &&
-      (control === "noreg" || head !== "") &&
-      (head === "none" || (head === "air" && height !== "")) &&
-      (document.forms["leodata"]["laid"].value === "without" || (cname !== "" && caddr !== "" && ccomp !== ""));
+            const isFormComplete = filename !== "" &&
+                ptype !== "" &&
+                control !== "" &&
+                (control === "noreg" || head !== "") &&
+                (head === "none" || (head === "air" && height !== "")) &&
+                (document.forms["leodata"]["laid"].value === "without" || (cname !== "" && caddr !==
+                    "" && ccomp !== ""));
 
-    const calcolaButton = document.querySelector(".btn-calcola");
-    calcolaButton.disabled = !isFormComplete;
+            const calcolaButton = document.querySelector(".btn-calcola");
+            calcolaButton.disabled = !isFormComplete;
 
-    if (isFormComplete) {
-      calcolaButton.classList.add("btn-danger");
-    } else {
-      calcolaButton.classList.remove("btn-danger");
-    }
-  }
+            if (isFormComplete) {
+                calcolaButton.classList.add("btn-danger");
+            } else {
+                calcolaButton.classList.remove("btn-danger");
+            }
+        }
 
-  document.getElementById("dxfinput").onchange = function() {
-    fileref = document.getElementById("fileid");
-    fileref.value = this.value.replace(/.*[\/\\]/, '');
-    checkFormCompletion();
-  };
+        document.getElementById("dxfinput").onchange = function() {
+            fileref = document.getElementById("fileid");
+            fileref.value = this.value.replace(/.*[\/\\]/, '');
+            checkFormCompletion();
+        };
 
-  const formElements = document.querySelectorAll("input, select");
-  formElements.forEach((element) => {
-    element.addEventListener("input", checkFormCompletion);
-  });
+        const formElements = document.querySelectorAll("input, select");
+        formElements.forEach((element) => {
+            element.addEventListener("input", checkFormCompletion);
+        });
 
-  // Initially check form completion on page load
-  checkFormCompletion();
-</script>
+        // Initially check form completion on page load
+        checkFormCompletion();
+    </script>
 
 
 </body>

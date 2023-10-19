@@ -2,6 +2,7 @@
 
 import ezdxf
 import sys, os
+import json
 from pprint import pprint
 from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
@@ -4539,7 +4540,7 @@ class Model(threading.Thread):
 		if (self.mtype == "none"):
 			return ""
 
-		mtype = self.mtype[:-5]
+		mtype = self.regulator
 		mtype_label = ac_label[mtype]
 		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
 		mount_label = 'verticale' if self.mtype[-4:] == "vert" else 'orizzontale'
@@ -6085,6 +6086,7 @@ def _create_model(iface):
 	iface.model.control = iface.control
 
 	iface.model.mtype = iface.mtype
+	iface.model.regulator = iface.regulator
 	iface.model.height = iface.height
 
 	if web_version and iface.laid=="with":
@@ -6190,25 +6192,25 @@ def _create_model(iface):
 
 	
 class Iface:
-	def __init__(self, infile, units, ptype, control, 
-	  laid, cname, caddr, ccomp,
-	  mtype, height):
+	def __init__(self, infile, data):
+
 		self.filename = web_filename
-		self.scale = units
-		self.control = control
-		self.mtype = mtype
-		self.height = height
+		self.scale = data['units']
+		self.control = data['control']
+		self.regulator = data['regulator']
+		self.mtype = data['inst']
+		self.height = data['height']
 		self.inputlayer = default_input_layer
 		self.textinfo = self
 		self.outname = infile
 
-		self.laid = laid
-		self.cname = cname
-		self.caddr = caddr
-		self.ccomp = ccomp
+		self.laid  = data['laid']
+		self.cname = data['cname']
+		self.caddr = data['caddr']
+		self.ccomp = data['ccomp']
 
 		for	ctype in panel_types:
-			if (ctype['handler'] == ptype):
+			if (ctype['handler'] == data['ptype']):
 				self.type = ctype['full_name']
 
 		_create_model(self)
@@ -6222,6 +6224,7 @@ class Iface:
 
 if (web_version):
 
+
 	import atexit
 
 	local_dir = os.path.dirname(os.path.realpath(__file__))
@@ -6229,6 +6232,12 @@ if (web_version):
 	sys.path.append(local_dir + "/www/cgi-bin")
 
 	from conf import *
+
+	dxf_file = sys.argv[1]
+
+	json_file = open(sys.argv[2], "r")
+	data = json.loads(json_file.read())
+
 
 	def remove_lock():
 		os.remove(lock_name)
@@ -6239,36 +6248,10 @@ if (web_version):
 		open(lock_name, "w")	
 		atexit.register(remove_lock)
 
-		# Get command line parameters
-		filename = sys.argv[1] 
-		units = sys.argv[2]	
-		ptype = sys.argv[3]
-		control = sys.argv[4]
+		os.rename(dxf_file, web_filename)	
 
-		laid = sys.argv[5]
-		cname = sys.argv[6]
-		caddr = sys.argv[7]
-		ccomp = sys.argv[8]
+		Iface(dxf_file, data)
 
-		mtype = sys.argv[9]
-		height = sys.argv[10]
-
-		os.rename(filename, web_filename)
-	
-		# print("filename", filename)
-		# print("units", units)
-		# print("ptype", ptype)
-		# print("control", control)
-		# print("laid", laid)
-		# print("cname", cname)
-		# print("caddr", caddr)
-		# print("ccomp", ccomp)
-		# print("mtype", mtype)
-		# print("height", height)
-	
-		Iface(filename, units, ptype, control, 
-			laid, cname, caddr, ccomp,
-			mtype, height)
 	else:
 		print("resource busy")
 
