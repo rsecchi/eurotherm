@@ -3,10 +3,16 @@
 <html lang="it">
 
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<title>Eurotherm Leonardo Planner</title>
+
+	<link href="https://fonts.cdnfonts.com/css/ibm-plex-sans" rel="stylesheet">	
 	<link rel="icon" href="../tab_logo.png">
 	<link href="../style.css" rel="stylesheet">
+	<link rel="stylesheet"
+		href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+ 		integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+		crossorigin="anonymous"> 
 
 	<script>
 	function show_selected(item) {
@@ -20,7 +26,35 @@
 
 <body>
 
-	<div class="header">
+    <nav class="nav nav-pills flex-column flex-sm-row">
+        <div class="left">
+            <a href="../index.html" class="d-inline-flex link-body-emphasis text-decoration-none">
+                <img src="../logo-leonardo-planner-2.png" width="120" height="auto">
+            </a>
+        </div>
+
+        <div class="center">
+            <a id="home-link" class="flex-sm-fill text-sm-center nav-link" aria-current="page"
+                href="../index.html"><strong>Home</strong></a>
+            <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link"
+                href="show_file.py"><strong>Risultati</strong></a>
+            <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link"
+                href="archive.py"><strong>Archivio</strong></a>
+            <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link"
+                href="https://www.eurotherm.info/it/contatti"><strong>Contatti</strong></a>
+		</div>
+
+        <div class="right">
+            <a href="index.html">
+                <img src="../ita.png" width="20px" class="ita">
+            </a>
+            <a href="../index_eng.html">
+                <img src="../eng.png" width="20px">
+            </a>
+        </div>
+    </nav>
+
+	<!--div class="header">
 		<div class="container">
 			<h1>
 			<img src="../logo.png" alt="">
@@ -35,6 +69,6 @@
 			<li><a href="archive.py">Archivio</a></li>
 			<li><a href="https://www.eurotherm.info/it/contatti">Contatti</a></li>
 		</ul>
-	</div>
+	</div-->
 
 
