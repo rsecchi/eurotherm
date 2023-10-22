@@ -1,4 +1,3 @@
 FROM eurotherm:devel
 
-RUN cd /usr/local/src/ && apt-get update && apt-get install -y git \
-    && git clone -b frame https://github.com/rsecchi/eurotherm.git
+RUN cd /usr/local/src/ && git clone -b frame https://github.com/rsecchi/eurotherm.git

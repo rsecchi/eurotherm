@@ -17,7 +17,7 @@ from conf import *
 
 def start_script(cfg_file):
 
-	cmd = "/usr/bin/python3 %s" % (cfg_file)
+	cmd = "/usr/bin/python3 %s %s" % (script, cfg_file)
 	
 	# The following code is from:
 	# https://mail.python.org/pipermail/python-list/2001-March/085332.html
@@ -81,7 +81,7 @@ if not os.path.exists(lock_name):
 
 
 ff = open(load_page, "r")
-print(ff.read() % os.path.basename(web_filename))
+print(ff.read() % os.path.basename(output_filename))
 
 
 

@@ -10,4 +10,5 @@ RUN mkdir /var/spool/eurotherm
 
 RUN chown www-data /var/spool/eurotherm
 
+RUN apt-get update && apt-get install -y git 
 
