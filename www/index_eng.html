@@ -7,8 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Eurotherm Leonardo Planner</title>
     <link href="https://fonts.cdnfonts.com/css/ibm-plex-sans" rel="stylesheet">
-    <link href="/Users/simone/Desktop/eurotherm-main/www/style.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="style.css" rel="stylesheet">
+    <link rel="stylesheet" 
+		href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" 
+		integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" 
+		crossorigin="anonymous">
     <script>
         function hide_div() {
             var mydiv = document.getElementById("reg");
@@ -23,7 +26,7 @@
         function validate_form() {
             fname = document.forms["leodata"]["filename"].value
             if (fname == "") {
-                window.alert("File non inserito")
+                window.alert("File not provided")
                 return false
             }
             mtype = document.forms["leodata"]["head"].value
@@ -112,10 +115,10 @@
         </div>
 
         <div class="right">
-            <a href="/Users/simone/Desktop/eurotherm-main/www/index.html">
+            <a href="index.html">
                 <img src="ita.png" width="20px" class="ita">
             </a>
-            <a href="/Users/simone/Desktop/eurotherm-main/www/index_eng.html">
+            <a href="index_eng.html">
                 <img src="eng.png" width="20px">
             </a>
         </div>
@@ -129,7 +132,7 @@
     </div>
 
 
-    <form action="/Users/simone/Desktop/eurotherm-main/www//cgi-bin/save_file.py" method="post" name="leodata" autocomplete="off" onsubmit="return validate_form()" enctype="multipart/form-data">
+    <form action="cgi-bin/save_file.py" method="post" name="leodata" autocomplete="off" onsubmit="return validate_form()" enctype="multipart/form-data">
 
         <input name="file" id="fileid" hidden />
 
@@ -142,9 +145,9 @@
                     <label for="ptype5" class="label">Type of ceiling system:</label>
 
                     <select name="ptype" class="box">
-                        <option value="55">Leonardo 5,5</option>
-                        <option value="35">Leonardo 3,5</option>
-                        <option value="30">Leonardo 3,0 PLUS</option>
+                        <option value="55">Leonardo 5.5</option>
+                        <option value="35">Leonardo 3.5</option>
+                        <option value="30">Leonardo 3.0 plus</option>
                     </select>
                 </p>
                 <p id="clt" class="nome_menu">
@@ -240,15 +243,16 @@
             </div>
 
         </div>
+    	<div class="container">
+        	<div class="row justify-content-center">
+            	<div class="col-sm-6 text-center">
+                	<button type="submit" id="submit" 
+				class="btn btn-lg btn-danger btn-calcola">Compute</button>
+            	</div>
+        	</div>
+    	</div>
 
     </form>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-sm-6 text-center">
-                <button type="button" class="btn btn-lg btn-danger btn-calcola">Compute</button>
-            </div>
-        </div>
-    </div>
 
 
 
