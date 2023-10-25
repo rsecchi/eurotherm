@@ -479,6 +479,8 @@ area_per_feed_m2 = 12
 flow_per_m2 = 23.33
 target_eff = 0.7
 flow_per_collector = 1700
+extra_flow_probe = 100
+max_steps = 20
 
 default_font_size = 10
 
@@ -4272,6 +4274,10 @@ class Model(threading.Thread):
 	
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
+		if (len(self.collectors) == 0):
+			self.output.print("ABORT: Please insert at least 1 collector\n")
+			return
+			
 
 		# Check if room too large  for a collector
 		for room in self.processed:
@@ -4324,16 +4330,17 @@ class Model(threading.Thread):
 		self.output.print("Estimated flow for %d%% cover: %d l/h\n" % 
 				(100*target_eff, flow_eff))
 		self.output.print("Estimated flow for 100%% cover: %d l/h\n" % flow_max)
-		if (feeds_eff > available_feeds or flow_eff > available_flow):
-			self.output.print("WARNING: Possible insufficient collectors\n")
-			self.output.print("WARNING: Suggested insert at least %d collectors\n" %
-				ceil(flow_eff/flow_per_collector))
 
-		if (feeds_max > available_feeds or flow_max > available_flow):
-			rc = ceil(flow_eff/flow_per_collector)
-			if rc>len(self.collectors):
-				self.output.print("WARNING: Possible insufficient collectors\n")
-				self.output.print("WARNING: suggested %d collectors\n" % rc)
+		#if (feeds_eff > available_feeds or flow_eff > available_flow):
+		#	self.output.print("WARNING: Possible insufficient collectors\n")
+		#	self.output.print("WARNING: Suggested insert at least %d collectors\n" %
+		#		ceil(flow_eff/flow_per_collector))
+
+		#if (feeds_max > available_feeds or flow_max > available_flow):
+		#	rc = ceil(flow_eff/flow_per_collector)
+		#	if rc>len(self.collectors):
+		#		self.output.print("WARNING: Possible insufficient collectors\n")
+		#		self.output.print("WARNING: suggested %d collectors\n" % rc)
 
 		################################################################
 		if not self.create_trees():
@@ -4355,18 +4362,33 @@ class Model(threading.Thread):
 		################################################################
 		#  Mapping rooms to collectors
 
-		self.processed.append(None)    ;# Add sentinel
-		room_iter = iter(self.processed)
-		tot_iterations = 0
-		self.found_one = False
-		self.output.print("Linking Rooms:")
-		self.connect_rooms(room_iter, 0)
-		self.output.print("\n")
-		self.processed.pop()           ;# Remove sentinel
+
+		for k in range(max_steps):
+
+			extra_flow = extra_flow_probe * k
+			extra_feeds = k//2
+
+			self.best_dist = MAX_DIST
+			for collector in self.collectors:
+				collector.freespace = feeds_per_collector + extra_feeds 
+				collector.freeflow = flow_per_collector + extra_flow
+				collector.items = list()
+
+			self.processed.append(None)    ;# Add sentinel
+			room_iter = iter(self.processed)
+			tot_iterations = 0
+			self.found_one = False
+			self.output.print("Linking Rooms (flow=%d l/h): " %
+				(flow_per_collector + extra_flow))
+			self.connect_rooms(room_iter, 0)
+			self.output.print("\n")
+			self.processed.pop()           ;# Remove sentinel
+			if  (self.found_one):
+				break
+
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms\n")
 			return
-
 
 		#self.draw_uplinks()
 		#self.draw_trees(self.collectors[3])
@@ -4453,9 +4475,17 @@ class Model(threading.Thread):
 
 	def resize_collectors(self):
 
+		fpanel = self.ptype['flow_panel']
+
 		for collector, items in self.best_list:
-			for item in items:
+
+			flow_cltr = 0
+			for item in items:	
+				for panel in item.panels:
+					flow_cltr += panel.size[0]*panel.size[1]*fpanel/4
 				arrng = item.arrangement
+
+				
 				if not hasattr(arrng, "couplings"):
 					continue
 
@@ -4466,6 +4496,16 @@ class Model(threading.Thread):
 
 					if not cpl.type is fittings[cpl.type]["open"]:
 						collector.inputs += 1
+				
+			if (flow_cltr>flow_per_collector):
+				self.output.print("WARNING: Collector %s overflow: %d l/h\n" %
+					(collector.name, flow_cltr))
+
+			if (collector.inputs>feeds_per_collector):
+				self.output.print("WARNING: Collector %s overfeeds: %d pipes\n" %
+					(collector.name, collector.inputs))
+				
+
 
 	def populating_model(self):
 
