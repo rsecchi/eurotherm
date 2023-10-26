@@ -4144,9 +4144,12 @@ class Model(threading.Thread):
 					break
 
 			if (not collector.contained_in):
-				wstr = "ABORT: Collector outside room"
-				self.output.print(wstr)
-				return
+				min_dist_from_room = MAX_DIST
+				for room in self.processed:
+					dist_from_room = dist(room.pos, collector.pos)
+					if dist_from_room < min_dist_from_room:
+						min_dist_from_room = dist_from_room
+						collector.contained_in = room
 			
 		# assings collectors to user zone
 		for collector in self.collectors:
