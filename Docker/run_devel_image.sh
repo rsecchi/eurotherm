@@ -29,6 +29,6 @@ if docker ps -a --format '{{.Names}}' | grep -q "^$container_name$"; then
 fi
 
 docker run -d  --name $container_name -p $PORT_DEVEL:80 -v $SOURCES:$DOCKER_SRC \
-		-v $ARCHIVE:$DOCKER_SPOOL eurotherm:devel
+		-v $ARCHIVE:$DOCKER_SPOOL raffauser/leonardoplanner:devel
 
 #docker run -p $PORT:8081 -v $PWD/../:$DOCKER_SRC eurotherm
