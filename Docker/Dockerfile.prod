@@ -1,3 +1,8 @@
 FROM raffauser/leonardoplanner:devel
 
 RUN cd /usr/local/src/ && git clone -b frame https://github.com/rsecchi/eurotherm.git
+
+COPY config.sh  /root/config.sh
+ENTRYPOINT ["/bin/bash","/root/config.sh"]
+
+
