@@ -2,13 +2,13 @@ FROM httpd:latest
 
 COPY httpd.conf /usr/local/apache2/conf/httpd.conf
 
+RUN mkdir /var/spool/eurotherm
+RUN chown www-data /var/spool/eurotherm
+RUN apt-get update && apt-get -y install curl
+
 ### Add the a dynamic link to banner.png
 
 RUN apt-get update && apt-get -y install python3-full python3-ezdxf python3-openpyxl python3-docx python3-numpy
 
-RUN mkdir /var/spool/eurotherm
 
-RUN chown www-data /var/spool/eurotherm
-
-RUN apt-get update && apt-get install -y git 
 
