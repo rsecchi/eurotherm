@@ -5937,164 +5937,6 @@ class Model(threading.Thread):
 		print("THUMBNAIL DONE")
 
 
-
-#class App:
-#
-#	def __init__(self):
-#		self.loaded = False
-#		self.queue = queue.Queue()
-#		self.model = None
-#
-#		self.root = Tk()
-#		root = self.root
-#		#root.geometry('500x300')
-#		root.title("Eurotherm Leonardo Planner - Experimental")
-#		root.resizable(width=False, height=False)
-#
-#		# Control section
-#		ctlname = Label(root, text="Control")
-#		ctlname.grid(row=0, column=0, padx=(25,0), pady=(10,0), sticky="w")
-#
-#		ctl = Frame(root)
-#		self.ctl = ctl
-#		ctl.config(borderwidth=1, relief='ridge')
-#		ctl.grid(row=1, column=0, padx=(25,25), pady=(0,20))
-#
-#		button = Button(ctl, text="Open", width=5, command=self.search)
-#		button.grid(row=1, column=1, sticky="e")
-#
-#		self.text = StringVar()
-#		flabel = Label(ctl, textvariable=self.text, width=30, anchor="w")
-#		flabel.config(borderwidth=1, relief='solid')
-#		flabel.grid(row=1, column=0, padx=(10,30), pady=(20,10))
-#
-#		self.text1 = StringVar()
-#		flabel = Label(ctl, textvariable=self.text1, width=30, anchor="w")
-#		flabel.config(borderwidth=1, relief='solid')
-#		flabel.grid(row=2, column=0, padx=(10,30), pady=(10,20))
-#
-#		self.var = StringVar() # variable for select layer menu
-#
-#		self.button1 = Button(ctl, text="Build", width=5, command=self.create_model, pady=5)
-#		self.button1.grid(row=4, column=1, pady=(30,10))
-#
-#		self.type = StringVar()
-#		names = [panel['full_name'] for panel in panel_types]
-#		self.type.set(names[0])
-#		self.typemenu = OptionMenu(self.ctl, self.type,*names)
-#		self.typemenu.config(width=26)
-#		self.typemenu.grid(row=4, column=0, padx=(10,40), sticky="w")
-#
-#		# Parameters section
-#		parname = Label(root, text="Settings")
-#		parname.grid(row=2, column=0, padx=(25,0), pady=(1,0), sticky="w")
-#		self.params = params = Frame(root)
-#		params.config(borderwidth=1, relief='ridge')
-#		params.grid(row=3, column=0, sticky="ew", padx=(25,25), pady=(0,2))
-#
-#		Label(params, text="A drawing unit in cm").grid(row=0, column=0, sticky="w")
-#		self.entry1 = Entry(params, justify='right', width=10)
-#		self.entry1.grid(row=0, column=1, sticky="w")
-#		self.entry1.insert(END, "auto")
-#
-#		#Label(params, text="zone cost (m2)").grid(row=1, column=0, sticky="w")
-#		#self.entry2 = Entry(params, justify='right', width=10)
-#		#self.entry2.grid(row=1, column=1)
-#		#self.entry2.insert(END, str(default_zone_cost))
-#
-#		#Label(params, text="transversal cuts").grid(row=2, column=0, sticky="e")
-#		#self.tcuts = IntVar()
-#		#self.entry3 = Checkbutton(params, variable=self.tcuts)
-#		#self.entry3.grid(row=2, column=1)
-#
-#		# Info Section
-#		ctlname = Label(root, text="Report")
-#		ctlname.grid(row=4, column=0, padx=(25,0), pady=(10,0), sticky="w")
-#
-#		self.textinfo = Text(root, height=20, width=58)
-#		self.textinfo.config(borderwidth=1, relief='ridge')
-#		self.textinfo.grid(row=5, column=0, pady=(0,15)) 
-#		#sb = Scrollbar(root, command=self.textinfo.yview)
-#		#sb.grid(row=3, column=1, sticky="nsw")
-#
-#
-#		self.reset()
-#		self.root.mainloop()
-#
-#	def print(self, text):
-#		self.textinfo.insert(END, text)
-#
-#	def clear(self):
-#		self.textinfo.delete('1.0', END)
-#
-#	def search(self,event=None):
-#		self.filename = filedialog.askopenfilename(filetypes=[("DXF files", "*.dxf")])
-#		self.loadfile()
-#
-#	def reset(self):
-#		self.text.set("Select DXF")
-#		self.text1.set("Modified DXF")
-#		self.button1["state"] = "disabled"
-#		self.textinfo.delete('1.0', END)
-#
-#		if (hasattr(self,'opt')): self.opt.destroy()	
-#		self.var.set("Select layer")
-#		self.opt = OptionMenu(self.ctl, self.var,['0'])
-#		self.opt.config(width=26)
-#		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
-#
-#	def loadfile(self):
-#		try:
-#			self.doc_src = ezdxf.readfile(self.filename)
-#		except IOError:
-#			self.reset()
-#			return
-#		except ezdxf.DXFStructureError:
-#			self.textinfo.insert(END, 'Invalid or corrupted DXF file.')
-#			self.reset()
-#			return
-#
-#		self.loaded = True
-#
-#		self.text.set(self.filename)
-#		self.outname = self.filename[:-4]+"_leo.dxf"
-#		self.text1.set(self.outname)
-#
-#		layers = [layer.dxf.name for layer in self.doc_src.layers]
-#		sel = layers[0]
-#		for layer in layers:
-#			if (layer == default_input_layer):
-#				sel = default_input_layer
-#				break
-#
-#		self.opt.destroy()
-#		self.var.set(sel)
-#		self.opt = OptionMenu(self.ctl,self.var,*layers)
-#		self.opt.config(width=26)
-#		self.opt.grid(row=3, column=0, padx=(10,40), sticky="w")
-#		self.button1["state"] = "normal" 
-#
-#
-#	def create_model(self):
-#
-#		if self.model and self.model.is_alive():
-#			return
-#
-#		self.textinfo.delete('1.0', END)
-#
-#		if (not self.loaded):
-#			self.textinfo(END, "File not loaded")
-#			return
-#
-#		self.scale = self.entry1.get()
-#		self.inputlayer = self.var.get()
-#		self.mtype = "none"
-#		self.height = 2.7
-#		self.control = "reg"
-#
-#		_create_model(self)
-#
-
 def create_model(iface, data):
 
 	global block_blue_120x100 
@@ -6106,9 +5948,10 @@ def create_model(iface, data):
 
 	# create model and initialise it
 	model = iface.model = Model()
+	input_file = data['cfg_dir'] + "/" + data['infile']
 
 	# reload file
-	doc = ezdxf.readfile(web_filename)	
+	doc = ezdxf.readfile(input_file)	
 	model.refit = False
 	for layer in doc.layers:
 		if layer.dxf.name == layer_panel:
@@ -6127,8 +5970,8 @@ def create_model(iface, data):
 	model.scale = data['units']
 	model.inputlayer = default_input_layer
 	model.textinfo = model 
-	model.outname = data['outfile'] 
-	model.filename = web_filename 
+	model.outname = data['cfg_dir'] + "/" + data['outfile'] 
+	model.filename = input_file 
 	model.control = data['control'] 
 
 	model.mtype = data['inst'] 
@@ -6240,20 +6083,6 @@ def create_model(iface, data):
 class Iface:
 	def __init__(self, data):
 
-		#self.filename = web_filename
-		#self.scale = data['units']
-		#self.control = data['control']
-		#self.regulator = data['regulator']
-		#self.mtype = data['inst']
-		#self.height = data['height']
-		#self.inputlayer = default_input_layer
-		#self.textinfo = self
-		#self.outname = data['outfile']
-
-		#self.laid  = data['laid']
-		#self.cname = data['cname']
-		#self.caddr = data['caddr']
-		#self.ccomp = data['ccomp']
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
@@ -6264,7 +6093,6 @@ class Iface:
 	def print(self, text):
 		print(text, end='')
 
-
 	def insert(self, pos, text):
 		print(text, end='')
 
@@ -6274,15 +6102,14 @@ class Iface:
 
 import atexit
 
+# Script file is local dir
 local_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(local_dir)
-sys.path.append(local_dir + "/www/cgi-bin")
 
-from conf import *
-
+# read configuration file into local dict
 json_file = open(sys.argv[1], "r")
 data = json.loads(json_file.read())
-
+lock_name = data['lock_name']
 
 def remove_lock():
 	os.remove(lock_name)
@@ -6292,6 +6119,8 @@ if not os.path.exists(lock_name):
 	# Acquire lock 
 	open(lock_name, "w")	
 	atexit.register(remove_lock)
+
+	data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 	Iface(data)
 

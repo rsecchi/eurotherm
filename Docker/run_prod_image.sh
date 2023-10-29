@@ -23,4 +23,3 @@ fi
 
 docker run -d -e MODE=$MODE --name $container_name -p $PORT_PROD:80  -v $ARCHIVE:$DOCKER_SPOOL $DOCKER_IMG
 
-#docker run -p $PORT:8081 -v $PWD/../:$DOCKER_SRC eurotherm

@@ -44,16 +44,18 @@ def start_script(cfg_file):
 def get_filename(fid):
 	bname = fid[:-4]
 	for i in range(1,100):
-		ff = tmp + bname + "_leo_%02d.dxf" % i
+		basename = bname + "_leo_%02d.dxf" % i
+		ff = tmp + basename
 		if (not os.path.exists(ff)):
-			return ff
+			return basename
 
 
 if not os.path.exists(lock_name):
 
 	fid = form.getvalue("file")
 	output_filename = get_filename(fid)
-	config_filename = web_filename[:-3]+"cfg"
+	input_filename  = output_filename[:-4]+"_in.dxf"
+	config_filename = output_filename[:-3]+"cfg"
 
 	###### Convert form into JSON ######
 	form_data = dict()
@@ -63,20 +65,23 @@ if not os.path.exists(lock_name):
 
 	form_data['outfile'] = output_filename
 	form_data['cfgfile'] = config_filename
+	form_data['infile']  = input_filename
+	form_data['lock_name'] = lock_name
 
 	# Create config file using a JSON string
 	json_data = json.dumps(form_data, indent=4)
-	cfg_file = open(config_filename,"w")
+	cfg_file = open(tmp + config_filename,"w")
 	cfg_file.write(json_data)
 	cfg_file.close()
 
 	# Create input filename
 	fileitem =  form['filename']
-	outfile = open(web_filename, 'wb')
-	outfile.write(fileitem.file.read())
-	outfile.close()
-	
-	start_script('"'+config_filename+'"')
+	infile = open(tmp + input_filename, 'wb')
+	infile.write(fileitem.file.read())
+	infile.close()
+
+	# start the script using the config in the spool	
+	start_script('"'+ tmp + config_filename+'"')
 
 
 

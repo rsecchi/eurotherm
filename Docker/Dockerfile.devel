@@ -10,5 +10,5 @@ RUN apt-get update && apt-get -y install curl
 
 RUN apt-get update && apt-get -y install python3-full python3-ezdxf python3-openpyxl python3-docx python3-numpy
 
-
+ENTRYPOINT ["/bin/bash","/usr/local/src/eurotherm/Docker/config.sh"] 
 
