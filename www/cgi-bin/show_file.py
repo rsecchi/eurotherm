@@ -5,17 +5,22 @@ import cgitb
 import time
 import subprocess
 import re
+import zipfile
 
 
 def update_link(basename, ftype):
 	global tmp
 
-	output_ftype = tmp + "output." + ftype
-	filename_ftype = tmp + basename + "." + ftype
+	output_ftype = tmp + "output" + ftype
+	filename_ftype = tmp + basename + ftype
 
 	if (os.path.islink(output_ftype)):
 		os.unlink(output_ftype)
+
 	os.symlink(filename_ftype, output_ftype)
+
+	return filename_ftype	
+	
 
 
 cgitb.enable()
@@ -46,20 +51,40 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	ftypes = ["dxf", "txt", "xlsx", "dat", "doc", "png"]
+	ftypes = [".dxf", ".txt", ".xlsx", ".dat", ".doc", ".png"]
+	if os.environ.get("MODE") == "testing":
+		ftypes.append(".cfg")
+		ftypes.append("__in__.dxf")
 
 	output = {}
 	for ftype in ftypes:
-		output[ftype] = tmp + "output." + ftype
+		output[ftype] = tmp + "output" + ftype
 
+	ziplist = list()
 	if (not filename == None):
+		# link generated outputfile
 		basename = filename[:-4]
 		for ftype in ftypes:
 			update_link(basename, ftype)
+			if os.path.exists(tmp+basename+ftype):
+				ziplist.append(tmp+basename+ftype)
 
+		# make zipfile in testing
+		if os.environ.get("MODE") == "testing":
+			zipname = tmp + basename + ".zip"
+			if not os.path.exists(zipname):
+				zipf = zipfile.ZipFile(zipname, "w")
+				for zf in ziplist:
+					zout = os.path.basename(zf)
+					zipf.write(zf, basename+"/"+zout)
+			ftypes.append(".zip")
+			output[".zip"] = tmp + "output" + ".zip"
+			update_link(basename, ".zip")
 
 	print('<div class="section">')
 	print('<h4>Risultati calcolo tecnico</h4><ul>')
+
+
 	fname = {}
 	for ftype in ftypes:
 		if not os.path.exists(output[ftype]):
@@ -68,12 +93,14 @@ else:
 		print('\t<li><span>Scarica file %s</span>' % ftype, end="")
 		print('[<a href="/output/%s" download>%s</a>]</li>' % (ff, ff)) 
 
+	
+
 	print('</ul></div>')
 
 
-	if (os.path.exists(output["png"])):
+	if (os.path.exists(output[".png"])):
 		fimage = open(output["txt"], "r")
-		ff = os.path.basename(os.readlink(output["png"]))
+		ff = os.path.basename(os.readlink(output[".png"]))
 		print('<div class="section" >')
 		# <img src="img_girl.jpg" alt="Girl in a jacket">
 		print('<h4>Pianta</h4>')
@@ -81,8 +108,8 @@ else:
 		print('<img src="/output/%s" width="500">' % ff) 
 		print("</div></div>")
 
-	if (os.path.exists(output["txt"])):
-		fin = open(output["txt"], "r")
+	if (os.path.exists(output[".txt"])):
+		fin = open(output[".txt"], "r")
 		print(fin.read())
 
 	if os.path.exists(logfile):

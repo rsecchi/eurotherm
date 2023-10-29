@@ -34,7 +34,7 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	extensions = [".txt", ".xlsx", ".dat", ".doc", 
+	extensions = [".zip", ".txt", ".xlsx", ".dat", ".doc", 
 						".cfg", "__in__.dxf"]
 
 	if "delete" in form.keys():
