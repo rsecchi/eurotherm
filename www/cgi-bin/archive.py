@@ -34,12 +34,15 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
+	extensions = [".txt", ".xlsx", ".dat", ".doc", 
+						".cfg", "__in__.dxf"]
+
 	if "delete" in form.keys():
 		strval = form.getvalue("delete")
 		del_file = tmp + strval[1:-1]
 		if (os.path.exists(del_file)):
 			os.remove(del_file)
-			for ext in [".txt", ".xlsx", ".dat", ".doc", "png"]:
+			for ext in extensions:
 				ff = del_file[:-4] + ext
 				if os.path.exists(ff):
 					os.remove(ff)
@@ -53,6 +56,8 @@ else:
 
 
 	for f in files:
+		if f[-10:] == "__in__.dxf":
+			continue
 		t = os.path.getmtime(f)
 		href_dxf = '"/output/' + f + '"'
 		href_xls = '"/output/' + f[:-4] + '.xlsx"'

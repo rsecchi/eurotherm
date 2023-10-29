@@ -54,7 +54,7 @@ if not os.path.exists(lock_name):
 
 	fid = form.getvalue("file")
 	output_filename = get_filename(fid)
-	input_filename  = output_filename[:-4]+"_in.dxf"
+	input_filename  = output_filename[:-4]+"__in__.dxf"
 	config_filename = output_filename[:-3]+"cfg"
 
 	###### Convert form into JSON ######
