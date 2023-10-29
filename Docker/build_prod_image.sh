@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ -n "$(git status --porcelain)" ]; then
+	echo "Please commit and push changes first"
+	exit
+fi
+
+
 docker build --no-cache --network=host -t raffauser/leonardoplanner:prod -f Dockerfile.prod .
 
 #docker login
