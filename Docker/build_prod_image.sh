@@ -1,10 +1,9 @@
 #!/bin/bash
 
-if [ -n "$(git status --porcelain)" ]; then
+if ! git diff --exit-code; then
 	echo "Please commit and push changes first"
 	exit
 fi
-
 
 docker build --no-cache --network=host -t raffauser/leonardoplanner:prod -f Dockerfile.prod .
 
