@@ -2994,6 +2994,9 @@ class Room:
 
 					index = cir.couplings.index(cpl)
 					tail = cir.couplings[index-1]
+					if tail.type == "invalid":
+						continue
+
 					tail.type = fittings[tail.type]["close"]
 					if not cir.flip:
 						tail.flip = not tail.flip
@@ -4193,7 +4196,7 @@ class Model(threading.Thread):
 					wstr = "ABORT: Collision between Room %d" % room[i].pindex
 					wstr += " and Room %d \n" % room[j].pindex
 					wstr += ("Check %s in output drawing" % layer_error +
-					 " to visualize errors")
+					 " to visualize errors\n")
 					room[i].poly.dxf.layer = layer_error
 					room[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
@@ -4318,7 +4321,7 @@ class Model(threading.Thread):
 			room.flow_max = area*flow_per_m2
 			flow_eff += room.flow_eff
 			flow_max += room.flow_max
-			room.flow = room.flow_eff
+			room.flow = room.flow_max
 			#self.output.print("Room%3d   lines:%2d  flow:%6.2lf l/h\n" % 
 			#	(room.pindex, room.feeds, room.flow_eff))
 			tot_area += area
