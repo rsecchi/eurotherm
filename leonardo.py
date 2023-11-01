@@ -3543,7 +3543,7 @@ class Room:
 				is_closed=True,
 				flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
 
-	def draw_probes(self, msp):
+	def draw_probes(self, msp, simple_reg):
 
 		if len(self.panels) == 0:
 			return
@@ -3556,6 +3556,9 @@ class Room:
 		     (self.color==bathroom_color
 				and self.area_m2>=9)):
 			probe_type = "sonda T_U"
+
+		if simple_reg:
+			probe_type = "sonda T"
 
 		x, y = self.panels[0].center()
 		x = x - 25/scale
@@ -4432,7 +4435,7 @@ class Model(threading.Thread):
 		################################################################
 
 		summary = ""
-		if (not self.mtype == "none"):
+		if (not self.head == "none"):
 			summary += self.output_html()
 		summary += '<div class="section">'
 		summary += '<h4>Relazione calcolo</h4>'
@@ -4589,7 +4592,7 @@ class Model(threading.Thread):
 
 	def output_html(self):
 
-		if (self.mtype == "none"):
+		if (self.head == "none"):
 			return ""
 
 		mtype = self.regulator
@@ -4699,7 +4702,7 @@ class Model(threading.Thread):
 		for room in self.processed:
 			room.draw(self.msp)
 			if self.control == "reg":
-				room.draw_probes(self.msp)
+				room.draw_probes(self.msp, self.head=="none")
 
 		# Collectors
 		for collector, items in self.best_list:
@@ -5688,7 +5691,7 @@ class Model(threading.Thread):
 				room.zone.zone_count += 1
 				room.zone.flow += flow
 
-			if (self.mtype == "none" or 
+			if (self.head == "none" or 
 				room.color == bathroom_color 
 				and room.area_m2<=9):
 				room.zone.smartp_b += 1
@@ -5755,7 +5758,7 @@ class Model(threading.Thread):
 
 
 		# If air conditioning
-		if not self.mtype == "none":
+		if not self.head == "none":
 			compamat_R = 0
 			compamat_TOP = 0
 			compamat_SUPER = 0
@@ -5977,6 +5980,7 @@ def create_model(iface, data):
 	model.filename = input_file 
 	model.control = data['control'] 
 
+	model.head =  data['head']
 	model.mtype = data['inst'] 
 	model.regulator = data['regulator'] 
 	model.height = data['height']
