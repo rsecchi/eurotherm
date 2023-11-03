@@ -3119,6 +3119,7 @@ class Room:
 	# Reporting Room
 	def report(self):
 		txt = ""
+		txt2 = ""
 		p2x2 = 0
 		p2x1 = 0
 		p1x2 = 0
@@ -3172,15 +3173,25 @@ class Room:
 		self.active_m2 = active_area
 		self.ratio = active_ratio
 
-		txt += "Room area: %.4g m2 \n" % area
-		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
-		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
-		txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
-		txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
-		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
-		txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
+		#txt += "Room area: %.4g m2 \n" % area
+		#txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
+		#txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
+		#txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
+		#txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
+		#txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
+		#txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
+		#txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
 
+		txt += "Room %3d|" % self.pindex
+		txt += "%7.02f | %5.01f%% |" % (active_area, active_ratio)
+		txt += " %3d   |" % (p2x2) 
+		txt += " %3d   |" % (p2x1) 
+		txt += "%3d" % (p1x2) 
+		txt += " %2dL,%2dR |" % (p1x2_l, p1x2_r)
+		txt += "%3d" % (p1x1) 
+		txt += " %2dL,%2dR \n" % (p1x1_l, p1x1_r)
+
+		print(txt2, end="")
 
 		self.room_rep = {
 			"txt":               txt,
@@ -5059,8 +5070,6 @@ class Model(threading.Thread):
 
 		global scale
 		
-		txt = "\n ------- Room Report ----------\n\n"
-
 		self.area = 0 
 		self.active_area = 0 
 
@@ -5084,13 +5093,19 @@ class Model(threading.Thread):
 		self.bathroom_active_area = 0
 		self.bathroom_passive_area = 0
 
+
+		txt = "\nRooms report\n"
+		txt += "Room no.|area[m2]| % act. |200x120| 200x60|"
+		txt += "   100x120  |    100x60\n"
+		txt += "========+========+========+=======+=======+"
+		txt += "============+==============\n"
+
 		for room in self.processed:
 
 			if (len(room.errorstr)>0):
 				failed_rooms += 1
 				continue
 
-			txt += "Room %d  --------- \n" % room.pindex
 			if not self.refit:
 				rep = room.report()
 			else:
@@ -5098,7 +5113,7 @@ class Model(threading.Thread):
 
 			self.area += rep['area']
 			self.active_area += rep['active_area']
-			txt += rep['txt'] + "\n"
+			txt += rep['txt']
 
 			if (room.color == bathroom_color):
 				self.bathroom_area += rep['area']
@@ -5156,65 +5171,62 @@ class Model(threading.Thread):
 		for room in self.processed:
 			self.perimeter += room.perimeter
 			
-		# Summary of all areas
-		smtxt =  "\n\nTotal processed rooms %d\n" % len(self.processed)
-		smtxt += "Total collectors %d\n" % len(self.collectors)
-		smtxt += "Total area %.2lf m2\n" % self.area
-		smtxt += "Total active area %.2lf m2 " % self.active_area
-		smtxt += " (%.2lf %%)\n" % (100*self.active_area/self.area)
-		smtxt += "Total passive area %.2lf m2\n" % self.passive_area
-		smtxt += "Normal area %.2lf m2\n" % self.normal_area
-		smtxt += "Normal active area %.2lf m2\n" % self.normal_active_area
-		smtxt += "Normal passive area %.2lf m2\n" % self.normal_passive_area
-		smtxt += "Hydro area %.2g m2\n" % self.bathroom_area
-		smtxt += "Hydro active area %.2lf m2\n" % self.bathroom_active_area
-		smtxt += "Hydro passive area %.2lf m2\n" % self.bathroom_passive_area
-		smtxt += "Total perimeter %.2lf m\n" % (self.perimeter*scale/100)
-		smtxt += "Total pipes %d\n" % self.feeds
-		smtxt += "Normal panels count:\n"
-		smtxt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		smtxt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
-		smtxt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h)
-		smtxt += "  %d left, %d right\n" % (p1x2_l, p1x2_r)
-		smtxt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
-		smtxt += "  %d left, %d right\n" % (p1x1_l, p1x1_r)
-		smtxt += "Hydro panels count:\n"
-		smtxt += "  %5d panels %dx%d cm\n" % (p2x2_h, 2*w, 2*h) 
-		smtxt += "  %5d panels %dx%d cm\n" % (p2x1_h, 2*w, h) 
-		smtxt += "  %5d panels %dx%d cm - " % (p1x2_h, w, 2*h)
-		smtxt += "  %d left, %d right\n" % (p1x2_h_l, p1x2_h_r)
-		smtxt += "  %5d panels %dx%d cm - " % (p1x1_h, w, h) 
-		smtxt += "  %d left, %d right\n" % (p1x1_h_l, p1x1_h_r)
-
+		# Calculating required panels 
 		self.laid_half_panels   = 2*(p2x2   + p2x1)   + p1x2   + p1x1
 		self.laid_half_panels_h = 2*(p2x2_h + p2x1_h) + p1x2_h + p1x1_h
 
-		# Requirements normal panels
-		smtxt += "\n> Requirements:\n"
 		p2x2_cut = min(p1x2_r,p1x2_l) + abs(p1x2_r-p1x2_l)
 		self.panels_120x200 = p2x2_tot = p2x2 + p2x2_cut 
 		p2x2_spr = abs(p1x2_r-p1x2_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x2_tot, 2*w, 2*h)
-		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_cut, p2x2_spr)
+
 		p2x1_cut = min(p1x1_r,p1x1_l) + abs(p1x1_r-p1x1_l)
 		self.panels_60x200 = p2x1_tot = p2x1 + p2x1_cut 
 		p1x1_spr = abs(p1x1_r-p1x1_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x1_tot, 2*w, h)
-		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_cut, p1x1_spr) 
 
-		# Requirements waterproof panels
-		smtxt += "\n> Requirements Hydro:\n"
 		p2x2_h_cut = min(p1x2_h_r,p1x2_h_l) + abs(p1x2_h_r-p1x2_h_l)
 		self.panels_h_120x200 = p2x2_h_tot = p2x2_h + p2x2_h_cut 
 		p2x2_h_spr = abs(p1x2_h_r-p1x2_h_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x2_h_tot, 2*w, 2*h)
-		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x2_h_cut, p2x2_h_spr)
+
 		p2x1_h_cut = min(p1x1_h_r,p1x1_h_l) + abs(p1x1_h_r-p1x1_h_l)
 		self.panels_h_60x200 = p2x1_h_tot = p2x1_h + p2x1_h_cut 
 		p1x1_h_spr = abs(p1x1_h_r-p1x1_h_l)
-		smtxt += "  %d panels %dx%d, \n" % (p2x1_h_tot, 2*w, h)
-		smtxt += "    of which %d to cut and %d halves spares\n" % (p2x1_h_cut, p1x1_h_spr) 
 
+		# Summary of all areas
+		smtxt =  "\n\nTotal processed rooms.....%3d\n" % len(self.processed)
+		smtxt += "Total collectors...........%2d\n" % len(self.collectors)
+		smtxt += "Total area.............%6.01f m2\n" % self.area
+		smtxt += "Total active area......%6.01f m2 " % self.active_area
+		smtxt += " (%2d%%)\n" % (100*self.active_area/self.area)
+		smtxt += "Total passive area.....%6.01f m2\n" % self.passive_area
+		smtxt += "Normal area............%6.01f m2\n" % self.normal_area
+		smtxt += "Normal active area.....%6.01f m2\n" % self.normal_active_area
+		smtxt += "Normal passive area....%6.01f m2\n" % self.normal_passive_area
+		smtxt += "Hydro area.............%6.01f m2\n" % self.bathroom_area
+		smtxt += "Hydro active area......%6.01f m2\n" % self.bathroom_active_area
+		smtxt += "Hydro passive area.....%6.01f m2\n" % self.bathroom_passive_area
+		smtxt += "Total perimeter........%6.01f m\n" % (self.perimeter*scale/100)
+		smtxt += "Total pipes...............%3d\n" % self.feeds
+
+		
+		smtxt += "\nPanel Count\n"
+		smtxt += "Type    |200x120| 200x60| 100x120  L  R  | 100x60  L  R\n"
+		smtxt += "========+=======+=======+================+==============\n"
+	
+		smtxt += "Normal  |   %2d  |   %2d  |  %2d   %2dL %2dR  | %2d   %2dL %2dR\n"%(
+		  p2x2, p2x1, p1x2, p1x2_l, p1x2_r, p1x1, p1x1_l, p1x1_r)
+		smtxt += "Hydro   |   %2d  |   %2d  |  %2d   %2dL %2dR  | %2d   %2dL %2dR\n"%(
+		  p2x2_h, p2x1_h, p1x2_h, p1x2_h_l, p1x2_h_r, p1x1_h, p1x1_h_l, p1x1_h_r)
+
+
+		smtxt += "\nRequirements\n"
+		smtxt += "Panel type     |quant. |to cut | spares\n"
+		smtxt += "===============+=======+=======+========\n"
+		smtxt += "Normal 200x120 |  %3d  |  %3d  |  %3d\n" %(p2x2_tot, p2x2_cut, p2x2_spr)
+		smtxt += "Normal 200x160 |  %3d  |  %3d  |  %3d\n" %(p2x1_tot, p2x1_cut, p1x1_spr)
+		smtxt += "Hydro  200x120 |  %3d  |  %3d  |  %3d\n" %(p2x2_h_tot,p2x2_h_cut,p2x2_h_spr)
+		smtxt += "Hydro  200x160 |  %3d  |  %3d  |  %3d\n" %(p2x1_h_tot,p2x1_h_cut,p1x1_h_spr)
+
+		print(smtxt + txt)
 		return smtxt + txt
 
 
