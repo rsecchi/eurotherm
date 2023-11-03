@@ -592,7 +592,6 @@ alphabet = {
 
 
 
-
 def crp(x, y):
 	return x[0]*y[0] + x[1]*y[1]
 
@@ -3173,14 +3172,6 @@ class Room:
 		self.active_m2 = active_area
 		self.ratio = active_ratio
 
-		#txt += "Room area: %.4g m2 \n" % area
-		#txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
-		#txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		#txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
-		#txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
-		#txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
-		#txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
-		#txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
 
 		txt += "Room %3d|" % self.pindex
 		txt += "%7.02f | %5.01f%% |" % (active_area, active_ratio)
@@ -3189,7 +3180,12 @@ class Room:
 		txt += "%3d" % (p1x2) 
 		txt += " %2dL,%2dR |" % (p1x2_l, p1x2_r)
 		txt += "%3d" % (p1x1) 
-		txt += " %2dL,%2dR \n" % (p1x1_l, p1x1_r)
+		txt += " %2dL,%2dR" % (p1x1_l, p1x1_r)
+
+		if active_ratio < target_eff*100:
+			txt += " @" 
+		
+		txt += "\n"
 
 		print(txt2, end="")
 
@@ -3745,13 +3741,15 @@ class Model(threading.Thread):
 		self.zone_bb = list()
 		self.user_zones = list()
 		self.output = self 
+		self.text = ""
 		self.best_list = list()
 		self.text_nav = ""
 		self.cnd = list()
 		self.laid = "without"
 
 	def print(self, text):
-		print(text, end='')
+		self.text += text
+		#print(text, end='')
 
 	def insert(self, pos, text):
 		print(text, end='')
@@ -3910,9 +3908,9 @@ class Model(threading.Thread):
 			if (room.links[0][1]> max_clt_distance 
 					and not room.fixed_collector):
 				self.output.print(
-					"ABORT: No collectors from Room %d\n" % room.pindex)
-				self.output.print("Check %s layer" % layer_error + 
-					" to visualize errors\n")
+					"ABORT: No collectors from Room %d @\n" % room.pindex)
+				self.output.print("Check %s layer @" % layer_error + 
+					" to visualize errors @\n")
 
 				room.poly.dxf.layer = layer_error
 				self.output_error()
@@ -3995,13 +3993,13 @@ class Model(threading.Thread):
 			if (e.dxftype() == 'LINE'):
 				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
+				wstr = "WARNING: layer contains non-polyline: %s @\n" % e.dxftype()
 				self.output.print(wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		query = self.msp.query(searchstr)
 		if (len(query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
+			wstr = "WARNING: layer %s does not contain polylines @\n" % self.inputlayer
 			self.output.print(wstr)
 
 		n = 0
@@ -4010,14 +4008,14 @@ class Model(threading.Thread):
 		for poly in query:
 			rm = Room(poly, self.output)
 			if rm.ignore:
-				wstr = "ABORT: Open polyline in layer %s\n" % self.inputlayer
+				wstr = "ABORT: Open polyline in layer %s @\n" % self.inputlayer
 				self.output.print(wstr)
 				return False
 			tot += rm.area
 			n += 1
 
 		scale = pow(10, ceil(log10(sqrt(n/tot))))
-		self.output.print("Autoscale: 1 unit = %g cm\n" % scale)
+		print("Autoscale: 1 unit = %g cm\n" % scale)
 		return True
 
 	def check_polyline_color(self, poly):
@@ -4069,13 +4067,13 @@ class Model(threading.Thread):
 				continue
 
 			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s\n" % e.dxftype()
+				wstr = "WARNING: layer contains non-polyline: %s @\n" % e.dxftype()
 				self.textinfo.insert(END, wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		self.query = self.msp.query(searchstr)
 		if (len(self.query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines\n" % self.inputlayer
+			wstr = "WARNING: layer %s does not contain polylines @\n" % self.inputlayer
 			self.output.print(wstr)
 
 
@@ -4085,7 +4083,7 @@ class Model(threading.Thread):
 
 			# check if poly color is allowed
 			if (not self.check_polyline_color(poly)):
-				wstr = "ABORT: Polyline color %d not allowed" % poly.dxf.color
+				wstr = "ABORT: Polyline color %d not allowed @" % poly.dxf.color
 				self.output.print(wstr)
 				return
 
@@ -4104,7 +4102,7 @@ class Model(threading.Thread):
 				if (area > max_room_area and
 				    (room.color == valid_room_color or
 				     room.color == bathroom_color)):
-					wstr = "ABORT: Zone %d larger than %d m2\n" % (room.index, 
+					wstr = "ABORT: Zone %d larger than %d m2 @\n" % (room.index, 
 						max_room_area)
 					wstr += "Consider splitting area \n\n"
 					self.output.print(wstr)
@@ -4139,7 +4137,7 @@ class Model(threading.Thread):
 			area = scale * scale * room.area
 			if  (area < min_room_area):
 				wstr = "WARNING: area less than %d m2: " % min_room_area
-				wstr += "Consider changing scale!\n"
+				wstr += "Consider changing scale! @\n"
 				self.output.print(wstr)
 				room.errorstr = wstr
 				room.error = True
@@ -4174,7 +4172,7 @@ class Model(threading.Thread):
 			for zone in self.user_zones:
 				if zone.contains(collector):
 					if collector.user_zone != None:
-						wstr = "ABORT: Collector inside two user zones"
+						wstr = "ABORT: Collector inside two user zones @"
 						self.output.print(wstr)
 						return
 					else:
@@ -4186,7 +4184,7 @@ class Model(threading.Thread):
 			for zone in self.user_zones:
 				if zone.contains(room):
 					if room.user_zone != None:
-						wstr = "ABORT: Room inside two user zones"
+						wstr = "ABORT: Room inside two user zones @"
 						self.output.print(wstr)
 						return
 					else:
@@ -4208,9 +4206,9 @@ class Model(threading.Thread):
 			while (j<len(room) and room[j].ax < room[i].bx):
 				if (room[i].collides_with(room[j])):
 					wstr = "ABORT: Collision between Room %d" % room[i].pindex
-					wstr += " and Room %d \n" % room[j].pindex
+					wstr += " and Room %d @\n" % room[j].pindex
 					wstr += ("Check %s in output drawing" % layer_error +
-					 " to visualize errors\n")
+					 " to visualize errors @\n")
 					room[i].poly.dxf.layer = layer_error
 					room[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
@@ -4229,9 +4227,9 @@ class Model(threading.Thread):
 		for i in range(len(self.collectors)-1):
 			for j in range(i+1, len(self.collectors)):
 				if (self.collectors[i].collides_with(self.collectors[j])):
-					wstr = "ABORT: Collision between collectors\n"
+					wstr = "ABORT: Collision between collectors @\n"
 					wstr += ("Check %s layer " % layer_error +
-					 "to visualize errors")
+					 "to visualize errors @")
 					self.collectors[i].poly.dxf.layer = layer_error
 					self.collectors[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
@@ -4279,9 +4277,9 @@ class Model(threading.Thread):
 			else:
 				# Check if vector is vector fixes to collector
 
-				wstr = "ABORT: Vector outside room\n"
+				wstr = "ABORT: Vector outside room @\n"
 				wstr += ("Check %s layer" % layer_error + 
-					" to visualize errors")
+					" to visualize errors @")
 				v.dxf.layer = layer_error
 				self.output.print(wstr)
 				self.output_error()
@@ -4295,7 +4293,7 @@ class Model(threading.Thread):
 		self.output.print("Detected %d rooms\n" % len(self.processed))
 		self.output.print("Detected %d collectors\n" % len(self.collectors))
 		if (len(self.collectors) == 0):
-			self.output.print("ABORT: Please insert at least 1 collector\n")
+			self.output.print("ABORT: Please insert at least 1 collector @\n")
 			return
 			
 
@@ -4304,9 +4302,9 @@ class Model(threading.Thread):
 			area = scale * scale * room.area
 			flow = area*flow_per_m2
 			if flow > flow_per_collector:
-				wstr = "ABORT: Room %d larger than collector capacity\n" % room.pindex
+				wstr = "ABORT: Room %d larger than collector capacity @\n" % room.pindex
 				wstr += ("Check %s layer" % layer_error + 
-					" to visualize errors\n")
+					" to visualize errors @\n")
 				room.poly.dxf.layer = layer_error
 				self.output.print(wstr)
 				self.output_error()
@@ -4398,16 +4396,15 @@ class Model(threading.Thread):
 			room_iter = iter(self.processed)
 			tot_iterations = 0
 			self.found_one = False
-			self.output.print("Linking Rooms (flow=%d l/h): " %
+			print("Linking Rooms (flow=%d l/h): " %
 				(flow_per_collector + extra_flow))
 			self.connect_rooms(room_iter, 0)
-			self.output.print("\n")
 			self.processed.pop()           ;# Remove sentinel
 			if  (self.found_one):
 				break
 
 		if (not self.found_one):
-			self.output.print("CRITICAL: Could not connect rooms\n")
+			self.output.print("CRITICAL: Could not connect rooms @\n")
 			return
 
 		#self.draw_uplinks()
@@ -4445,20 +4442,24 @@ class Model(threading.Thread):
 
 		################################################################
 
-		summary = ""
+		# output recommentions
 		if (not self.head == "none"):
-			summary += self.output_html()
-		summary += '<div class="section">'
-		summary += '<h4>Relazione calcolo</h4>'
-		summary += '<pre>'
-		summary += report
-		summary += '</pre></div>'
+			summary = self.output_html()
 
-		if (not web_version):
-			self.output.print(summary)
-		out = self.outname[:-4]+".txt"
-		f = open(out, "w")
-		print(summary, file = f)
+			if (not web_version):
+				self.output.print(summary)
+			out = self.outname[:-4]+".rep"
+			f = open(out, "w")
+			print(summary, file = f)
+
+
+		# save report on file
+		#summary = '<div class="section">'
+		#summary += '<h4>Relazione calcolo</h4>'
+		#summary += '<pre>'
+		#summary += report
+		#summary += '</pre></div>'
+		
 
 		#if (web_version):
 		#	slink = os.path.dirname(out) + "/output.txt"
@@ -4480,7 +4481,6 @@ class Model(threading.Thread):
 			self.doc.saveas(self.outname)
 
 
-
 		##############################################################
 		# save data in XLS
 
@@ -4489,6 +4489,11 @@ class Model(threading.Thread):
 
 		if not self.refit and self.laid != "without":
 			self.save_in_word()
+
+		self.output.print(report)
+		out = self.outname[:-4]+".txt"
+		f = open(out, "w")
+		print(self.text, file = f)
 
 		print("ALL DONE")
 
@@ -4518,11 +4523,11 @@ class Model(threading.Thread):
 						collector.inputs += 1
 				
 			if (flow_cltr>flow_per_collector):
-				self.output.print("WARNING: Collector %s overflow: %d l/h\n" %
+				self.output.print("WARNING: Collector %s overflow: %d l/h @\n" %
 					(collector.name, flow_cltr))
 
 			if (collector.inputs>feeds_per_collector):
-				self.output.print("WARNING: Collector %s overfeeds: %d pipes\n" %
+				self.output.print("WARNING: Collector %s overfeeds: %d pipes @\n" %
 					(collector.name, collector.inputs))
 				
 
@@ -4533,22 +4538,22 @@ class Model(threading.Thread):
 		self.collector_side()
 
 		# allocating panels in room	
-		self.output.print("Processing Room:")
+		print("Processing Room:")
 		self.processed.sort(key = lambda x: x.pindex)
 		count = 5
 		for room in self.processed:
 			if (room.color == disabled_room_color):
 				continue
 
-			self.output.print("%d " % room.pindex)
+			print("Room %d " % room.pindex)
 			room.alloc_panels()
 		
 			count += 1
 			if (count == 19):
-				self.output.print("\n")
+				print()
 				count = 0
 
-		self.output.print("\n")
+		print()
 
 		################################################################
 
@@ -4981,7 +4986,7 @@ class Model(threading.Thread):
 
 		# Check if time to give up
 		if (tot_iterations % 100e3 == 0):
-			self.output.print("#")
+			print("#")
 		tot_iterations += 1
 		if (tot_iterations > max_iterations):
 			return
@@ -5192,7 +5197,7 @@ class Model(threading.Thread):
 		p1x1_h_spr = abs(p1x1_h_r-p1x1_h_l)
 
 		# Summary of all areas
-		smtxt =  "\n\nTotal processed rooms.....%3d\n" % len(self.processed)
+		smtxt =  "\nTotal processed rooms.....%3d\n" % len(self.processed)
 		smtxt += "Total collectors...........%2d\n" % len(self.collectors)
 		smtxt += "Total area.............%6.01f m2\n" % self.area
 		smtxt += "Total active area......%6.01f m2 " % self.active_area
@@ -5226,7 +5231,6 @@ class Model(threading.Thread):
 		smtxt += "Hydro  200x120 |  %3d  |  %3d  |  %3d\n" %(p2x2_h_tot,p2x2_h_cut,p2x2_h_spr)
 		smtxt += "Hydro  200x160 |  %3d  |  %3d  |  %3d\n" %(p2x1_h_tot,p2x1_h_cut,p1x1_h_spr)
 
-		print(smtxt + txt)
 		return smtxt + txt
 
 
@@ -5564,17 +5568,17 @@ class Model(threading.Thread):
 
 				if (feeds==0 and not self.refit):
 					self.output.print(
-						"WARNING: Collector %s unused\n" % e.text[:-6])
+						"WARNING: Collector %s unused @\n" % e.text[:-6])
 
 				if (feeds<=0 and self.refit):
 					self.output.print(
-						"ABORT: Label %s not recognized as a collector name\n" % e.text)
+						"ABORT: Label %s not recognized as a collector name @\n" % e.text)
 					self.output_error()
 					return
 
 				if (feeds>=feeds_per_collector):
 					self.output.print(
-						"ABORT: Too many lines in collector %s\n" % e.text)
+						"ABORT: Too many lines in collector %s @\n" % e.text)
 					self.output_error()
 					return
 					
@@ -6056,8 +6060,8 @@ def create_model(iface, data):
 
 			area_per_feed_m2 = ptype['panels'] * 2.4
 			flow_per_m2 = ptype['flow_panel'] / 2.4
-			iface.print('Area/line = %g m2\n' % area_per_feed_m2)
-			iface.print('Flow_per_m2 = %g l/m2\n' % flow_per_m2)
+			print('Area/line = %g m2' % area_per_feed_m2)
+			print('Flow_per_m2 = %g l/m2' % flow_per_m2)
 
 
 	importer.import_block(block_blue_120x100)
@@ -6102,18 +6106,17 @@ def create_model(iface, data):
 class Iface:
 	def __init__(self, data):
 
-
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
 				self.type = ctype['full_name']
 
 		create_model(self, data)
 
-	def print(self, text):
-		print(text, end='')
+	# def print(self, text):
+	# 	print(text, end='')
 
-	def insert(self, pos, text):
-		print(text, end='')
+	# def insert(self, pos, text):
+	# 	print(text, end='')
 
 
 

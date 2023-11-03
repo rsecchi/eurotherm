@@ -51,7 +51,7 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	ftypes = [".dxf", ".txt", ".xlsx", ".dat", ".doc", ".png"]
+	ftypes = [".dxf", ".txt", ".xlsx", ".dat", ".doc", ".rep", ".png"]
 	if os.environ.get("MODE") == "testing":
 		ftypes.append(".cfg")
 		ftypes.append("__in__.dxf")
@@ -98,7 +98,7 @@ else:
 	print('</ul></div>')
 
 
-	if (os.path.exists(output[".png"])):
+	if os.path.exists(output[".png"]):
 		fimage = open(output["txt"], "r")
 		ff = os.path.basename(os.readlink(output[".png"]))
 		print('<div class="section" >')
@@ -108,18 +108,32 @@ else:
 		print('<img src="/output/%s" width="500">' % ff) 
 		print("</div></div>")
 
-	if (os.path.exists(output[".txt"])):
-		fin = open(output[".txt"], "r")
+	if os.path.exists(output[".rep"]):
+		fin = open(output[".rep"], "r")
 		print(fin.read())
 
-	if os.path.exists(logfile):
-		flog = open(logfile, "r")
-		print('<div class="section">')
-		print('<h4>Log file</h4>')
-		print("<pre>")
-		print(flog.read())	
-		print("</pre>")
+	if os.path.exists(output[".txt"]):
+		fin = open(output[".txt"], "r")
+		print("<div class='section'>")
+		print('<h4>Relazione Calcolo</h4>')
+		for line in fin:
+			if len(line)>1 and line[-2]=="@":
+				print("<pre style='background-color: yellow;'>")
+				print(line[:-2], end="")
+			else:
+				print("<pre>")
+				print(line, end="")
+			print("</pre>")
 		print("</div>")
+
+	#if os.path.exists(logfile) and os.environ.get("MODE") == "testing":
+	#	flog = open(logfile, "r")
+	#	print('<div class="section">')
+	#	print('<h4>Log file</h4>')
+	#	print("<pre>")
+	#	print(flog.read())	
+	#	print("</pre>")
+	#	print("</div>")
 
 
 	print("</body>")

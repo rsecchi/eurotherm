@@ -149,8 +149,8 @@ h3 {
     text-align: left;
     padding: 20px;
 	width: auto;
-    max-width: 600px; /* You can adjust this value based on your design preferences */
-    margin: 15px; /* This will center the div horizontally */
+    max-width: 800px; /* You can adjust this value based on your design preferences */
+    margin: 30px; /* This will center the div horizontally */
     border: 1px solid #ccc; /* Just for demonstration purposes */
 	border-radius: 10px;
 	font-family: 'IBM Plex Sans', sans-serif;
@@ -231,7 +231,10 @@ h3 {
 }
 
 .section pre {
-	margin-top: 0px;
+	width: 590px;
+    padding: 0px;
+    margin: 0px;
+	margin-left: 40px;
 }
 
 .section h4 {
