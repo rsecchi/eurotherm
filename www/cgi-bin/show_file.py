@@ -87,6 +87,10 @@ else:
 
 	fname = {}
 	for ftype in ftypes:
+
+		if ftype == ".rep":
+			continue
+
 		if not os.path.exists(output[ftype]):
 			continue
 		ff = os.path.basename(os.readlink(output[ftype]))

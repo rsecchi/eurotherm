@@ -25,6 +25,10 @@ from tkinter import filedialog
 from tkinter.messagebox import askyesno
 class Object: pass
 
+class Globals:
+	pass
+
+
 dxf_version = "AC1032"
 
 web_version = False
@@ -3172,7 +3176,6 @@ class Room:
 		self.active_m2 = active_area
 		self.ratio = active_ratio
 
-
 		txt += "Room %3d|" % self.pindex
 		txt += "%7.02f | %5.01f%% |" % (active_area, active_ratio)
 		txt += " %3d   |" % (p2x2) 
@@ -3253,15 +3256,26 @@ class Room:
 		self.active_m2 = active_area
 		self.ratio = active_ratio
 
-		txt += "Room area: %.4g m2 \n" % area
-		txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
-		txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
-		txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
-		txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
-		txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
-		txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
-		txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
+		#txt += "Room area: %.4g m2 \n" % area
+		#txt += "Active area: %.4g m2 (%.4g%%)\n" % (active_area, active_ratio)
+		#txt += "  %5d panels %dx%d cm\n" % (p2x2, 2*w, 2*h) 
+		#txt += "  %5d panels %dx%d cm\n" % (p2x1, 2*w, h) 
+		#txt += "  %5d panels %dx%d cm - " % (p1x2, w, 2*h) 
+		#txt += " %d left, %d right\n" % (p1x2_l, p1x2_r)
+		#txt += "  %5d panels %dx%d cm - " % (p1x1, w, h) 
+		#txt += " %d left, %d right\n" % (p1x1_l, p1x1_r)
 
+		txt += "Room %3d|" % self.pindex
+		txt += "%7.02f | %5.01f%% |" % (active_area, active_ratio)
+		txt += " %3d   |" % (p2x2) 
+		txt += " %3d   |" % (p2x1) 
+		txt += "%3d" % (p1x2) 
+		txt += " %2dL,%2dR |" % (p1x2_l, p1x2_r)
+		txt += "%3d" % (p1x1) 
+		txt += " %2dL,%2dR" % (p1x1_l, p1x1_r)
+		if active_ratio < target_eff*100:
+			txt += " @" 
+		txt += "\n"
 
 		self.room_rep = {
 			"txt":               txt,
@@ -4040,7 +4054,6 @@ class Model(threading.Thread):
 		global tot_iterations, max_iterations
 		global scale
 
-
 		if self.refit:
 			self.output.print("******************************************\n");
 			self.output.print("Detected existing plan, disable allocation\n");
@@ -4067,13 +4080,15 @@ class Model(threading.Thread):
 				continue
 
 			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s @\n" % e.dxftype()
-				self.textinfo.insert(END, wstr)
+				wstr = "WARNING: layer contains non-polyline: %s @\n" \
+					% e.dxftype()
+				self.output.print(wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		self.query = self.msp.query(searchstr)
 		if (len(self.query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines @\n" % self.inputlayer
+			wstr = "WARNING: layer %s does not contain polylines @\n" \
+				% self.inputlayer
 			self.output.print(wstr)
 
 
@@ -4093,7 +4108,7 @@ class Model(threading.Thread):
 			if (len(room.errorstr)>0):
 				# Invalid polyline
 				room.error = True
-				self.textinfo.insert(END,room.errorstr)
+				self.output.print(room.errorstr)
 			else:
 
 				# Valid polyline, classify room
@@ -5959,7 +5974,7 @@ class Model(threading.Thread):
 		print("THUMBNAIL DONE")
 
 
-def create_model(iface, data):
+def create_model(data):
 
 	global block_blue_120x100 
 	global block_blue_60x100 
@@ -5969,10 +5984,14 @@ def create_model(iface, data):
 	global area_per_feed_m2
 
 	# create model and initialise it
-	model = iface.model = Model()
+	model = Globals.model = Model()
 	input_file = data['cfg_dir'] + "/" + data['infile']
 
-	# reload file
+	for	ctype in panel_types:
+		if (ctype['handler'] == data['ptype']):
+			model.type = ctype['full_name']
+
+	# load file
 	doc = ezdxf.readfile(input_file)	
 	model.refit = False
 	for layer in doc.layers:
@@ -5988,10 +6007,9 @@ def create_model(iface, data):
 		model.doc = doc
 
 	model.doc.header["$LWDISPLAY"] = 1
-	model.msp = iface.model.doc.modelspace()
+	model.msp = model.doc.modelspace()
 	model.scale = data['units']
 	model.inputlayer = default_input_layer
-	model.textinfo = model 
 	model.outname = data['cfg_dir'] + "/" + data['outfile'] 
 	model.filename = input_file 
 	model.control = data['control'] 
@@ -6008,10 +6026,7 @@ def create_model(iface, data):
 		model.ccomp = data['ccomp']
 
 	if model.refit:
-		if (not web_version):
-			ctype = iface.type.get()
-		else:
-			ctype = iface.type
+		ctype = model.type
 		for ptype in panel_types:
 			if (ctype == ptype['full_name']):
 				model.ptype = ptype
@@ -6022,15 +6037,15 @@ def create_model(iface, data):
 	# copy input layer from source
 	importer = Importer(doc, model.doc)
 	ents = doc.modelspace().query('*[layer=="%s"]' 
-			% iface.model.inputlayer)
+			% model.inputlayer)
 
 	for layer in doc.layers:
 		if (layer.dxf.name == model.inputlayer):
 			model.layer_color = layer.dxf.color
 
 	if (len(ents) == 0):
-		model.textinfo.print('Layer "%s" not available or empty'
-			% iface.inputlayer)
+		model.print('Layer "%s" not available or empty @'
+			% model.inputlayer)
 		return
 
 	importer.import_entities(ents)
@@ -6038,16 +6053,13 @@ def create_model(iface, data):
 
 	## copy blocks from panels
 	source_dxf = ezdxf.readfile("Symbol.dxf")
-	importer = Importer(source_dxf, iface.model.doc)
+	importer = Importer(source_dxf, model.doc)
 
-	if (not web_version):
-		ctype = iface.type.get()
-	else:
-		ctype = iface.type
+	ctype = model.type
 	
 	for ptype in panel_types:
 		if (ctype == ptype['full_name']):
-			iface.model.ptype = ptype
+			model.ptype = ptype
 			handler = "LEO_" + ptype['handler'] + "_"
 			block_blue_120x100 = handler + "120"
 			block_blue_60x100 = handler + "60"
@@ -6103,23 +6115,6 @@ def create_model(iface, data):
 	model.start()
 
 	
-class Iface:
-	def __init__(self, data):
-
-		for	ctype in panel_types:
-			if (ctype['handler'] == data['ptype']):
-				self.type = ctype['full_name']
-
-		create_model(self, data)
-
-	# def print(self, text):
-	# 	print(text, end='')
-
-	# def insert(self, pos, text):
-	# 	print(text, end='')
-
-
-
 ############ START PROCESS ##########################
 
 import atexit
@@ -6134,6 +6129,9 @@ data = json.loads(json_file.read())
 lock_name = data['lock_name']
 
 def remove_lock():
+	out = Globals.model.outname[:-4]+".txt"
+	f = open(out, "w")
+	print(Globals.model.text, file = f)
 	os.remove(lock_name)
 
 if not os.path.exists(lock_name):
@@ -6144,7 +6142,7 @@ if not os.path.exists(lock_name):
 
 	data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
-	Iface(data)
+	create_model(data)
 
 else:
 	print("resource busy")
