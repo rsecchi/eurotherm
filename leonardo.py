@@ -8,6 +8,7 @@ from ezdxf.addons import Importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from datetime import date
 
+
 import openpyxl
 from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
@@ -34,6 +35,7 @@ dxf_version = "AC1032"
 web_version = False
 debug = False
 frame_enabled = False
+new_system = False
 
 if ezdxf.version == (0, 14, 2, 'release'):
     poly_class = ezdxf.entities.lwpolyline.LWPolyline
@@ -1386,7 +1388,7 @@ class Panel:
 		else:
 			self.draw_half(msp)
 
-		if (self.stripe):
+		if self.stripe:
 			self.draw_stripe(msp)
 
 
@@ -1892,6 +1894,35 @@ class PanelArrangement:
 					self.alloc_clt_yside = self.room.clt_yside
 					self.origin = origin
 
+	def make_bridges(self):
+
+		cside = self.alloc_clt_xside
+		bridges = self.bridges = list()
+		room = self.room
+
+		for dorsal in self.dorsals:
+			dorsal_fittings = list()
+			for p in dorsal.panels:
+
+				# calculate fitting positions in local grid
+				y, x = p.cell.pos
+				w, h = p.size
+				btm = (1 - p.side % 2)
+				lft = p.side//2
+				fit1_pos = x + w*lft, y + h*btm
+				fit2_pos = x + w*(1-lft), y + h*btm
+
+				# check if two fittings can be coupled
+				if not fit1_pos in dorsal_fittings:
+					dorsal_fittings.append(fit1_pos)
+				else:
+					room.bridges.append(Bridge(fit1_pos, btm))
+
+				if not fit2_pos in dorsal_fittings:
+					dorsal_fittings.append(fit2_pos)
+				else:
+					room.bridges.append(Bridge(fit2_pos,btm))
+				
 
 	def fittings(self):
 
@@ -1987,10 +2018,16 @@ class PanelArrangement:
 		#print()
 
 
+
 	def draw_grid(self, msp):	
 		for cell in self.best_grid:
 			cell.draw(msp)
 
+
+class Bridge:
+	def __init__(self, pos, top):
+		self.pos = pos
+		self.top = top
 
 
 class Coupling:
@@ -2029,8 +2066,6 @@ class Coupling:
 			bottom_last = True
  
 		self.is_last = top_last and bottom_last
-		#if (self.pos == (6,6)):
-		#	print("STRANGE CASE: ", top_last, bottom_last, self.is_last)
 
 
 	def add_stripe(self, xmin, xmax):
@@ -2478,6 +2513,7 @@ class Room:
 		self.obstacles = list()
 		self.gates = list()
 		self.lines = list()
+		self.bridges = list()
 		self.joined_lines = list()
 		self.sup = 0
 		self.inf = 0
@@ -3299,6 +3335,51 @@ class Room:
 		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
 
 
+	def draw_bridges(self, msp):
+
+		arrng = self.arrangement
+		if not hasattr(arrng, 'origin'):
+			return	
+
+		w = panel_width
+		h = panel_height
+		x0, y0 = arrng.origin
+
+		for bridge in self.bridges:
+			xpos, ypos = bridge.pos
+
+			# shift axis if single-sided dorsal
+			axis = axis_offset*(0.5-bridge.top)
+
+			xo   = x0 + w*xpos 
+			yo_1 = y0 + h*ypos + (axis+delta_v)/scale
+			yo_2 = y0 + h*ypos + (axis-delta_v)/scale
+
+			if (arrng.alloc_mode == 0):
+				orig1 = xo, yo_1
+				orig2 = xo, yo_2
+				rot = 0
+			else:
+				orig1 = yo_1, xo
+				orig2 = yo_2, xo
+				rot = 90
+
+			if (self.vector):
+				rot_orig = self.rot_orig
+				uv = self.uvector
+				uv = (uv[0], -uv[1])
+				orig1 = rotate(orig1, rot_orig, uv)
+				orig2 = rotate(orig2, rot_orig, uv)
+				rot += self.rot_angle
+
+			xs, ys = 0.1/scale, 0.1/scale
+
+			bkl_red = msp.add_blockref("Rac_20_20_dritto", orig1,
+				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+
+			blk_blu = msp.add_blockref("Rac_20_20_dritto", orig2,
+				dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+
 	def draw_lines(self, msp):
 
 		for line in self.lines:
@@ -3736,7 +3817,12 @@ class Room:
 			if (debug):
 				panel.draw_profile(msp)
 
-		self.draw_lines(msp)
+
+		if not new_system:
+			self.draw_lines(msp)
+		else:
+			self.draw_bridges(msp)
+
 		self.draw_label(msp)
 		self.draw_passive(msp)
 		self.draw_structure(msp)
@@ -4467,7 +4553,6 @@ class Model(threading.Thread):
 			f = open(out, "w")
 			print(summary, file = f)
 
-
 		# save report on file
 		#summary = '<div class="section">'
 		#summary += '<h4>Relazione calcolo</h4>'
@@ -4489,6 +4574,7 @@ class Model(threading.Thread):
 		# resize collectors
 		if not self.refit:
 			self.resize_collectors()
+
 
 		if not self.refit:
 			self.draw()
@@ -4570,14 +4656,21 @@ class Model(threading.Thread):
 
 		print()
 
+
 		################################################################
 
 		# find fittings 
 		for room in self.processed:
 			if (hasattr(room.arrangement, 'alloc_clt_xside')):
-				room.arrangement.fittings()
-				room.arrangement.make_couplings()
-	
+				if not new_system:
+					room.arrangement.fittings()
+					room.arrangement.make_couplings()
+				else:
+					room.arrangement.make_bridges()
+
+		if new_system:
+			return
+
 		# find attachment points of dorsals
 		self.dorsals = list()
 		for room in self.processed:
@@ -4735,6 +4828,7 @@ class Model(threading.Thread):
 			if self.control == "reg":
 				room.draw_probes(self.msp, self.head=="none")
 
+
 		# Collectors
 		for collector, items in self.best_list:
 			#feeds = 0
@@ -4758,7 +4852,6 @@ class Model(threading.Thread):
 				dxfattribs={'xscale': xs, 'yscale': ys})
 
 			block.dxf.layer = layer_panel
-
 
 
 		## drawing connections
@@ -6143,6 +6236,7 @@ if not os.path.exists(lock_name):
 	data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 	create_model(data)
+
 
 else:
 	print("resource busy")
