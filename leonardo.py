@@ -4391,8 +4391,10 @@ class Model(threading.Thread):
 			if (not room.vector):
 				room.orient_room()	
 	
-		self.output.print("Detected %d rooms\n" % len(self.processed))
-		self.output.print("Detected %d collectors\n" % len(self.collectors))
+		self.output.print("Detected rooms ........................... %3d\n" 
+			% len(self.processed))
+		self.output.print("Detected collectors ....................... %2d\n" 
+			% len(self.collectors))
 		if (len(self.collectors) == 0):
 			self.output.print("ABORT: Please insert at least 1 collector @\n")
 			return
@@ -4441,14 +4443,18 @@ class Model(threading.Thread):
 
 		available_feeds = feeds_per_collector * len(self.collectors)
 		available_flow  = flow_per_collector * len(self.collectors)
-		self.output.print("Available pipes %g\n" % available_feeds)
-		self.output.print("Estimated pipes for %d%% cover: %d\n" % 
-				(100*target_eff, feeds_eff))
-		self.output.print("Estimated pipes for 100%% cover: %d\n" % feeds_max)
-		self.output.print("Available flow %g l/h\n" % available_flow)
-		self.output.print("Estimated flow for %d%% cover: %d l/h\n" % 
-				(100*target_eff, flow_eff))
-		self.output.print("Estimated flow for 100%% cover: %d l/h\n" % flow_max)
+		self.output.print("Available lines .......................... %3d\n" 
+				% available_feeds)
+		self.output.print("Estimated lines for %2d%% cover ............ %3d\n" 
+				% (100*target_eff, feeds_eff))
+		self.output.print("Estimated lines for 100%% cover ........... %3d\n" 
+				% feeds_max)
+		self.output.print("Available flow ......................... %5d l/h\n" 
+				% available_flow)
+		self.output.print("Estimated flow for %2d%% cover ............%5d l/h\n" 
+				% (100*target_eff, flow_eff))
+		self.output.print("Estimated flow for 100%% cover .......... %5d l/h\n" 
+				% flow_max)
 
 		#if (feeds_eff > available_feeds or flow_eff > available_flow):
 		#	self.output.print("WARNING: Possible insufficient collectors\n")
@@ -5305,20 +5311,37 @@ class Model(threading.Thread):
 		p1x1_h_spr = abs(p1x1_h_r-p1x1_h_l)
 
 		# Summary of all areas
-		smtxt =  "\nTotal processed rooms.....%3d\n" % len(self.processed)
-		smtxt += "Total collectors...........%2d\n" % len(self.collectors)
-		smtxt += "Total area.............%6.01f m2\n" % self.area
-		smtxt += "Total active area......%6.01f m2 " % self.active_area
-		smtxt += " (%2d%%)\n" % (100*self.active_area/self.area)
-		smtxt += "Total passive area.....%6.01f m2\n" % self.passive_area
-		smtxt += "Normal area............%6.01f m2\n" % self.normal_area
-		smtxt += "Normal active area.....%6.01f m2\n" % self.normal_active_area
-		smtxt += "Normal passive area....%6.01f m2\n" % self.normal_passive_area
-		smtxt += "Hydro area.............%6.01f m2\n" % self.bathroom_area
-		smtxt += "Hydro active area......%6.01f m2\n" % self.bathroom_active_area
-		smtxt += "Hydro passive area.....%6.01f m2\n" % self.bathroom_passive_area
-		smtxt += "Total perimeter........%6.01f m\n" % (self.perimeter*scale/100)
-		smtxt += "Total pipes...............%3d\n" % self.feeds
+		smtxt =  "\nTotal processed rooms .................... %3d\n" \
+			% len(self.processed)
+		smtxt += "Total collectors .......................... %2d\n" \
+			% len(self.collectors)
+		smtxt += "Total area ............................ %6.01f m2\n" \
+			% self.area
+		smtxt += "Total active area ..................... %6.01f m2 " \
+			% self.active_area
+		smtxt += " (%2d%%)" % (100*self.active_area/self.area)
+		if self.active_area/self.area < target_eff:
+			smtxt += "@\n"
+		else:
+			emstxt = "\n"
+		smtxt += "Total passive area .................... %6.01f m2\n" \
+			% self.passive_area
+		smtxt += "Normal area ........................... %6.01f m2\n" \
+			% self.normal_area
+		smtxt += "Normal active area .................... %6.01f m2\n" \
+			% self.normal_active_area
+		smtxt += "Normal passive area ................... %6.01f m2\n" \
+			% self.normal_passive_area
+		smtxt += "Hydro area ............................ %6.01f m2\n" \
+			% self.bathroom_area
+		smtxt += "Hydro active area ..................... %6.01f m2\n" \
+			% self.bathroom_active_area
+		smtxt += "Hydro passive area .................... %6.01f m2\n" \
+			% self.bathroom_passive_area
+		smtxt += "Total perimeter ....................... %6.01f m\n" \
+			% (self.perimeter*scale/100)
+		smtxt += "Total pipes .............................. %3d\n" \
+			% self.feeds
 
 		
 		smtxt += "\nPanel Count\n"
