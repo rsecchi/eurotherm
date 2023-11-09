@@ -1,5 +1,6 @@
 #!/usr/local/bin/python3 -u
 
+import pickle
 import ezdxf
 import sys, os
 import json
@@ -3386,7 +3387,7 @@ class Room:
 			line.draw_couplings(msp)
 			line.draw_adductions(msp)
 
-		self.lines = [x for x in self.lines if x.joined]
+		# self.lines = [x for x in self.lines if x.joined]
 		self.draw_connectors(msp)
 
 
@@ -3404,7 +3405,6 @@ class Room:
 		return pos_warm, pos_cold
 
 	def draw_dorsal_joints(self, msp, orig_w, orig_c):
-
 		svec = [+1, -1, -1, +1]
 		arrng = self.arrangement
 
@@ -3428,6 +3428,8 @@ class Room:
 
 
 	def draw_connectors(self, msp):
+
+		global scale
 	
 		arrng = self.arrangement
 		if (not hasattr(arrng, 'alloc_clt_xside')):
@@ -3467,32 +3469,81 @@ class Room:
 			tail = True
 
 		self.front = front
-		ofs = 0.13*(2*(cside==LEFT)-1)
+		ofs = 0.2*(2*(cside==LEFT)-1)
 
 		for line in self.lines:
 
+			# reverse depending on the position of the collector
+			iw = line.lines[0].couplings[-1].pos
+			p = self.path(iw, iw, ofs)
+			dini = dist(p[-2], cpos)
+
+			fw = line.lines[-1].couplings[-1].pos
+			p = self.path(fw, fw, ofs)
+			dfin = dist(p[-2], cpos)	
+			if dini<dfin:
+				line.lines.reverse()
+		
 			# determine the position of the first coupling
 			first = line.lines[0]
 			cpl = first.couplings[-1]
 			sw, sc = self.attach_pos(cpl)
+			mw, mc = sw, sc
+			min_dist = MAX_DIST
+			num_lines = len(line.lines)
 
-
-			for i in range(1,len(line.lines)):
+			# draw front lines and splitters 
+			for i in range(1, num_lines):
 				last = line.lines[i]
 				cpl = last.couplings[-1]
 				ew, ec = self.attach_pos(cpl)
-
 				pwarm = self.path(sw, ew, ofs+0.03)
 				pcold = self.path(sc, ec, ofs-0.03)
+
 				pw = msp.add_lwpolyline(pwarm)
 				pc = msp.add_lwpolyline(pcold)
 				pw.dxf.color = color_warm
 				pc.dxf.color = color_cold
 				pw.dxf.layer = layer_link
 				pc.dxf.layer = layer_link
+				
+				#if i == num_lines - 1:
+				#	pcentre = self.path(sw, ew, ofs)
+				#	pcentre = pwarm + [cpos]
 
+				#	pw = msp.add_lwpolyline(offset(pcentre, 0.03))
+				#	pc = msp.add_lwpolyline(offset(pcentre, -0.03))
+				#	pw.dxf.color = color_warm
+				#	pc.dxf.color = color_cold
+				#	pw.dxf.layer = layer_link
+				#	pc.dxf.layer = layer_link
+					
 				# Adding 20-20-20 connectors
 				self.draw_dorsal_joints(msp, pwarm[-2], pcold[-2])
+
+				if dist(pwarm[-2], cpos) < min_dist:
+					min_dist = dist(pwarm[-2], cpos)
+					mw = ew
+					mc = ec
+	
+			# XXX
+			centre = (mw[0]+mc[0])/2, (mw[1]+mc[1])/2
+			cline = self.path(centre, centre, ofs)
+
+			dx = cpos[0] - cline[1][0]
+			dy = cpos[1] - cline[1][1]
+			d = dist(cline[1], cpos)
+			ux, uy = dx/d, dy/d
+			cpos1 = cpos[0] - 30*ux/scale, cpos[1] - 30*uy/scale
+
+			clt_path = (cline[0], cline[1], cpos1)
+			pw = msp.add_lwpolyline(offset(clt_path, 3/scale))
+			pc = msp.add_lwpolyline(offset(clt_path, -3/scale))
+
+			pw.dxf.color = color_warm
+			pc.dxf.color = color_cold
+			pw.dxf.layer = layer_link
+			pc.dxf.layer = layer_link
 
 		return
 
@@ -3817,7 +3868,6 @@ class Room:
 			if (debug):
 				panel.draw_profile(msp)
 
-
 		if not new_system:
 			self.draw_lines(msp)
 		else:
@@ -3828,7 +3878,8 @@ class Room:
 		self.draw_structure(msp)
 
 
-class Model(threading.Thread):
+#class Model(threading.Thread):
+class Model():
 	def __init__(self):
 		super(Model, self).__init__()
 		self.rooms = list()
@@ -4655,10 +4706,10 @@ class Model(threading.Thread):
 			print("Room %d " % room.pindex)
 			room.alloc_panels()
 		
-			count += 1
-			if (count == 19):
-				print()
-				count = 0
+			#count += 1
+			#if (count == 19):
+			#	print()
+			#	count = 0
 
 		print()
 
@@ -4829,11 +4880,11 @@ class Model(threading.Thread):
 			if not clt.user_zone:
 				self.zone_bb.append([ax,ay,bx,by])
 
+		# Draw rooms
 		for room in self.processed:
 			room.draw(self.msp)
 			if self.control == "reg":
 				room.draw_probes(self.msp, self.head=="none")
-
 
 		# Collectors
 		for collector, items in self.best_list:
@@ -4861,7 +4912,7 @@ class Model(threading.Thread):
 
 
 		## drawing connections
-		self.draw_links2()
+		#self.draw_links2()
 
 		#for collector in self.collectors:
 		#	self.draw_trees(collector)
@@ -5323,7 +5374,7 @@ class Model(threading.Thread):
 		if self.active_area/self.area < target_eff:
 			smtxt += "@\n"
 		else:
-			emstxt = "\n"
+			smtxt += "\n"
 		smtxt += "Total passive area .................... %6.01f m2\n" \
 			% self.passive_area
 		smtxt += "Normal area ........................... %6.01f m2\n" \
@@ -5358,9 +5409,9 @@ class Model(threading.Thread):
 		smtxt += "Panel type     |quant. |to cut | spares\n"
 		smtxt += "===============+=======+=======+========\n"
 		smtxt += "Normal 200x120 |  %3d  |  %3d  |  %3d\n" %(p2x2_tot, p2x2_cut, p2x2_spr)
-		smtxt += "Normal 200x160 |  %3d  |  %3d  |  %3d\n" %(p2x1_tot, p2x1_cut, p1x1_spr)
+		smtxt += "Normal 200x60  |  %3d  |  %3d  |  %3d\n" %(p2x1_tot, p2x1_cut, p1x1_spr)
 		smtxt += "Hydro  200x120 |  %3d  |  %3d  |  %3d\n" %(p2x2_h_tot,p2x2_h_cut,p2x2_h_spr)
-		smtxt += "Hydro  200x160 |  %3d  |  %3d  |  %3d\n" %(p2x1_h_tot,p2x1_h_cut,p1x1_h_spr)
+		smtxt += "Hydro  200x60  |  %3d  |  %3d  |  %3d\n" %(p2x1_h_tot,p2x1_h_cut,p1x1_h_spr)
 
 		return smtxt + txt
 
@@ -6228,7 +6279,7 @@ def create_model(data):
 	importer.import_block("sonda T_U")
 	importer.finalize()
 
-	model.start()
+	model.run()
 
 	
 ############ START PROCESS ##########################
@@ -6248,6 +6299,11 @@ def remove_lock():
 	out = Globals.model.outname[:-4]+".txt"
 	f = open(out, "w")
 	print(Globals.model.text, file = f)
+
+
+	#out = Globals.model.outname[:-4]+".mod"
+	#f = open(out, "wb")
+	#pickle.dump(Globals.model, f)
 	os.remove(lock_name)
 
 if not os.path.exists(lock_name):
