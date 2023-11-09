@@ -3472,6 +3472,8 @@ class Room:
 		ofs = 0.2*(2*(cside==LEFT)-1)
 
 		for line in self.lines:
+			if len(line.lines) == 0:
+				continue
 
 			# reverse depending on the position of the collector
 			iw = line.lines[0].couplings[-1].pos
@@ -3507,17 +3509,6 @@ class Room:
 				pw.dxf.layer = layer_link
 				pc.dxf.layer = layer_link
 				
-				#if i == num_lines - 1:
-				#	pcentre = self.path(sw, ew, ofs)
-				#	pcentre = pwarm + [cpos]
-
-				#	pw = msp.add_lwpolyline(offset(pcentre, 0.03))
-				#	pc = msp.add_lwpolyline(offset(pcentre, -0.03))
-				#	pw.dxf.color = color_warm
-				#	pc.dxf.color = color_cold
-				#	pw.dxf.layer = layer_link
-				#	pc.dxf.layer = layer_link
-					
 				# Adding 20-20-20 connectors
 				self.draw_dorsal_joints(msp, pwarm[-2], pcold[-2])
 
@@ -3526,7 +3517,6 @@ class Room:
 					mw = ew
 					mc = ec
 	
-			# XXX
 			centre = (mw[0]+mc[0])/2, (mw[1]+mc[1])/2
 			cline = self.path(centre, centre, ofs)
 
