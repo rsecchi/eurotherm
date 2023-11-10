@@ -103,7 +103,7 @@ else:
 
 
 	if os.path.exists(output[".png"]):
-		fimage = open(output["txt"], "r")
+		fimage = open(output[".txt"], "r")
 		ff = os.path.basename(os.readlink(output[".png"]))
 		print('<div class="section" >')
 		# <img src="img_girl.jpg" alt="Girl in a jacket">
