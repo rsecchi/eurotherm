@@ -1672,6 +1672,7 @@ class Dorsals(list):
 
 		if (len(dorsal.panels)>0):
 			self.append(dorsal)
+
 		
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
@@ -1679,14 +1680,12 @@ class Dorsals(list):
 		if (self.room.clt_xside==LEFT):
 			if (self.gapl<min_dist):
 				return False
-			else:
-				self.gap = self.gapl
 
 		if (self.room.clt_xside==RIGHT):
 			if (self.gapr<min_dist):
 				return False
-			else:
-				self.gap = self.gapr
+
+		self.gap = min(self.gapr, self.gapl)
 
 		return True
 
@@ -1841,7 +1840,7 @@ class PanelArrangement:
 					b_dors.coupled = t_dors.coupled = False
 					b_dors.cost += 0.5
 
-			if (not dorsals.add(b_dors) or not dorsals.add(t_dors)):
+			if ((not dorsals.add(b_dors)) or (not dorsals.add(t_dors))):
 				return None
 
 			i += 4
@@ -1855,45 +1854,71 @@ class PanelArrangement:
 		if (not self.make_grid(origin)):
 			return
 
-		#if (self.room.pindex==3):
-		#	print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
-	
-		#	print("room", self.room.pindex, self.mode, end="")
-		#	if (self.room.clt_xside==LEFT):
-		#		print(" LEFT ",end="")
-		#	else:
-		#		print(" RIGHT ",end="")
-		#	if (self.room.clt_yside==TOP):
-		#		print("TOP")
-		#	else:
-		#		print("BOTTOM")
-
-		#	for row in range(self.rows):
-		#		for col in range(self.cols):
-		#			if (self.grid[row,col]):
-		#				print("X", end="")
-		#			else:
-		#				print(".", end="")
-		#		print()
 
 		#for j in range(0,2):
 		for i in range(0,4):
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
-			if ((not trial_dorsals == None ) and
-				((trial_dorsals.elems > self.dorsals.elems) or
-				(trial_dorsals.elems == self.dorsals.elems and
-				 trial_dorsals.cost < self.dorsals.cost) or
-				(trial_dorsals.elems == self.dorsals.elems and
-				 trial_dorsals.cost == self.dorsals.cost and
-				 trial_dorsals.gap > self.dorsals.gap))):
-					self.dorsals = trial_dorsals
-					self.best_grid = self.cells
-					self.alloc_mode = self.mode
-					self.alloc_clt_xside = self.room.clt_xside
-					self.alloc_clt_yside = self.room.clt_yside
-					self.origin = origin
+
+			if not trial_dorsals:
+				continue
+
+			# check the number of elements
+			if trial_dorsals.elems < self.dorsals.elems:
+				continue
+
+			if trial_dorsals.elems > self.dorsals.elems:
+				self.register_alloc(trial_dorsals, origin)
+				continue
+
+			# check the cost
+			if trial_dorsals.cost > self.dorsals.cost:
+				continue
+
+			if trial_dorsals.cost < self.dorsals.cost:
+				self.register_alloc(trial_dorsals, origin)
+				continue
+
+			# check the margin
+			if trial_dorsals.gap > self.dorsals.gap:
+				self.register_alloc(trial_dorsals, origin)
+
+
+	def register_alloc(self, trial_dorsals, origin):
+		self.dorsals = trial_dorsals
+		self.best_grid = self.cells
+		self.alloc_mode = self.mode
+		self.alloc_clt_xside = self.room.clt_xside
+		self.alloc_clt_yside = self.room.clt_yside
+		self.origin = origin
+		# self.debug_alloc()
+	
+
+	def debug_alloc(self):
+		if (self.room.pindex==5):
+			print("Room", self.room.pindex)
+			print("self.mode:", self.mode)
+			print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
+			print("self.dorsal.elems:", self.dorsals.elems)
+			print("self.dorsal.cost:", self.dorsals.cost)
+			print("self.dorsal.gap", self.dorsals.gap)
+			if (self.room.clt_xside==LEFT):
+				print(" LEFT ",end="")
+			else:
+				print(" RIGHT ",end="")
+			if (self.room.clt_yside==TOP):
+				print("TOP")
+			else:
+				print("BOTTOM")
+
+			for row in range(self.rows):
+				for col in range(self.cols):
+					if (self.grid[row,col]):
+						print("X", end="")
+					else:
+						print(".", end="")
+				print()
 
 	def make_bridges(self):
 
