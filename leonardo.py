@@ -6137,9 +6137,10 @@ class Model():
 
 		# insert thumbnail
 		img = self.outname[:-4] + ".png"
-		document.paragraphs[132].alignment = 1
-		r = document.paragraphs[132].add_run()
-		r.add_picture(img, width=docx.shared.Inches(6.0))
+		if os.path.exists(img):
+			document.paragraphs[132].alignment = 1
+			r = document.paragraphs[132].add_run()
+			r.add_picture(img, width=docx.shared.Inches(6.0))
 
 		if (web_version):
 			out = self.outname[:-4] + ".doc"
@@ -6151,8 +6152,7 @@ class Model():
 
 
 	def thumbnail(self):
-		# pictures of design
-		os.system("python3 dxf2img.py "+self.outname+" > /dev/null")
+		os.system("python3 dxf2img.py '"+self.outname+"' > /dev/null")
 		print("THUMBNAIL DONE")
 
 
