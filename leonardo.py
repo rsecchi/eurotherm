@@ -1511,7 +1511,6 @@ class Dorsal:
 		self.gapl = MAX_DIST
 		self.gapr = MAX_DIST
 		self.gap = 0
-		self.coupled = True
 
 		m = self.grid
 		self.cost = 0
@@ -1673,7 +1672,6 @@ class Dorsals(list):
 		if (len(dorsal.panels)>0):
 			self.append(dorsal)
 
-		
 		self.gapr = min(self.gapr, dorsal.gapr)
 		self.gapl = min(self.gapl, dorsal.gapl)
 
@@ -1809,18 +1807,14 @@ class PanelArrangement:
 			nlost = bu1.lost + td0.lost
 			ncost = bu1.cost + td1.cost 
 
-
 			if (nlost < lost or (nlost==lost and ncost<cost)):
 				b_dors = bu1
 				t_dors = td1
 				cost = ncost
 				lost = nlost
 
-			if (b_dors.elems == 0 or t_dors.elems==0):
-				b_dors.coupled = t_dors.coupled = False
 
-
-			if (lost>0):
+			if lost>0 or (not b_dors.elems) or (not t_dors.elems):
 
 				bd0 = Dorsal(self.grid, (i,0), 1, self.room)
 				bd1 = Dorsal(self.grid, (i,1), 1, self.room)
@@ -1830,15 +1824,15 @@ class PanelArrangement:
 				bd = sorted([bu0, bu1, bd0, bd1], key=lambda x: (x.lost,x.cost))
 				td = sorted([tu0, tu1, td0, td1], key=lambda x: (x.lost,x.cost))
 
-
 				nlost = bd[0].lost + td[0].lost
 				ncost = bd[0].cost + td[0].cost 
 			
 				if (nlost < lost):
 					b_dors = bd[0]
 					t_dors = td[0]
-					b_dors.coupled = t_dors.coupled = False
-					b_dors.cost += 0.5
+				
+				b_dors.cost += 0.00001
+				t_dors.cost += 0.00001
 
 			if ((not dorsals.add(b_dors)) or (not dorsals.add(t_dors))):
 				return None
@@ -1854,12 +1848,12 @@ class PanelArrangement:
 		if (not self.make_grid(origin)):
 			return
 
-
-		#for j in range(0,2):
 		for i in range(0,4):
+
 			# set origin of dorsals
 			pos = (i, 0)
 			trial_dorsals = self.build_dorsals(pos)
+
 
 			if not trial_dorsals:
 				continue
@@ -1896,13 +1890,19 @@ class PanelArrangement:
 	
 
 	def debug_alloc(self):
-		if (self.room.pindex==5):
+		if (self.room.pindex==4):
 			print("Room", self.room.pindex)
 			print("self.mode:", self.mode)
-			print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
+			print("self.origin:", self.origin)
+			#print(len(self.cells), self.room.clt_xside, self.room.clt_yside)
 			print("self.dorsal.elems:", self.dorsals.elems)
 			print("self.dorsal.cost:", self.dorsals.cost)
 			print("self.dorsal.gap", self.dorsals.gap)
+
+			for dorsal in self.dorsals:
+				print(dorsal.pos)
+				print(dorsal.side)
+
 			if (self.room.clt_xside==LEFT):
 				print(" LEFT ",end="")
 			else:
