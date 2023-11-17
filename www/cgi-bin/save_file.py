@@ -34,7 +34,7 @@ def start_script(cfg_file):
 		devnull = os.open("/dev/null", os.O_RDONLY)
 		os.dup2(devnull, sys.stdin.fileno())
 		os.close(devnull)
-
+		os.environ['MPLCONFIGDIR'] = '/var/spool/eurotherm'
 		Popen(['/bin/bash', '-c', cmd])
 		exit(0)
 

@@ -3,6 +3,8 @@
 import pickle
 import ezdxf
 import sys, os
+os.environ['MPLCONFIGDIR'] = "/var/spool/eurotherm"
+
 import json
 from pprint import pprint
 from ezdxf.addons import Importer
@@ -2038,7 +2040,7 @@ class PanelArrangement:
 		#for cir in self.circuits:
 		#	print("[",cir.xmin, cir.xmax,"]")
 		#	for cpl in cir.couplings:
-		#		print(cpl.type)
+		#		print(cpl.type, cpl.pos)
 
 		#print("strip_len", self.strip_len)
 		#print()
@@ -2245,7 +2247,6 @@ class Circuit:
 
 			if hasattr(cpl,"type"):
 				continue
-
 			end_flag = False
 			if (cpl==cplmin or cpl==cplmax) and cpl.is_last==True:
 				end_flag = True
@@ -2356,6 +2357,7 @@ class Line:
 			final.type = "Rac_20_20_dritto"
 			final.pos = self.final
 			final.circuit = self.couplings[0].circuit
+			final.is_at_top = self.couplings[0].is_at_top()
 			self.couplings += [final]
 
 		for cpl in self.couplings:
@@ -2415,7 +2417,10 @@ class Line:
 			# shift axis if single-sided dorsal
 			axis = 0
 			if not cpl.circuit.is_double():
-				axis = axis_offset*(0.5-cpl.is_at_top())
+				if isinstance(cpl, Coupling): 
+					axis = axis_offset*(0.5-cpl.is_at_top())
+				else:
+					axis = axis_offset*(0.5-cpl.is_at_top)
 
 
 			xo   = x0 + w*xpos + offset/scale
@@ -3035,8 +3040,8 @@ class Room:
 			if cir.flip:
 				line.sgn = -1
 			self.lines.append(line)
-			overflow = False
-
+			broken = False
+			
 			for cpl in cir.couplings:
 
 				if (cpl.type == "invalid"):
@@ -3047,7 +3052,12 @@ class Room:
 					fitflow = fpanel * fit["panel"].size[1]/4
 					cpl.flow += fitflow
 
-				if (line.flow + cpl.flow > fline) and not overflow:
+				if (line.flow + cpl.flow > fline):
+					if broken:
+						wstr = "WARNING: internal dorsal created in Room %d @\n" % (
+							self.pindex)
+						self.output.print(wstr)
+
 					cpl.type = fittings[cpl.type]["close"]
 					if cir.flip:
 						cpl.flip = not cpl.flip
@@ -3055,17 +3065,20 @@ class Room:
 					head.type = fittings[head.type]["open"]
 
 					# adds a final linear joint if needed
-					line.final = self.add_final_cpl(head, cir.xmin, cir.xmax)
+					if not broken:
+						line.final = self.add_final_cpl(head, cir.xmin, cir.xmax)
 
 					index = cir.couplings.index(cpl)
 					tail = cir.couplings[index-1]
 					if tail.type == "invalid":
 						continue
 
-					tail.type = fittings[tail.type]["close"]
-					if not cir.flip:
-						tail.flip = not tail.flip
-					overflow = True
+					if not broken:
+						tail.type = fittings[tail.type]["close"]
+						if not cir.flip:
+							tail.flip = not tail.flip
+
+					broken = True
 
 					line = Line(self)
 					#line.sgn = 1
@@ -3413,7 +3426,10 @@ class Room:
 			line.draw_adductions(msp)
 
 		# self.lines = [x for x in self.lines if x.joined]
-		self.draw_connectors(msp)
+		try:
+			self.draw_connectors(msp)
+		except:
+			print("skipping Room", self.pindex)
 
 
 	def attach_pos(self, cpl):
@@ -3443,11 +3459,13 @@ class Room:
 
 		xs, ys = 0.1/scale, sgny*0.1/scale
 
-		msp.add_blockref("Rac_20_20_20_rosso", orig_w,
+		joint = msp.add_blockref("Rac_20_20_20_rosso", orig_w,
 			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+		joint.dxf.layer = layer_link
 
-		msp.add_blockref("Rac_20_20_20_blu", orig_c,
+		joint = msp.add_blockref("Rac_20_20_20_blu", orig_c,
 			dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
+		joint.dxf.layer = layer_link
 
 		self.collector.inputs -= 1
 
@@ -6212,7 +6230,7 @@ def create_model(data):
 		for ptype in panel_types:
 			if (ctype == ptype['full_name']):
 				model.ptype = ptype
-		model.start()
+		model.run()
 		return
 
 
@@ -6314,7 +6332,6 @@ def remove_lock():
 	out = Globals.model.outname[:-4]+".txt"
 	f = open(out, "w")
 	print(Globals.model.text, file = f)
-
 
 	#out = Globals.model.outname[:-4]+".mod"
 	#f = open(out, "wb")
