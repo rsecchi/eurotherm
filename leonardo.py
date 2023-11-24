@@ -501,7 +501,7 @@ default_hatch_height = 20
 default_collector_size = 60
 
 default_search_tol = 5
-default_min_dist = 20
+default_min_dist = 35
 default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 101
 
@@ -4177,7 +4177,7 @@ class Model():
 			if (e.dxftype() == 'LINE'):
 				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s @\n" % e.dxftype()
+				wstr = "WARNING: layer contains elements not allowed: %s @\n" % e.dxftype()
 				self.output.print(wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
@@ -6244,7 +6244,7 @@ def create_model(data):
 			model.layer_color = layer.dxf.color
 
 	if (len(ents) == 0):
-		model.print('Layer "%s" not available or empty @'
+		model.print('ABORT: Layer "%s" not available or empty @'
 			% model.inputlayer)
 		return
 
@@ -6350,7 +6350,7 @@ if not os.path.exists(lock_name):
 
 
 else:
-	print("resource busy")
+	print("ABORT: Resource busy")
 
 
 
