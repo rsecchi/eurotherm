@@ -3062,7 +3062,11 @@ class Room:
 					if cir.flip:
 						cpl.flip = not cpl.flip
 					head = cir.couplings[0]
-					head.type = fittings[head.type]["open"]
+
+					if head.type != "invalid":
+						head.type = fittings[head.type]["open"]
+					else:
+						print("Room:", self.pindex)
 
 					# adds a final linear joint if needed
 					if not broken:
