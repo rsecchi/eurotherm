@@ -490,6 +490,7 @@ target_eff = 0.7
 flow_per_collector = 1700
 extra_flow_probe = 100
 max_steps = 20
+collector_margin_factor = 1.5
 
 default_font_size = 10
 
@@ -501,7 +502,7 @@ default_hatch_height = 20
 default_collector_size = 60
 
 default_search_tol = 5
-default_min_dist = 35
+default_min_dist = 20
 default_min_dist2 = default_min_dist*default_min_dist
 default_wall_depth = 101
 
@@ -3729,6 +3730,8 @@ class Room:
 				pl.dxf.layer = layer_lux	
 
 		for obstacle in self.obstacles:
+			if obstacle.color == obstacle_color:
+				continue
 			hatch.paths.add_polyline_path(obstacle.points, 
 				is_closed=True,
 				flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
@@ -4367,6 +4370,23 @@ class Model():
 					else:
 						collector.user_zone = zone
 
+		# add margins to collector boundaries
+		cmf = collector_margin_factor
+		for collector in self.collectors:
+			cx, cy = collector.pos
+			points = list()
+			poly = collector.poly
+			for p in poly:
+				points.append((cx+cmf*(p[0]-cx), cy+cmf*(p[1]-cy)))
+			points.append((cx+cmf*(poly[0][0]-cx), cy+cmf*(poly[0][1]-cy)))
+			
+			polyline = self.msp.add_lwpolyline(points)
+			polyline.dxf.layer = self.inputlayer
+			polyline.dxf.color = obstacle_color	
+			collector_box = Room(polyline, self.output)
+			collector.box = collector_box
+			collector.contained_in.obstacles.append(collector_box)
+
 		# assign rooms to user zones
 		for room in self.processed:
 			room.user_zone = None
@@ -4607,6 +4627,11 @@ class Model():
 
 		if not self.refit:
 			self.populating_model()
+
+		# remove collector boxes
+		for collector in self.collectors:
+			collector.contained_in.obstacles.remove(collector.box)
+
 
 		##############################################################
 		# summary
@@ -4935,10 +4960,10 @@ class Model():
 			xc, yc = collector.pos[0], collector.pos[1]
 			cs = collector_size
 
-			write_text(self.msp, txt, (xc-cs/2, yc+cs/2+search_tol), 
-				align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT,
-				zoom=0.6,
-				col=collector_color)
+			#write_text(self.msp, txt, (xc-cs/2, yc+cs/2+search_tol), 
+			#	align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT,
+			#	zoom=0.6,
+			#	col=collector_color)
 			xs, ys = 0.1/scale, 0.1/scale
 			orig = xc - cs/2, yc - cs/2
 
@@ -4946,6 +4971,11 @@ class Model():
 				dxfattribs={'xscale': xs, 'yscale': ys})
 
 			block.dxf.layer = layer_panel
+
+			write_text(self.msp, txt, collector.pos, 
+				align=ezdxf.lldxf.const.MTEXT_MIDDLE_CENTER,
+				zoom=0.6,
+				col=0)
 
 
 		## drawing connections
