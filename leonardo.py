@@ -2455,7 +2455,7 @@ class Line:
 				blk_blu = msp.add_blockref(cpl.type + "_blu", orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 			else:
-				bkl_red = msp.add_blockref(cpl.type, orig1,
+				blk_red = msp.add_blockref(cpl.type, orig1,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
 				blk_blu = msp.add_blockref(cpl.type, orig2,
 					dxfattribs={'xscale': xs, 'yscale': ys, 'rotation': rot})
