@@ -40,6 +40,7 @@ def translate(name):
 	draw.text(position, image, fill=text_color)
 	img.save(image_path)
 	os.remove(image)
+	os.rename(image_path, image)
 
 
 files = os.listdir(os.getcwd())

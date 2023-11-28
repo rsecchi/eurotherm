@@ -53,6 +53,7 @@ block_blue_60x100   = "LEO_55_60"
 block_green_120x100 = "LEO_55_120_IDRO"
 block_green_60x100  = "LEO_55_60_IDRO"
 block_collector     = "collettore"
+block_collector_W   = "collettore_W"
 
 # Panel types
 panel_types = [
@@ -4741,14 +4742,8 @@ class Model():
 
 					if not cpl.type is fittings[cpl.type]["open"]:
 						collector.inputs += 1
-				
-			if (flow_cltr>flow_per_collector):
-				self.output.print("WARNING: Collector %s overflow: %d l/h @\n" %
-					(collector.name, flow_cltr))
-
-			if (collector.inputs>feeds_per_collector):
-				self.output.print("WARNING: Collector %s overfeeds: %d pipes @\n" %
-					(collector.name, collector.inputs))
+	
+			collector.flow = flow_cltr
 				
 
 
@@ -4950,24 +4945,33 @@ class Model():
 
 		# Collectors
 		for collector, items in self.best_list:
-			#feeds = 0
-			#for room in items:
-			#	feeds += room.actual_feeds
-			#collector.req_feeds = feeds
+
+			if ((collector.flow>flow_per_collector) and
+				not (collector.inputs>feeds_per_collector)):
+				self.output.print("WARNING: Collector %s overflow: %d l/h @\n" %
+					(collector.name, collector.flow))
+
+			if (collector.inputs>feeds_per_collector):
+				self.output.print("WARNING: Collector %s overfeeds: %d pipes @\n" %
+					(collector.name, collector.inputs))
+
 			feeds = collector.inputs
 			collector.label = " (%d+%d)" % (feeds, feeds)
 			txt = collector.name + collector.label
 			xc, yc = collector.pos[0], collector.pos[1]
 			cs = collector_size
 
-			#write_text(self.msp, txt, (xc-cs/2, yc+cs/2+search_tol), 
-			#	align=ezdxf.lldxf.const.MTEXT_BOTTOM_LEFT,
-			#	zoom=0.6,
-			#	col=collector_color)
+
+			if ((collector.inputs > feeds_per_collector) or 
+				(collector.flow > flow_per_collector)):
+				block_c = block_collector_W
+			else:
+				block_c = block_collector
+
 			xs, ys = 0.1/scale, 0.1/scale
 			orig = xc - cs/2, yc - cs/2
 
-			block = self.msp.add_blockref(block_collector, orig, 
+			block = self.msp.add_blockref(block_c, orig, 
 				dxfattribs={'xscale': xs, 'yscale': ys})
 
 			block.dxf.layer = layer_panel
@@ -6315,6 +6319,7 @@ def create_model(data):
 	importer.import_block(block_green_120x100)
 	importer.import_block(block_green_60x100)
 	importer.import_block(block_collector)
+	importer.import_block(block_collector_W)
 	importer.import_block("LEO_LUX_120")
 	importer.import_block("LEO_LUX_120_IDRO")
 
