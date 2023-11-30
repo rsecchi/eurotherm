@@ -2340,6 +2340,7 @@ class Line:
 		self.joined = joined
 		self.lines = list()
 		self.final = None
+		self.rear = None
 
 	def draw_couplings(self, msp):
 		global panel_width, panel_height
@@ -2367,10 +2368,9 @@ class Line:
 			if cpl.type == "invalid":
 				continue
 
-			#print(cpl.type, cpl.pos, end="")
-			#print("Room=", self.room.pindex, end="")
-			#print(" mode=", self.alloc_mode, end="")
-			#print(" vect=", self.room.vector)
+
+			# print(cpl.type, cpl.pos, end="")
+			# print("Room=", self.room.pindex)
 
 			xpos, ypos = cpl.pos
 			fit = fittings[cpl.type]
@@ -2405,16 +2405,16 @@ class Line:
 						symbol[i][k] = -x, y
 				
 			# horizontal offset
-			offset = 0
+			offs = 0
 			if (cpl.type == "Rac_10_20_10"  or
 				cpl.type == "Rac_20_10_20_10" or
 				cpl.type == "Rac_20_10_20" or
 				cpl.type == "Rac_20_10"):
-				offset =  shift * (0.5 - cpl.is_at_right())
+				offs =  shift * (0.5 - cpl.is_at_right())
 				for i, pline in enumerate(symbol):
 					for k, p in enumerate(pline):
 						x, y = p
-						symbol[i][k] = x + offset, y	
+						symbol[i][k] = x + offs, y	
 
 			# shift axis if single-sided dorsal
 			axis = 0
@@ -2425,7 +2425,7 @@ class Line:
 					axis = axis_offset*(0.5-cpl.is_at_top)
 
 
-			xo   = x0 + w*xpos + offset/scale
+			xo   = x0 + w*xpos + offs/scale
 			yo_1 = y0 + h*ypos + (axis+delta_v)/scale
 			yo_2 = y0 + h*ypos + (axis-delta_v)/scale
 
@@ -2465,6 +2465,11 @@ class Line:
 			cpl.orig1 = orig1
 			cpl.orig2 = orig2
 
+			# Locatei the rear attachment points
+			if self.rear == cpl.pos:
+				self.rear_pos1 = cpl.orig1
+				self.rear_pos2 = cpl.orig2
+
 			if (not debug):
 				continue
 
@@ -2503,6 +2508,33 @@ class Line:
 				pl.dxf.layer = layer_joints
 				pl.dxf.color = color_cold
 				pl.dxf.lineweight = 2
+
+		if self.rear:
+			# Print rear links
+
+			cside = arrng.alloc_clt_xside
+			ofs = 0.2*(2*(cside==LEFT)-1)
+			cpos = room.collector.pos
+
+			mw = self.rear_pos1
+			mc = self.rear_pos2
+
+			centre = (mw[0]+mc[0])/2, (mw[1]+mc[1])/2
+
+			dx = cpos[0] - centre[0]
+			dy = cpos[1] - centre[1]
+			d = dist(centre, cpos)
+			ux, uy = dx/d, dy/d
+			cpos1 = cpos[0] - 30*ux/scale, cpos[1] - 30*uy/scale
+
+			clt_path = (centre, cpos1)
+			pw = msp.add_lwpolyline(offset(clt_path, -3/scale))
+			pc = msp.add_lwpolyline(offset(clt_path, 3/scale))
+
+			pw.dxf.color = color_warm
+			pc.dxf.color = color_cold
+			pw.dxf.layer = layer_link
+			pc.dxf.layer = layer_link
 
 	def draw_cpls_link(self, msp, cpls):
 
@@ -3067,12 +3099,13 @@ class Room:
 
 					if head.type != "invalid":
 						head.type = fittings[head.type]["open"]
-					else:
-						print("Room:", self.pindex)
+						line.rear = head.pos
 
 					# adds a final linear joint if needed
 					if not broken:
 						line.final = self.add_final_cpl(head, cir.xmin, cir.xmax)
+						if line.final:
+							line.rear = line.final
 
 					index = cir.couplings.index(cpl)
 					tail = cir.couplings[index-1]
@@ -3521,6 +3554,7 @@ class Room:
 		ofs = 0.2*(2*(cside==LEFT)-1)
 
 		for line in self.lines:
+
 			if len(line.lines) == 0:
 				continue
 
