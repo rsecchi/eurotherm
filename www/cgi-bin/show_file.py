@@ -70,16 +70,16 @@ else:
 				ziplist.append(tmp+basename+ftype)
 
 		# make zipfile in testing
-		if os.environ.get("MODE") == "testing":
-			zipname = tmp + basename + ".zip"
-			if not os.path.exists(zipname):
-				zipf = zipfile.ZipFile(zipname, "w")
-				for zf in ziplist:
-					zout = os.path.basename(zf)
-					zipf.write(zf, basename+"/"+zout)
-			ftypes.append(".zip")
-			output[".zip"] = tmp + "output" + ".zip"
-			update_link(basename, ".zip")
+		# if os.environ.get("MODE") == "testing":
+		zipname = tmp + basename + ".zip"
+		if not os.path.exists(zipname):
+			zipf = zipfile.ZipFile(zipname, "w")
+			for zf in ziplist:
+				zout = os.path.basename(zf)
+				zipf.write(zf, basename+"/"+zout)
+		ftypes.append(".zip")
+		output[".zip"] = tmp + "output" + ".zip"
+		update_link(basename, ".zip")
 
 	print('<div class="section">')
 	print('<h4>Risultati calcolo tecnico</h4><ul>')
