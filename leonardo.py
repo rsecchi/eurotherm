@@ -2355,6 +2355,8 @@ class Line:
 		h = panel_height
 		x0, y0 = arrng.origin
 
+		self.rear_found = False
+
 		if self.final:
 			final = Object()
 			final.type = "Rac_20_20_dritto"
@@ -2367,7 +2369,6 @@ class Line:
 
 			if cpl.type == "invalid":
 				continue
-
 
 			# print(cpl.type, cpl.pos, end="")
 			# print("Room=", self.room.pindex)
@@ -2465,8 +2466,9 @@ class Line:
 			cpl.orig1 = orig1
 			cpl.orig2 = orig2
 
-			# Locatei the rear attachment points
+			# Locate the rear attachment points
 			if self.rear == cpl.pos:
+				self.rear_found = True
 				self.rear_pos1 = cpl.orig1
 				self.rear_pos2 = cpl.orig2
 
@@ -2509,7 +2511,7 @@ class Line:
 				pl.dxf.color = color_cold
 				pl.dxf.lineweight = 2
 
-		if self.rear:
+		if self.rear_found:
 			# Print rear links
 
 			cside = arrng.alloc_clt_xside
