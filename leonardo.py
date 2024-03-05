@@ -4735,6 +4735,15 @@ class Model():
 		if not self.refit:
 			self.draw()
 		else:
+			print("Removing any previous labels")
+			mtexts = self.msp.query('MTEXT[layer=="{}"]'.format(layer_text))
+			for mtext in mtexts:
+				if mtext.text.startswith("Locale"):
+					print(mtext.text)
+					self.msp.delete_entity(mtext)
+			print("Redrawing labels")
+			for room in self.processed:
+				room.draw_label(self.msp)
 			self.doc.saveas(self.outname)
 
 
