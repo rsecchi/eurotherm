@@ -4375,6 +4375,13 @@ class Model():
 				pindex += 1
 				self.processed.append(room)
 
+		# renumber rooms	
+		self.processed.sort(reverse=True, key=lambda room: (room.ay, -room.ax))	
+		pindex = 1
+		for room in self.processed:
+			room.pindex = pindex
+			pindex += 1
+
 
 		# check if every collector is in a room
 		for collector in self.collectors:
@@ -4735,13 +4742,10 @@ class Model():
 		if not self.refit:
 			self.draw()
 		else:
-			print("Removing any previous labels")
 			mtexts = self.msp.query('MTEXT[layer=="{}"]'.format(layer_text))
 			for mtext in mtexts:
 				if mtext.text.startswith("Locale"):
-					print(mtext.text)
 					self.msp.delete_entity(mtext)
-			print("Redrawing labels")
 			for room in self.processed:
 				room.draw_label(self.msp)
 			self.doc.saveas(self.outname)
