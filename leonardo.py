@@ -2582,6 +2582,7 @@ class Room:
 		self.lines = list()
 		self.bridges = list()
 		self.joined_lines = list()
+		self.total_lines = 0
 		self.sup = 0
 		self.inf = 0
 		self.fixed_collector = None
@@ -4751,6 +4752,33 @@ class Model():
 			self.doc.saveas(self.outname)
 
 
+		for room in self.processed:
+			room.total_lines = 0
+
+		for e in self.msp:
+			if (e.dxf.dxftype == "INSERT" and
+				e.dxf.name[:3] == "Rac" and
+				e.dxf.name[-3:] == "blu"):
+
+				ename = e.dxf.name[:-4]
+				if not ename == fittings[ename]['close']:
+					continue
+
+				point = (e.dxf.insert[0], e.dxf.insert[1])
+				for room in self.processed:
+					if room.is_point_inside(point):
+						if ename == "Rac_20_20_20":
+							room.total_lines -= 1
+						else:
+							room.total_lines += 1
+
+		self.total_lines = 0
+		for room in self.processed:
+			self.total_lines += room.total_lines
+
+		mark = report.find('$$$')
+		report = report[:mark] + "%3d" % (self.total_lines) + report[mark+3:]
+
 		##############################################################
 		# save data in XLS
 
@@ -5511,9 +5539,7 @@ class Model():
 			% self.bathroom_passive_area
 		smtxt += "Total perimeter ....................... %6.01f m\n" \
 			% (self.perimeter*scale/100)
-		smtxt += "Total pipes .............................. %3d\n" \
-			% self.feeds
-
+		smtxt += "Total lines .............................. $$$\n" 
 		
 		smtxt += "\nPanel Count\n"
 		smtxt += "Type    |200x120| 200x60| 100x120  L  R  | 100x60  L  R\n"
@@ -5726,7 +5752,7 @@ class Model():
 				ws[pos].number_format = "0.0"
 
 				pos = 'G' + str(index)
-				ws[pos] = room.actual_feeds
+				ws[pos] = room.total_lines
 
 				if (room.room_rep['panels_120x200']>0):
 					pos = 'H' + str(index)
