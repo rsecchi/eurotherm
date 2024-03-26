@@ -4807,7 +4807,6 @@ class Model():
 				for panel in item.panels:
 					flow_cltr += panel.size[0]*panel.size[1]*fpanel/4
 				arrng = item.arrangement
-
 				
 				if not hasattr(arrng, "couplings"):
 					continue
@@ -5305,9 +5304,10 @@ class Model():
 			return
 
 		room = next(room_iter)
-		while room and len(room.links)==0:
+		while (room and len(room.links)==0 and 
+			not room.fixed_collector):
 			room = next(room_iter)
-			 
+		
 		# Terminal case
 		if (room == None):
 
