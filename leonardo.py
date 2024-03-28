@@ -3967,6 +3967,7 @@ class Model():
 		self.processed = list()
 		self.obstacles = list()
 		self.zone = list()
+		self.zones = list()
 		self.zone_bb = list()
 		self.user_zones = list()
 		self.output = self 
@@ -4039,6 +4040,62 @@ class Model():
 			#print(room.links)
 			pass
 
+	def merge_rooms(self, collector):
+
+		# calculate distances from collector 
+		for room in self.processed:
+			room.visited = False
+			room.uplink = None
+			room.walk = MAX_DIST
+
+		root = collector.contained_in
+		if (not root):
+			return None
+
+		root.walk = 0
+		root.uplink = root
+		root.set_as_root(self.processed.copy(), collector)
+
+		# leader: reference zone for collector
+		leader = None 
+		if collector.user_zone and collector.user_zone.leader:
+			leader = collector.user_zone.leader
+
+		for room in self.processed:
+
+			link_item = (collector, room.walk, room.uplink)
+			room.links.append(link_item)
+
+			if not (room.walk<MAX_DIST or 
+				room.fixed_collector == collector):
+				continue
+
+			# A related room is NOT assigned to a zone
+			if not room.zone:
+
+				if not leader:
+					leader = collector
+					collector.is_leader = True
+					if collector.user_zone:
+						collector.user_zone.leader = collector
+					self.zones.append(collector)
+
+				room.zone = leader
+				leader.zone_rooms.append(room)
+
+			# A related room is already assigned to a zone	
+			else:
+
+				if leader and room.zone != leader: 
+					leader.is_leader = False
+					self.zones.remove(leader)
+					for r in leader.zone_rooms:
+						r.zone = room.zone
+					room.zone.zone_rooms += leader.zone_rooms
+					leader = room.zone
+		
+		return leader
+
 
 	def create_trees(self):
 
@@ -4046,88 +4103,39 @@ class Model():
 		self.find_gates()
 		for room in self.processed:
 			room.links = list()
-			room.zone = False
+			room.zone = None
 
-		zone = 1
 		for collector in self.collectors:
+
 			collector.is_leader = False
+			collector.zone_collectors = list()
 			collector.zone_rooms = list()
+			collector.name ="unassigned"
+			collector.zone_num = 0
+			collector.number = 0
 
-			for room in self.processed:
-				room.visited = False
-				room.uplink = None
-				room.walk = MAX_DIST
+			leader = self.merge_rooms(collector)
 
-			root = collector.contained_in
-			if (not root):
-				#print("collector at ", collector.pos, " outside rooms")
-				continue
-
-			root.walk = 0
-			root.uplink = root
-			
-			root.set_as_root(self.processed.copy(), collector)
-
-			leader = None
-			for room in self.processed:
-
-				if room.user_zone != collector.user_zone:
-					room.walk = MAX_DIST
-
-				# check if room is assigned to a collector
-				if ((not room.zone) and room.walk<MAX_DIST):
-					# now assign  collector
-					
-					if (not collector.is_leader):
-						collector.is_leader = True
-						leader = collector
-						collector.zone_num = zone
-						collector.number = 1
-						collector.next_item = 2
-						collector.name = 'C' + str(zone) + '.1'
-						zone += 1
-
-					room.zone = collector
-					leader = room.zone
-					collector.zone_rooms.append(room)
-
-				else:
-					if (room.zone and room.walk<MAX_DIST):
-						leader = room.zone
- 
-				link_item = (collector, room.walk, room.uplink)
-				room.links.append(link_item)
-
-			if (not collector.is_leader):
-				if (leader):
-					collector.zone_num = leader.zone_num
-					collector.number = leader.next_item
-					collector.name = 'C' + str(leader.zone_num)
-					collector.name += '.' + str(leader.next_item)
-					leader.next_item += 1
-
-				else:
-					collector.name ="unassigned"
-					collector.zone_num = 0
-					collector.number = 0
+			if leader:
+				leader.zone_collectors.append(collector)
 	
-		# Assign rooms with fixed collectors to zones
-		for room in self.rooms:
-			if room.fixed_collector:
-				collector = room.fixed_collector
-				leader = collector.contained_in.zone 
-				leader.zone_rooms.append(room)
-				room.zone = leader
+		# number zones
+		zone_num = 0
+		for zone in self.zones:
+			zone_num += 1
+			number = 1
+			for collector in zone.zone_collectors:
+				collector.zone_num = zone_num
+				collector.number = number
+				collector.name = 'C' + str(leader.zone_num)
+				collector.name += '.' + str(number)
+				number += 1
 
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
 			collector.freespace = feeds_per_collector 
 			collector.freeflow = flow_per_collector
 			collector.items = list()
-			#for room in self.processed:
-			#	if (room.fixed_collector and 
-			#		room.fixed_collector == collector):
-			#		collector.items.append(room)
 
 		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
 
@@ -4167,6 +4175,7 @@ class Model():
 				del room.links[i:]
 
 		return True
+
 
 	def rescale_model(self):
 
@@ -4360,6 +4369,7 @@ class Model():
 
 				if (room.color == zone_color):
 					self.user_zones.append(room)
+					room.leader = None
 
 	
 		# check if the room is too small to be processed
