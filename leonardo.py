@@ -4063,6 +4063,11 @@ class Model():
 
 		for room in self.processed:
 
+			if ((room.user_zone != collector.user_zone) or
+				(room.fixed_collector and
+				(room.fixed_collector.user_zone != collector.user_zone))):
+				room.walk = MAX_DIST
+
 			link_item = (collector, room.walk, room.uplink)
 			room.links.append(link_item)
 
@@ -4085,6 +4090,8 @@ class Model():
 
 			# A related room is already assigned to a zone	
 			else:
+				if (leader and room.user_zone != leader.user_zone):
+					continue
 
 				if leader and room.zone != leader: 
 					leader.is_leader = False
@@ -4097,7 +4104,7 @@ class Model():
 		return leader
 
 
-	def create_trees(self):
+	def create_zones(self):
 
 		# create trees
 		self.find_gates()
@@ -4631,7 +4638,7 @@ class Model():
 		#		self.output.print("WARNING: suggested %d collectors\n" % rc)
 
 		################################################################
-		if not self.create_trees():
+		if not self.create_zones():
 			return
 
 		# Disabled room with collector forms its own zone
