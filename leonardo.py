@@ -4134,8 +4134,8 @@ class Model():
 			for collector in zone.zone_collectors:
 				collector.zone_num = zone_num
 				collector.number = number
-				collector.name = 'C' + str(leader.zone_num)
-				collector.name += '.' + str(number)
+				collector.name = 'C' + str(collector.zone_num)
+				collector.name += '.' + str(collector.number)
 				number += 1
 
 		self.best_dist = MAX_DIST
