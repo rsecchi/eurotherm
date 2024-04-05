@@ -48,6 +48,7 @@ extern canvas_t _canvas;
 #define WIDTH  640
 #define HEIGHT 480
 
+#define RED    (colour_t){1., 0., 0.}
 #define GREEN  (colour_t){0., 1., 0.}
 #define BLUE   (colour_t){0., 0., 1.}
 #define YELLOW (colour_t){1., 1., 0.}
@@ -61,6 +62,7 @@ int cross(point_t* a, point_t* b);
 int check_box(int mode, box_t* bb, polygon_t* pgon);
 void bounding_box(polygon_t* pgon, box_t* bb);
 point_t random_point(box_t* bb);
+box_t box_point(point_t point, double size);
 
 int self_intersect(polygon_t* pgon);
 double area_polygon(polygon_t* pgon);
@@ -68,7 +70,10 @@ double hdist(point_t* p, polygon_t* pgon);
 
 canvas_t* init_canvas(transform_t trfs);
 void draw_polygon(canvas_t* ct, polygon_t* poly, colour_t col);
+void draw_box(canvas_t* ct, box_t* box, colour_t col);
+void draw_point(canvas_t* ct, point_t point);
 void save_png(canvas_t* ct, char* filename);
+
 
 
 

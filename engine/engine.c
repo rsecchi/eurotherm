@@ -1,5 +1,19 @@
 #include "engine.h"
 #include <stdio.h>
+#include <string.h>
+
+
+canvas_t * __debug_canvas;
+
+panel_desc_t panel_desc[] =
+{
+	{1024, 4, "full"},
+	{1024, 4, "lux"},
+	{511, 4, "split"},
+	{511, 2, "half"},
+	{254, 2, "quarter"}
+};
+
 
 int fit(panel_t* p, room_t* r)
 {
@@ -122,16 +136,106 @@ void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
 	pp->type = pt;
 	pp->pos = pos;
 	pp->heading = ht;
-	pp->pbox.xmin = pos.x;
-	pp->pbox.ymin = pos.y;
+	pp->pbox.xmax = pos.x;
+	pp->pbox.ymax = pos.y;
 	if (pt==FULL || pt==SPLIT || pt==LUX)
-		pp->pbox.xmax = pos.x + 200;
+		pp->pbox.xmin = pos.x - 200;
 	else
-		pp->pbox.xmax = pos.x + 100;
+		pp->pbox.xmin = pos.x - 100;
 
 	if (pt==FULL || pt==HALF || pt==LUX)
-		pp->pbox.ymax = pos.y + 120;
+		pp->pbox.ymin = pos.y - 120;
 	else
-		pp->pbox.ymax = pos.y + 60;
+		pp->pbox.ymin = pos.y - 60;
+}
+
+
+void make_line(room_t* room, line_t* line) 
+{
+panel_t trial, best, panels[MAX_RAILS];
+point_t ofs, ref_point;
+line_width_t width;
+heading_t dir;
+int max_score = 0, new_score;
+int score, prev_score;
+int k = 0, kp, type;
+
+	ofs = line->offset;
+	width = line->width;
+	dir = line->heading;
+	
+	memset(panels, 0, MAX_RAILS*sizeof(panel_t));
+	
+	while(ofs.x < room->box.xmax) {
+
+		for(type=0; type<NUM_PANEL_T; type++){
+
+			if (width==NARROW && 
+			   (type==FULL || type==LUX || type==HALF))
+				continue;	
+			
+			ref_point = ofs;
+			if (dir == DOWN && width==WIDE &&
+				(type == SPLIT || type==QUARTER))
+				ref_point.y -= 60;
+
+			panel(&trial, type, ref_point, dir);
+			if (fit(&trial, room)) {
+
+				draw_point(__debug_canvas, ofs);
+				new_score = panel_desc[type].score;
+				kp = k - panel_desc[type].prev;
+				if (kp>=0)
+					new_score += panels[kp].score;
+			
+				if (new_score>max_score) {
+					max_score = new_score;
+					best = trial;
+				}
+			}
+		}
+		best.score = max_score;
+		panels[k] = best;
+		printf("E %d %d %d\n", k, max_score, panels[k].type);
+
+		ofs.x += INTER_RAIL_GAP;
+		k++;
+	}
+
+	if (max_score==0)
+		return;
+
+	k--;
+
+	printf("PRINT LIST\n");
+	for(int i=k; i>=0; i--)
+		printf("%d %d\n", i, panels[i].score);
+
+
+	prev_score = panels[k].score;
+	printf("INIT: %d\n", prev_score);
+	while(k>0 && prev_score>0) {
+		printf("<<<  %d >>>>\n", k);
+		score = panels[k].score;
+		if (score < prev_score) {
+			printf("FOUND AT %d %d, type=%d\n", k+1, prev_score,
+				panels[k+1].type);
+			printf("jumping back of %d\n",panel_desc[panels[k+1].type].prev);  
+			draw_panel(__debug_canvas, &panels[k+1]);
+			k -= panel_desc[panels[k+1].type].prev;
+			if (k<0)
+				break;
+			prev_score = panels[k+1].score; 
+			printf("new k=%d, new prev_score=%d\n", k, prev_score);
+		} else {
+			printf("%d %d\n", k, score);
+			prev_score = score;
+			k--;
+		}
+	}
+	if (prev_score>0 && k==0) {
+		printf("FOUND AT %d %d\n", k, prev_score);  
+		draw_panel(__debug_canvas, &panels[0]);
+	}
 }
 

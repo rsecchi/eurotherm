@@ -173,6 +173,18 @@ point_t p;
 }
 
 
+box_t box_point(point_t point, double size)
+{
+	box_t box;
+	box.xmin = point.x - size/2;
+	box.xmax = point.x + size/2;
+	box.ymin = point.y - size/2;
+	box.ymax = point.y + size/2;
+
+	return box;
+}
+
+
 int self_intersect(polygon_t* pgon)
 {
 int i, j;
@@ -277,6 +289,32 @@ void draw_polygon(canvas_t *ct, polygon_t* p, colour_t col)
 
     //cairo_close_path(cr);
     cairo_stroke(cr);
+}
+
+
+void draw_box(canvas_t* ct, box_t* box, colour_t col)
+{
+polygon_t pgon;
+point_t points[5];
+
+	points[0] = (point_t){box->xmin, box->ymin};
+	points[1] = (point_t){box->xmin, box->ymax};
+	points[2] = (point_t){box->xmax, box->ymax};
+	points[3] = (point_t){box->xmax, box->ymin};
+	points[4] = points[0];
+
+	pgon.len = 5;
+	pgon.poly = (point_t*)points;
+
+	draw_polygon(ct, &pgon, col);
+}
+
+void draw_point(canvas_t* ct, point_t point)
+{
+box_t box = box_point(point, 10);
+
+	draw_box(ct, &box, RED);
+	
 }
 
 void save_png(canvas_t* ct, char* filename)

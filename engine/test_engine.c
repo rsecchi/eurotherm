@@ -41,11 +41,12 @@ box_t obs_box, walls_box;
 
 	if (seed==0) {
 		srandom(time(NULL));
-		srand48(time(NULL));
-	} else {
-		srandom(seed);
-		srand48(seed);
-	}
+		seed = random() % 10000;
+		printf("seed=%d\n", seed);
+	} 
+
+	srandom(seed);
+	srand48(seed);
 
 
 	do {
@@ -102,32 +103,47 @@ box_t obs_box, walls_box;
 
 }
 
-int main() {
-
-room_t rand_room;
+void generate_random_panels(canvas_t* cp, room_t* room, heading_t h)
+{
 panel_t test_panel;
 point_t pos;
-box_t room_box;
+	for(int i=0; i<NUM_PANEL_T; i++) {
+		do {
+			pos = random_point(&(room->box));
+			printf("%d, %lf %lf\n", i, pos.x, pos.y);
+			panel(&test_panel, i, pos, h); 
+		} while(!fit(&test_panel, room));
+		draw_panel(cp, &test_panel);
+		draw_point(cp, pos); 
+	}
+}
 
-	create_room(&rand_room, 25);
+int main(int argc, char* argv[]) 
+{
+room_t rand_room;
+line_t line;
+
+	create_room(&rand_room, atoi(argv[1]));
 
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.5, -0.5};
 	canvas_t* cp = init_canvas(trsf);
 
+	__debug_canvas = cp;
+
 	draw_room(cp, &rand_room);
+	bounding_box(&rand_room.walls, &rand_room.box);
 
-	bounding_box(&rand_room.walls, &room_box);
+	//generate_random_panels(cp, &rand_room, DOWN);
 
-	for(int i=0; i<NUM_PANEL_T; i++) {
-		do {
-			pos = random_point(&room_box);
-			printf("%d, %lf %lf\n", i, pos.x, pos.y);
-			panel(&test_panel, i, pos, DOWN); 
-		} while(!fit(&test_panel, &rand_room));
-		draw_panel(cp, &test_panel);
-	}
+	line.offset = (point_t){rand_room.box.xmin, 
+		(rand_room.box.ymin+rand_room.box.ymax)/2};
+	line.width = rand() % 2;
+	line.heading = rand() % 2;
+	
+	make_line(&rand_room, &line);	
+
 
 	save_png(cp, "polygon.png");
 }
