@@ -179,18 +179,22 @@ dorsal_t dorsals[200], trial;
 	ofs = (point_t){room->box.xmin, room->box.ymin};
 	while(ofs.y < room->box.ymax) {
 
-		trial.offset = ofs;
-		trial.width = WIDE;
-		trial.heading = UP;
-		new_score = make_dorsal(room, &trial);
-		kp = k - 12;
-		if (kp>=0)
-			new_score += dorsals[kp].score;
-		if (new_score>max_score) {
-			max_score = new_score;
-			dorsals[k] = trial;
-			//draw_panels(__debug_canvas, lines[k].panels);
-		}
+		/* trying WIDE, UP */
+		for(int width=0; width<2; width++)
+			for(int head=0; head<2; head++) {
+				trial.offset = ofs;
+				trial.width = width;
+				trial.heading = head;
+				new_score = make_dorsal(room, &trial);
+				kp = (width==WIDE)?(k - 12):(k-6);
+				if (kp>=0)
+					new_score += dorsals[kp].score;
+
+				if (new_score>max_score) {
+					max_score = new_score;
+					dorsals[k] = trial;
+				}
+			}
 
 		dorsals[k].score = max_score;
 		ofs.y += INTER_LINE_GAP;
@@ -204,7 +208,7 @@ dorsal_t dorsals[200], trial;
 
 		if (k==0 || dorsals[k-1].score<score) {
 			draw_panels(__debug_canvas, &dorsals[k]);
-			k -= 12;
+			k -= (dorsals[k].width==WIDE)?12:6;
 			score = dorsals[k].score; 
 			continue;
 		}  
