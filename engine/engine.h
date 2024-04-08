@@ -34,6 +34,7 @@ typedef enum {WIDE, NARROW} dorsal_width_t;
 typedef struct{
 	double width;
 	double height; 
+	double active_area;
 	uint32_t score;
 	uint32_t prev;
 	char name[16];
@@ -78,6 +79,7 @@ typedef struct {
 } allocation_t;
 
 
+double active_area(panel_t*);
 int fit(panel_t*, room_t*);
 int gap_ok(panel_t*, allocation_t*);
 

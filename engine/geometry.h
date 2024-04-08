@@ -48,6 +48,10 @@ extern canvas_t _canvas;
 #define WIDTH  640
 #define HEIGHT 480
 
+#define TEXT_OFFS_X    10
+#define TEXT_OFFS_Y    20
+#define LINE_HEIGHT    10
+
 #define RED    (colour_t){1., 0., 0.}
 #define GREEN  (colour_t){0., 1., 0.}
 #define BLUE   (colour_t){0., 0., 1.}
@@ -72,8 +76,8 @@ canvas_t* init_canvas(transform_t trfs);
 void draw_polygon(canvas_t* ct, polygon_t* poly, colour_t col);
 void draw_box(canvas_t* ct, box_t* box, colour_t col);
 void draw_point(canvas_t* ct, point_t point);
+void print_text(canvas_t* ct, char* text, int line);
 void save_png(canvas_t* ct, char* filename);
-
 
 
 

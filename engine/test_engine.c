@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 #include "engine.h"
 
@@ -13,6 +14,7 @@
 #define MIN_OBS_LEN   5
 #define MAX_OBS_LEN  25
 
+int random_seed;
 
 int compare(const void *a, const void *b) {
     double difference = (*(double*)a - *(double*)b);
@@ -42,12 +44,14 @@ box_t obs_box, walls_box;
 
 	if (seed==0) {
 		srandom(time(NULL));
-		seed = random() % 10000;
-		printf("seed=%d\n", seed);
-	} 
+		random_seed = random() % 10000;
+	} else {
+		random_seed = seed;
+	}
+	printf("seed=%d\n", seed);
 
-	srandom(seed);
-	srand48(seed);
+	srandom(random_seed);
+	srand48(random_seed);
 
 
 	do {
@@ -189,10 +193,34 @@ allocation_t alloc;
 	free_room(&rand_room);
 }
 
+void print_summary(canvas_t* cp, allocation_t* alloc)
+{
+	char buffer[256];
+	double area, act_area, eff;
+
+	sprintf(buffer, "#panels = %d", count_panels(alloc->panels));
+	print_text(cp, buffer, 2);
+
+	area = area_polygon(&alloc->room->walls)/10000;
+	sprintf(buffer, "area = %6.2lf", area); 	
+	print_text(cp, buffer, 3);
+
+	act_area = active_area(alloc->panels);
+	sprintf(buffer, "active_ area = %.2lf", act_area); 
+	print_text(cp, buffer, 4);
+
+	eff = 100*act_area/area;
+	sprintf(buffer, "perc. active = %.2lf%%", eff);
+	print_text(cp, buffer, 5);
+}
+
 void test_search_offset(int argc, char* argv[])
 {
 room_t rand_room;
 allocation_t alloc;
+char filename[256] = "polygon-";
+char num_str[256];
+long int clock_time;
 
 	create_room(&rand_room, atoi(argv[1]));
 
@@ -207,16 +235,33 @@ allocation_t alloc;
 	bounding_box(&rand_room.walls, &rand_room.box);
 
 	alloc.room = &rand_room;
+	clock_time = clock();
 	search_offset(&alloc);
+	clock_time = clock() - clock_time;
 	draw_panels(cp, alloc.panels);
 
-	save_png(cp, "polygon.png");
+	sprintf(num_str, "%04d", random_seed);
+	strcat(filename, num_str); 
+	strcat(filename, ".png"); 
+	print_text(cp, num_str, 0);
+
+	sprintf(num_str, "time=%ld ms", clock_time/1000);
+	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
+	print_text(cp, num_str, 1);
+	print_summary(cp, &alloc);
+	save_png(cp, filename);
+
 
 	free_room(&rand_room);
 }
 
 int main(int argc, char* argv[]) 
 {
+
+	if (argc!=2) {
+		fprintf(stderr, "usage: %s <random_seed>\n", argv[0]);
+		exit(1);
+	}
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	test_search_offset(argc, argv);

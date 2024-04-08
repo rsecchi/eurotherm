@@ -8,11 +8,11 @@ canvas_t * __debug_canvas;
 
 panel_desc_t panel_desc[] =
 {
-	{200., 120., 1024, 4, "full"},
-	{200., 120., 1024, 4, "lux"},
-	{200.,  60.,  511, 4, "split"},
-	{100., 120.,  511, 2, "half"},
-	{100.,  60.,  254, 2, "quarter"}
+	{200., 120., 2.4, 1024, 4, "full"},
+	{200., 120., 2.4, 1024, 4, "lux"},
+	{200.,  60., 1.2, 511, 4, "split"},
+	{100., 120., 1.2, 511, 2, "half"},
+	{100.,  60., 0.6, 254, 2, "quarter"}
 };
 
 
@@ -55,6 +55,15 @@ panel_t *p = head, *q;
 
 }
 
+double active_area(panel_t* head)
+{
+	double tot = 0;
+	
+	for(panel_t* p=head; p!=NULL; p=p->next)
+		tot += panel_desc[p->type].active_area;
+
+	return tot;
+}
 
 int fit(panel_t* p, room_t* r)
 {
@@ -275,6 +284,8 @@ room_t* room = alloc->room;
 			dorsals[k].next = alloc->dorsals;
 			alloc->dorsals = &dorsals[k];
 			k -= (dorsals[k].width==WIDE)?12:6;
+			if (k<0)
+				break;
 			score = dorsals[k].score;
 			continue;
 		}  

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "geometry.h"
 
 
@@ -313,8 +314,7 @@ void draw_point(canvas_t* ct, point_t point)
 {
 box_t box = box_point(point, 10);
 
-	draw_box(ct, &box, RED);
-	
+	draw_box(ct, &box, RED);	
 }
 
 void save_png(canvas_t* ct, char* filename)
@@ -329,4 +329,15 @@ canvas_t* init_canvas(transform_t trans)
 	_canvas.cr = init_cairo();
 	_canvas.trans = trans;
 	return &_canvas;
+}
+
+void print_text(canvas_t* ct, char* text, int line)
+{
+	cairo_t* cr = ct->cr;
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); // Black
+	cairo_move_to(cr, 
+			TEXT_OFFS_X, 
+			TEXT_OFFS_Y + line*LINE_HEIGHT);
+	cairo_show_text(cr, text);
+	cairo_stroke(cr);
 }

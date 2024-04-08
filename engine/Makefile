@@ -12,6 +12,7 @@ test_engine: ${OBJS} tags
 
 clean:
 	${RM} ${OBJS} test_engine
+	${RM} *.png 
 
 run: test_engine
 	./test_engine && timg polygon.png
