@@ -8,10 +8,14 @@
 #define EDGE                 10.
 #define MAX_RAILS           256
 #define MAX_LINES          2048
+#define MAX_DORSALS         256
 #define MAX_DORSAL_PANELS    64
 #define INTER_RAIL_GAP       50.
 #define INTER_LINE_GAP       10.
 #define DIST_FROM_WALLS      18.
+
+#define NUM_OFFSETS          10
+#define OFFSET_STEP           5.
 
 extern canvas_t* __debug_canvas;
 
@@ -53,25 +57,42 @@ typedef struct __panel {
 	struct __panel* next;
 } panel_t;
 
-typedef struct {
+typedef struct __dorsal {
 	point_t offset;
 	heading_t heading;
 	dorsal_width_t width;
 	panel_t panels[MAX_DORSAL_PANELS];
 	int num_panels;
 	uint32_t score;
+	struct __dorsal* next;
 } dorsal_t;
 
+typedef struct {
+	room_t* room;
+	point_t offset;
+	dorsal_t _dorsals[MAX_DORSALS];
+	dorsal_t* dorsals;
+	uint32_t score;
+	double gap;
+	panel_t* panels;
+} allocation_t;
+
+
 int fit(panel_t*, room_t*);
-int gap_ok(panel_t*, room_t*);
+int gap_ok(panel_t*, allocation_t*);
 
-uint32_t make_dorsal(room_t*, dorsal_t*);
-uint32_t scanline(room_t*);
+int count_panels(panel_t*);
 void panel(panel_t*, ptype, point_t, heading_t);
+uint32_t make_dorsal(allocation_t*, dorsal_t*);
+uint32_t scanline(allocation_t*);
+uint32_t search_offset(allocation_t*);
 
+panel_t* copy_panels(allocation_t*);
+void free_panels(panel_t*);
 
 void draw_room(canvas_t*, room_t*);
 void draw_panel(canvas_t*, panel_t*);
-void draw_panels(canvas_t*, dorsal_t*);
+void draw_dorsal(canvas_t*, dorsal_t*);
+void draw_panels(canvas_t*, panel_t*);
 
 #endif

@@ -16,6 +16,46 @@ panel_desc_t panel_desc[] =
 };
 
 
+int count_panels(panel_t* head)
+{
+	int tot = 0;
+	for(panel_t* p=head; p!=NULL; p=p->next)
+		tot++;
+
+	return tot;
+}
+
+panel_t* copy_panels(allocation_t* alloc)
+{
+panel_t* head = NULL, *np;
+int num_dorsals=0, mallocs=0;
+
+	for(dorsal_t* d=alloc->dorsals; d!=NULL; d=d->next)  {
+		for(int k=0; k<d->num_panels; k++) {
+			np = (panel_t*)malloc(sizeof(panel_t));
+			mallocs++;
+			*np = d->panels[k];
+			np->next = head;
+			head = np;
+		}
+		num_dorsals++;
+	}
+	return head;
+}
+
+void free_panels(panel_t* head)
+{
+panel_t *p = head, *q;
+
+	while(p!=NULL) {
+		q = p->next;
+		free(p);
+		p = q;
+	}
+
+}
+
+
 int fit(panel_t* p, room_t* r)
 {
 int i;
@@ -54,18 +94,30 @@ box_t box, lux_box;
 }
 
 
-int gap_ok(panel_t *panel, room_t *r)
+int gap_ok(panel_t *panel, allocation_t *alloc)
 {
-point_t ref_point;
+room_t* room = alloc->room;
+point_t ref_point_left, ref_point_right;
 double w = panel_desc[panel->type].width;
 double h = panel_desc[panel->type].height;
+double gap, gap_left, gap_right;
 
-	ref_point = (point_t){panel->pos.x-w, panel->pos.y};
-	if (panel->heading == DOWN) 
-		ref_point.y -= h;
-	
-	if (hdist(&ref_point, &(r->walls))<DIST_FROM_WALLS)
+	ref_point_left  = (point_t){panel->pos.x-w, panel->pos.y};
+	ref_point_right = (point_t){panel->pos.x,   panel->pos.y};
+	if (panel->heading == DOWN) {
+		ref_point_left.y -= h;
+		ref_point_right.y -= h;
+	}
+
+	gap_left  = hdist(&ref_point_left,  &(room->walls));
+	gap_right = hdist(&ref_point_right, &(room->walls));
+
+	if (gap_left<DIST_FROM_WALLS)
 		return 0;
+
+	gap = MIN(gap_left, gap_right);
+	if (gap < alloc->gap)
+		alloc->gap = gap;
 
 	return 1;
 }
@@ -92,8 +144,9 @@ void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
 }
 
 
-uint32_t make_dorsal(room_t* room, dorsal_t* dorsal) 
+uint32_t make_dorsal(allocation_t* alloc, dorsal_t* dorsal) 
 {
+room_t* room = alloc->room;
 panel_t _panels[MAX_RAILS];
 panel_t trial;
 point_t ofs, ref_point;
@@ -121,7 +174,7 @@ int num_panels, k=0, kp, type;
 				ref_point.y -= 60;
 
 			panel(&trial, type, ref_point, dir);
-			if (fit(&trial, room) && gap_ok(&trial, room)) {
+			if (fit(&trial, room) && gap_ok(&trial, alloc)) {
 				new_score = panel_desc[type].score;
 				kp = k - panel_desc[type].prev;
 				if (kp>=0)
@@ -169,23 +222,32 @@ int len(panel_t* p)
 	return tot;
 }
 
-uint32_t scanline(room_t* room)
+int count_dorsals(dorsal_t* head)
+{
+	int tot=0;
+	for(dorsal_t* dorsal=head; dorsal!=NULL; dorsal=dorsal->next)
+		tot++;
+
+	return tot;
+}
+
+uint32_t scanline(allocation_t* alloc)
 {
 int k=0, kp;
 uint32_t score, max_score = 0, new_score;
-point_t ofs;
-dorsal_t dorsals[200], trial;
+dorsal_t trial, *dorsals = alloc->_dorsals;
+point_t ofs = alloc->offset;
+room_t* room = alloc->room;
 
-	ofs = (point_t){room->box.xmin, room->box.ymin};
 	while(ofs.y < room->box.ymax) {
 
-		/* trying WIDE, UP */
 		for(int width=0; width<2; width++)
 			for(int head=0; head<2; head++) {
 				trial.offset = ofs;
 				trial.width = width;
 				trial.heading = head;
-				new_score = make_dorsal(room, &trial);
+				new_score = make_dorsal(alloc, &trial);
+
 				kp = (width==WIDE)?(k - 12):(k-6);
 				if (kp>=0)
 					new_score += dorsals[kp].score;
@@ -197,6 +259,7 @@ dorsal_t dorsals[200], trial;
 			}
 
 		dorsals[k].score = max_score;
+		dorsals[k].next = NULL;
 		ofs.y += INTER_LINE_GAP;
 		k++;
 	}
@@ -204,15 +267,51 @@ dorsal_t dorsals[200], trial;
 	k--;
 	score = dorsals[k].score;
 
+	alloc->dorsals = NULL;
 	while(k>=0 && score>0) {
 
 		if (k==0 || dorsals[k-1].score<score) {
-			draw_panels(__debug_canvas, &dorsals[k]);
+			// draw_dorsal(__debug_canvas, &dorsals[k]);
+			dorsals[k].next = alloc->dorsals;
+			alloc->dorsals = &dorsals[k];
 			k -= (dorsals[k].width==WIDE)?12:6;
-			score = dorsals[k].score; 
+			score = dorsals[k].score;
 			continue;
 		}  
 		k--;
+	}
+
+	return max_score;
+}
+
+uint32_t search_offset(allocation_t* alloc)
+{
+room_t* room = alloc->room;
+point_t offset;
+uint32_t max_score = 0, score;
+double gap = 0;
+
+
+	alloc->panels = NULL;
+	offset = (point_t){room->box.xmin, room->box.ymin};
+	for(int k=0; k<NUM_OFFSETS; k++) {
+
+		alloc->offset = offset;
+		alloc->gap = 0;
+
+		score = scanline(alloc);
+		if (score>max_score || 
+		    ((score == max_score) && alloc->gap > gap)) {
+			max_score = score;
+			gap = alloc->gap;
+
+			/* copy dorsals */
+			if (alloc->panels)
+				free_panels(alloc->panels);
+			alloc->panels = copy_panels(alloc);
+		}
+
+		offset.x += OFFSET_STEP;
 	}
 
 	return max_score;
@@ -284,10 +383,17 @@ polygon_t pgon;
 		draw_rect(ct, &box, GREEN);
 	}
 }
-void draw_panels(canvas_t*cp, dorsal_t* dorsal)
+void draw_dorsal(canvas_t*cp, dorsal_t* dorsal)
 {
 	for(int i=0; i<dorsal->num_panels; i++)
 		draw_panel(cp, &dorsal->panels[i]);
-
 }
+
+void draw_panels(canvas_t*cp, panel_t* panels)
+{
+	for(panel_t* p=panels; p!=NULL; p=p->next) 
+		draw_panel(cp, p);
+}
+
+
 

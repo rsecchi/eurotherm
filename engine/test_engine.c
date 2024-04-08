@@ -132,6 +132,8 @@ void test_line(int argc, char* argv[]) {
 room_t rand_room;
 dorsal_t dorsal;
 
+allocation_t alloc;
+
 	create_room(&rand_room, atoi(argv[1]));
 
 	transform_t trsf;
@@ -146,13 +148,15 @@ dorsal_t dorsal;
 
 	//generate_random_panels(cp, &rand_room, DOWN);
 
+	alloc.room = &rand_room;
+
 	dorsal.offset = (point_t){rand_room.box.xmin, 
 		(rand_room.box.ymin+rand_room.box.ymax)/2};
 	dorsal.width = rand() % 2;
 	dorsal.heading = rand() % 2;
 	
-	make_dorsal(&rand_room, &dorsal);	
-	draw_panels(cp, &dorsal);
+	make_dorsal(&alloc, &dorsal);	
+	draw_dorsal(cp, &dorsal);
 
 	save_png(cp, "polygon.png");
 
@@ -161,6 +165,7 @@ dorsal_t dorsal;
 
 void test_scanline(int argc, char* argv[]) {
 room_t rand_room;
+allocation_t alloc;
 
 	create_room(&rand_room, atoi(argv[1]));
 
@@ -174,8 +179,36 @@ room_t rand_room;
 	draw_room(cp, &rand_room);
 	bounding_box(&rand_room.walls, &rand_room.box);
 
+	alloc.gap = 0;
+	alloc.offset = (point_t){rand_room.box.xmin, rand_room.box.ymin};
+	alloc.room = &rand_room;
+	scanline(&alloc);	
 
-	scanline(&rand_room);	
+	save_png(cp, "polygon.png");
+
+	free_room(&rand_room);
+}
+
+void test_search_offset(int argc, char* argv[])
+{
+room_t rand_room;
+allocation_t alloc;
+
+	create_room(&rand_room, atoi(argv[1]));
+
+	transform_t trsf;
+	trsf.origin = (point_t){320, 240};
+	trsf.scale =(point_t){0.5, -0.5};
+	canvas_t* cp = init_canvas(trsf);
+
+	__debug_canvas = cp;
+
+	draw_room(cp, &rand_room);
+	bounding_box(&rand_room.walls, &rand_room.box);
+
+	alloc.room = &rand_room;
+	search_offset(&alloc);
+	draw_panels(cp, alloc.panels);
 
 	save_png(cp, "polygon.png");
 
@@ -185,6 +218,7 @@ room_t rand_room;
 int main(int argc, char* argv[]) 
 {
 	// test_line(argc, argv);
-	test_scanline(argc, argv);
+	// test_scanline(argc, argv);
+	test_search_offset(argc, argv);
 }
 
