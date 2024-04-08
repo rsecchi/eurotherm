@@ -1,5 +1,6 @@
 #include "engine.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -7,11 +8,11 @@ canvas_t * __debug_canvas;
 
 panel_desc_t panel_desc[] =
 {
-	{1024, 4, "full"},
-	{1024, 4, "lux"},
-	{511, 4, "split"},
-	{511, 2, "half"},
-	{254, 2, "quarter"}
+	{200., 120., 1024, 4, "full"},
+	{200., 120., 1024, 4, "lux"},
+	{200.,  60.,  511, 4, "split"},
+	{100., 120.,  511, 2, "half"},
+	{100.,  60.,  254, 2, "quarter"}
 };
 
 
@@ -53,17 +54,168 @@ box_t box, lux_box;
 }
 
 
-int gap_is_okay(point_t *q, room_t *r)
+int gap_ok(panel_t *panel, room_t *r)
 {
-int i;
+point_t ref_point;
+double w = panel_desc[panel->type].width;
+double h = panel_desc[panel->type].height;
 
-	for(i=0; i<4; i++)
-		if (hdist(&q[i], &(r->walls))<20.0)
-			return 0;
+	ref_point = (point_t){panel->pos.x-w, panel->pos.y};
+	if (panel->heading == DOWN) 
+		ref_point.y -= h;
+	
+	if (hdist(&ref_point, &(r->walls))<DIST_FROM_WALLS)
+		return 0;
 
 	return 1;
 }
 
+
+void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
+{
+	pp->type = pt;
+	pp->pos = pos;
+	pp->heading = ht;
+	pp->next = NULL;
+	pp->score = 0;
+	pp->pbox.xmax = pos.x;
+	pp->pbox.ymax = pos.y;
+	if (pt==FULL || pt==SPLIT || pt==LUX)
+		pp->pbox.xmin = pos.x - 200;
+	else
+		pp->pbox.xmin = pos.x - 100;
+
+	if (pt==FULL || pt==HALF || pt==LUX)
+		pp->pbox.ymin = pos.y - 120;
+	else
+		pp->pbox.ymin = pos.y - 60;
+}
+
+
+uint32_t make_dorsal(room_t* room, dorsal_t* dorsal) 
+{
+panel_t _panels[MAX_RAILS];
+panel_t trial;
+point_t ofs, ref_point;
+dorsal_width_t width;
+heading_t dir;
+int max_score = 0, new_score;
+int score;
+int num_panels, k=0, kp, type;
+
+	ofs = dorsal->offset;
+	width = dorsal->width;
+	dir = dorsal->heading;
+	
+	while(ofs.x < room->box.xmax) {
+
+		for(type=0; type<NUM_PANEL_T; type++){
+
+			if (width==NARROW && 
+			   (type==FULL || type==LUX || type==HALF))
+				continue;
+			
+			ref_point = ofs;
+			if (dir == DOWN && width==WIDE &&
+				(type == SPLIT || type==QUARTER))
+				ref_point.y -= 60;
+
+			panel(&trial, type, ref_point, dir);
+			if (fit(&trial, room) && gap_ok(&trial, room)) {
+				new_score = panel_desc[type].score;
+				kp = k - panel_desc[type].prev;
+				if (kp>=0)
+					new_score += _panels[kp].score;
+			
+				if (new_score>max_score) {
+					max_score = new_score;
+					_panels[k] = trial;
+				}
+			}
+		}
+		_panels[k].score = max_score;
+
+		ofs.x += INTER_RAIL_GAP;
+		k++;
+	}
+
+	k--;
+	score = dorsal->score = _panels[k].score;
+
+	num_panels = 0;
+	while(k>=0 && score>0) {
+
+		if (k==0 || _panels[k-1].score<score) {
+			dorsal->panels[num_panels] = _panels[k];
+			num_panels++;
+			k -= panel_desc[_panels[k].type].prev;
+			score = _panels[k].score; 
+			continue;
+		}  
+		k--;	
+	}
+
+	dorsal->num_panels = num_panels;
+	return dorsal->score;
+}
+
+int len(panel_t* p)
+{
+	int tot = 0;
+	while(p!=NULL) {
+		p = p->next;
+		tot++;
+	}
+	return tot;
+}
+
+uint32_t scanline(room_t* room)
+{
+int k=0, kp;
+uint32_t score, max_score = 0, new_score;
+point_t ofs;
+dorsal_t dorsals[200], trial;
+
+	ofs = (point_t){room->box.xmin, room->box.ymin};
+	while(ofs.y < room->box.ymax) {
+
+		trial.offset = ofs;
+		trial.width = WIDE;
+		trial.heading = UP;
+		new_score = make_dorsal(room, &trial);
+		kp = k - 12;
+		if (kp>=0)
+			new_score += dorsals[kp].score;
+		if (new_score>max_score) {
+			max_score = new_score;
+			dorsals[k] = trial;
+			//draw_panels(__debug_canvas, lines[k].panels);
+		}
+
+		dorsals[k].score = max_score;
+		ofs.y += INTER_LINE_GAP;
+		k++;
+	}
+
+	k--;
+	score = dorsals[k].score;
+
+	while(k>=0 && score>0) {
+
+		if (k==0 || dorsals[k-1].score<score) {
+			draw_panels(__debug_canvas, &dorsals[k]);
+			k -= 12;
+			score = dorsals[k].score; 
+			continue;
+		}  
+		k--;
+	}
+
+	return max_score;
+}
+
+
+/* libcairo drawing support */
 
 void draw_room(canvas_t* ct, room_t *rp) {
 int i;
@@ -127,115 +279,11 @@ polygon_t pgon;
 		box.ymax = centre.y + LUX_HEIGHT/2;
 		draw_rect(ct, &box, GREEN);
 	}
-
 }
-
-
-void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
+void draw_panels(canvas_t*cp, dorsal_t* dorsal)
 {
-	pp->type = pt;
-	pp->pos = pos;
-	pp->heading = ht;
-	pp->pbox.xmax = pos.x;
-	pp->pbox.ymax = pos.y;
-	if (pt==FULL || pt==SPLIT || pt==LUX)
-		pp->pbox.xmin = pos.x - 200;
-	else
-		pp->pbox.xmin = pos.x - 100;
+	for(int i=0; i<dorsal->num_panels; i++)
+		draw_panel(cp, &dorsal->panels[i]);
 
-	if (pt==FULL || pt==HALF || pt==LUX)
-		pp->pbox.ymin = pos.y - 120;
-	else
-		pp->pbox.ymin = pos.y - 60;
-}
-
-
-void make_line(room_t* room, line_t* line) 
-{
-panel_t trial, best, panels[MAX_RAILS];
-point_t ofs, ref_point;
-line_width_t width;
-heading_t dir;
-int max_score = 0, new_score;
-int score, prev_score;
-int k = 0, kp, type;
-
-	ofs = line->offset;
-	width = line->width;
-	dir = line->heading;
-	
-	memset(panels, 0, MAX_RAILS*sizeof(panel_t));
-	
-	while(ofs.x < room->box.xmax) {
-
-		for(type=0; type<NUM_PANEL_T; type++){
-
-			if (width==NARROW && 
-			   (type==FULL || type==LUX || type==HALF))
-				continue;	
-			
-			ref_point = ofs;
-			if (dir == DOWN && width==WIDE &&
-				(type == SPLIT || type==QUARTER))
-				ref_point.y -= 60;
-
-			panel(&trial, type, ref_point, dir);
-			if (fit(&trial, room)) {
-
-				draw_point(__debug_canvas, ofs);
-				new_score = panel_desc[type].score;
-				kp = k - panel_desc[type].prev;
-				if (kp>=0)
-					new_score += panels[kp].score;
-			
-				if (new_score>max_score) {
-					max_score = new_score;
-					best = trial;
-				}
-			}
-		}
-		best.score = max_score;
-		panels[k] = best;
-		printf("E %d %d %d\n", k, max_score, panels[k].type);
-
-		ofs.x += INTER_RAIL_GAP;
-		k++;
-	}
-
-	if (max_score==0)
-		return;
-
-	k--;
-
-	printf("PRINT LIST\n");
-	for(int i=k; i>=0; i--)
-		printf("%d %d\n", i, panels[i].score);
-
-
-	prev_score = panels[k].score;
-	printf("INIT: %d\n", prev_score);
-	while(k>0 && prev_score>0) {
-		printf("<<<  %d >>>>\n", k);
-		score = panels[k].score;
-		if (score < prev_score) {
-			printf("FOUND AT %d %d, type=%d\n", k+1, prev_score,
-				panels[k+1].type);
-			printf("jumping back of %d\n",panel_desc[panels[k+1].type].prev);  
-			draw_panel(__debug_canvas, &panels[k+1]);
-			k -= panel_desc[panels[k+1].type].prev;
-			if (k<0)
-				break;
-			prev_score = panels[k+1].score; 
-			printf("new k=%d, new prev_score=%d\n", k, prev_score);
-		} else {
-			printf("%d %d\n", k, score);
-			prev_score = score;
-			k--;
-		}
-	}
-	if (prev_score>0 && k==0) {
-		printf("FOUND AT %d %d\n", k, prev_score);  
-		draw_panel(__debug_canvas, &panels[0]);
-	}
 }
 

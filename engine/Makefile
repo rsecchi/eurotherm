@@ -3,11 +3,12 @@
 OBJS= engine.o geometry.o test_engine.o
 
 LIBS= -lcairo -lm -lc
+CFLAGS= -g 
 
 
 test_engine: ${OBJS} tags
 	ctags -R .
-	${CC} ${OBJS} ${LIBS} -o test_engine
+	${CC} -g ${OBJS} ${LIBS} -o test_engine
 
 clean:
 	${RM} ${OBJS} test_engine

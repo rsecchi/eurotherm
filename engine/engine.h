@@ -3,11 +3,15 @@
 #include <stdint.h>
 #include "geometry.h"
 
-#define LUX_WIDTH      100.
-#define LUX_HEIGHT      20.
-#define EDGE            10.
-#define MAX_RAILS      256
-#define INTER_RAIL_GAP  50.
+#define LUX_WIDTH           100.
+#define LUX_HEIGHT           20.
+#define EDGE                 10.
+#define MAX_RAILS           256
+#define MAX_LINES          2048
+#define MAX_DORSAL_PANELS    64
+#define INTER_RAIL_GAP       50.
+#define INTER_LINE_GAP       10.
+#define DIST_FROM_WALLS      18.
 
 extern canvas_t* __debug_canvas;
 
@@ -21,9 +25,11 @@ typedef enum {
 } ptype;
 
 typedef enum {UP, DOWN} heading_t;
-typedef enum {WIDE, NARROW} line_width_t;
+typedef enum {WIDE, NARROW} dorsal_width_t;
 
 typedef struct{
+	double width;
+	double height; 
 	uint32_t score;
 	uint32_t prev;
 	char name[16];
@@ -50,18 +56,22 @@ typedef struct __panel {
 typedef struct {
 	point_t offset;
 	heading_t heading;
-	line_width_t width;
-	panel_t* panels;
+	dorsal_width_t width;
+	panel_t panels[MAX_DORSAL_PANELS];
+	int num_panels;
 	uint32_t score;
-} line_t;
+} dorsal_t;
 
-int fit(panel_t* p, room_t* r);
-int gap_is_okay(point_t *q, room_t* r);
-void make_line(room_t*, line_t*);
-void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht);
+int fit(panel_t*, room_t*);
+int gap_ok(panel_t*, room_t*);
+
+uint32_t make_dorsal(room_t*, dorsal_t*);
+uint32_t scanline(room_t*);
+void panel(panel_t*, ptype, point_t, heading_t);
 
 
 void draw_room(canvas_t*, room_t*);
 void draw_panel(canvas_t*, panel_t*);
+void draw_panels(canvas_t*, dorsal_t*);
 
 #endif

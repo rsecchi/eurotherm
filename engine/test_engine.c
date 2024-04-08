@@ -13,6 +13,7 @@
 #define MIN_OBS_LEN   5
 #define MAX_OBS_LEN  25
 
+
 int compare(const void *a, const void *b) {
     double difference = (*(double*)a - *(double*)b);
     if (difference > 0) return 1;
@@ -118,10 +119,18 @@ point_t pos;
 	}
 }
 
-int main(int argc, char* argv[]) 
+void free_room(room_t* room)
 {
+	for(int i=0; i<room->obs_num; i++) 
+		free(room->obstacles[i].poly);
+	free(room->obstacles);
+
+	free(room->walls.poly);
+}
+
+void test_line(int argc, char* argv[]) {
 room_t rand_room;
-line_t line;
+dorsal_t dorsal;
 
 	create_room(&rand_room, atoi(argv[1]));
 
@@ -137,14 +146,45 @@ line_t line;
 
 	//generate_random_panels(cp, &rand_room, DOWN);
 
-	line.offset = (point_t){rand_room.box.xmin, 
+	dorsal.offset = (point_t){rand_room.box.xmin, 
 		(rand_room.box.ymin+rand_room.box.ymax)/2};
-	line.width = rand() % 2;
-	line.heading = rand() % 2;
+	dorsal.width = rand() % 2;
+	dorsal.heading = rand() % 2;
 	
-	make_line(&rand_room, &line);	
-
+	make_dorsal(&rand_room, &dorsal);	
+	draw_panels(cp, &dorsal);
 
 	save_png(cp, "polygon.png");
+
+	free_room(&rand_room);
+}
+
+void test_scanline(int argc, char* argv[]) {
+room_t rand_room;
+
+	create_room(&rand_room, atoi(argv[1]));
+
+	transform_t trsf;
+	trsf.origin = (point_t){320, 240};
+	trsf.scale =(point_t){0.5, -0.5};
+	canvas_t* cp = init_canvas(trsf);
+
+	__debug_canvas = cp;
+
+	draw_room(cp, &rand_room);
+	bounding_box(&rand_room.walls, &rand_room.box);
+
+
+	scanline(&rand_room);	
+
+	save_png(cp, "polygon.png");
+
+	free_room(&rand_room);
+}
+
+int main(int argc, char* argv[]) 
+{
+	// test_line(argc, argv);
+	test_scanline(argc, argv);
 }
 
