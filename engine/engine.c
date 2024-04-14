@@ -257,7 +257,8 @@ room_t* room = alloc->room;
 				trial.heading = head;
 				new_score = make_dorsal(alloc, &trial);
 
-				kp = (width==WIDE)?(k - 12):(k-6);
+				kp = (width==WIDE)?(k - 2*HD_STEPS):
+				                   (k-HD_STEPS);
 				if (kp>=0)
 					new_score += dorsals[kp].score;
 
@@ -283,7 +284,7 @@ room_t* room = alloc->room;
 			// draw_dorsal(__debug_canvas, &dorsals[k]);
 			dorsals[k].next = alloc->dorsals;
 			alloc->dorsals = &dorsals[k];
-			k -= (dorsals[k].width==WIDE)?12:6;
+			k -= (dorsals[k].width==WIDE)?2*HD_STEPS:HD_STEPS;
 			if (k<0)
 				break;
 			score = dorsals[k].score;

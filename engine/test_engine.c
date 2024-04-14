@@ -48,7 +48,6 @@ box_t obs_box, walls_box;
 	} else {
 		random_seed = seed;
 	}
-	printf("seed=%d\n", seed);
 
 	srandom(random_seed);
 	srand48(random_seed);
@@ -203,14 +202,17 @@ void print_summary(canvas_t* cp, allocation_t* alloc)
 
 	area = area_polygon(&alloc->room->walls)/10000;
 	sprintf(buffer, "area = %6.2lf", area); 	
+	printf("%6.2lf ", area); 	
 	print_text(cp, buffer, 3);
 
 	act_area = active_area(alloc->panels);
 	sprintf(buffer, "active_ area = %.2lf", act_area); 
+	printf("%.2lf ", act_area); 
 	print_text(cp, buffer, 4);
 
 	eff = 100*act_area/area;
 	sprintf(buffer, "perc. active = %.2lf%%", eff);
+	printf("%.2lf ", eff);
 	print_text(cp, buffer, 5);
 }
 
@@ -241,17 +243,18 @@ long int clock_time;
 	draw_panels(cp, alloc.panels);
 
 	sprintf(num_str, "%04d", random_seed);
+	printf("%d ", random_seed);
 	strcat(filename, num_str); 
 	strcat(filename, ".png"); 
 	print_text(cp, num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
+	printf("%ld", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
 	print_text(cp, num_str, 1);
 	print_summary(cp, &alloc);
 	save_png(cp, filename);
-
-
+	printf("\n");
 	free_room(&rand_room);
 }
 

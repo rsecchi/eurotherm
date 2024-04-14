@@ -3,19 +3,27 @@
 #include <stdint.h>
 #include "geometry.h"
 
+#define PANEL_HEIGHT         60
+#define PANEL_WIDTH         100
+
 #define LUX_WIDTH           100.
 #define LUX_HEIGHT           20.
 #define EDGE                 10.
 #define MAX_RAILS           256
 #define MAX_LINES          2048
-#define MAX_DORSALS         256
+#define MAX_DORSALS         512
 #define MAX_DORSAL_PANELS    64
 #define INTER_RAIL_GAP       50.
-#define INTER_LINE_GAP       10.
+#define INTER_LINE_GAP        2
 #define DIST_FROM_WALLS      18.
+
 
 #define NUM_OFFSETS          10
 #define OFFSET_STEP           5.
+
+
+#define HD_STEPS  PANEL_HEIGHT/INTER_LINE_GAP
+
 
 extern canvas_t* __debug_canvas;
 
