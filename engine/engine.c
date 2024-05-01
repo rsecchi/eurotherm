@@ -248,7 +248,11 @@ dorsal_t trial, *dorsals = alloc->_dorsals;
 point_t ofs = alloc->offset;
 room_t* room = alloc->room;
 
+	alloc->dorsals = NULL;
 	while(ofs.y < room->box.ymax) {
+
+		dorsals[k].num_panels = 0;
+		dorsals[k].next = alloc->dorsals;
 
 		for(int width=0; width<2; width++)
 			for(int head=0; head<2; head++) {
@@ -258,42 +262,33 @@ room_t* room = alloc->room;
 				new_score = make_dorsal(alloc, &trial);
 
 				kp = (width==WIDE)?(k - 2*HD_STEPS):
-				                   (k-HD_STEPS);
-				if (kp>=0)
+				                   (k - HD_STEPS);
+
+				if (kp>=0 && dorsals[kp].num_panels>0) {
 					new_score += dorsals[kp].score;
+					trial.next = &dorsals[kp];
+				} else {
+					kp -= INTER_DORSAL_GAP;
+					trial.next = (kp>=0)?&dorsals[kp]:NULL;
+					if (trial.next)
+						new_score += dorsals[kp].score;
+				}
 
 				if (new_score>max_score) {
 					max_score = new_score;
 					dorsals[k] = trial;
+					alloc->dorsals = &dorsals[k];
 				}
 			}
 
 		dorsals[k].score = max_score;
-		dorsals[k].next = NULL;
+
 		ofs.y += INTER_LINE_GAP;
 		k++;
 	}
 
-	k--;
-	score = dorsals[k].score;
-
-	alloc->dorsals = NULL;
-	while(k>=0 && score>0) {
-
-		if (k==0 || dorsals[k-1].score<score) {
-			// draw_dorsal(__debug_canvas, &dorsals[k]);
-			dorsals[k].next = alloc->dorsals;
-			alloc->dorsals = &dorsals[k];
-			k -= (dorsals[k].width==WIDE)?2*HD_STEPS:HD_STEPS;
-			if (k<0)
-				break;
-			score = dorsals[k].score;
-			continue;
-		}  
-		k--;
-	}
-
 	return max_score;
+
 }
 
 uint32_t search_offset(allocation_t* alloc)

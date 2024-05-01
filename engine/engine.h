@@ -23,6 +23,7 @@
 
 
 #define HD_STEPS  PANEL_HEIGHT/INTER_LINE_GAP
+#define INTER_DORSAL_GAP    16/INTER_LINE_GAP
 
 
 extern canvas_t* __debug_canvas;
