@@ -169,7 +169,7 @@ int num_panels, k=0, kp, type;
 	width = dorsal->width;
 	dir = dorsal->heading;
 	
-	while(ofs.x < room->box.xmax) {
+	while(ofs.x < alloc->box.xmax) {
 
 		for(type=0; type<NUM_PANEL_T; type++){
 
@@ -243,13 +243,14 @@ int count_dorsals(dorsal_t* head)
 uint32_t scanline(allocation_t* alloc)
 {
 int k=0, kp;
-uint32_t score, max_score = 0, new_score;
+uint32_t max_score = 253, new_score;
 dorsal_t trial, *dorsals = alloc->_dorsals;
 point_t ofs = alloc->offset;
-room_t* room = alloc->room;
+uint32_t mark=-1;
+
 
 	alloc->dorsals = NULL;
-	while(ofs.y < room->box.ymax) {
+	while(ofs.y < alloc->box.ymax) {
 
 		dorsals[k].num_panels = 0;
 		dorsals[k].next = alloc->dorsals;
@@ -259,6 +260,7 @@ room_t* room = alloc->room;
 				trial.offset = ofs;
 				trial.width = width;
 				trial.heading = head;
+				trial.level = k;
 				new_score = make_dorsal(alloc, &trial);
 
 				kp = (width==WIDE)?(k - 2*HD_STEPS):
@@ -274,10 +276,13 @@ room_t* room = alloc->room;
 						new_score += dorsals[kp].score;
 				}
 
-				if (new_score>max_score) {
+				if (new_score>max_score ||
+					(new_score==max_score && k>mark &&
+					 k<alloc->v_steps/2)) {
 					max_score = new_score;
 					dorsals[k] = trial;
 					alloc->dorsals = &dorsals[k];
+					mark = k;
 				}
 			}
 
@@ -293,14 +298,13 @@ room_t* room = alloc->room;
 
 uint32_t search_offset(allocation_t* alloc)
 {
-room_t* room = alloc->room;
 point_t offset;
 uint32_t max_score = 0, score;
 double gap = 0;
 
 
 	alloc->panels = NULL;
-	offset = (point_t){room->box.xmin, room->box.ymin};
+	offset = (point_t){alloc->box.xmin, alloc->box.ymin};
 	for(int k=0; k<NUM_OFFSETS; k++) {
 
 		alloc->offset = offset;
@@ -323,6 +327,31 @@ double gap = 0;
 
 	return max_score;
 }
+
+
+panel_t* panel_room(room_t* room)
+{
+	allocation_t alc;
+
+	alc.room = room;
+	bounding_box(&room->walls, &alc.box);
+
+	alc.h_steps = (alc.box.xmax - alc.box.xmin)/OFFSET_STEP;
+	alc.v_steps = (alc.box.ymax - alc.box.ymin)/INTER_LINE_GAP;
+
+	/* printf("%lf %u\n", */
+	/* 		alc.box.xmax - alc.box.xmin, */
+	/* 		alc.h_steps); */
+
+	/* printf("%lf %u\n", */
+	/* 		alc.box.ymax - alc.box.ymin, */
+	/* 		alc.v_steps); */
+
+	search_offset(&alc);
+
+	return alc.panels;
+}
+
 
 
 /* libcairo drawing support */

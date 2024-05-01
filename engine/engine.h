@@ -55,7 +55,6 @@ typedef struct{
 	polygon_t walls;
 	polygon_t* obstacles;
 	int obs_num;
-	box_t box;
 } room_t;
 
 typedef struct __panel {
@@ -74,11 +73,14 @@ typedef struct __dorsal {
 	panel_t panels[MAX_DORSAL_PANELS];
 	int num_panels;
 	uint32_t score;
+	uint32_t level;
 	struct __dorsal* next;
 } dorsal_t;
 
 typedef struct {
 	room_t* room;
+	box_t box;
+	uint32_t h_steps, v_steps;
 	point_t offset;
 	dorsal_t _dorsals[MAX_DORSALS];
 	dorsal_t* dorsals;
@@ -97,6 +99,7 @@ void panel(panel_t*, ptype, point_t, heading_t);
 uint32_t make_dorsal(allocation_t*, dorsal_t*);
 uint32_t scanline(allocation_t*);
 uint32_t search_offset(allocation_t*);
+panel_t* panel_room(room_t*);
 
 panel_t* copy_panels(allocation_t*);
 void free_panels(panel_t*);
