@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 #include "geometry.h"
 
 
@@ -250,6 +252,76 @@ point_t a, b;
 
 	return fabs(area_tot);
 }
+
+void build_grid(grid_t* grid)
+{
+polygon_t* poly = grid->poly;
+point_t orig, *p = poly->poly;
+box_t* box = &grid->box;
+double xlen, ylen, x_step, y_step, x, y;
+int rows, cols, j1;
+double xmin, xmax, ymin, ymax;
+
+	bounding_box(poly, box);
+
+	xlen = box->xmax - box->xmin;
+	ylen = box->ymax - box->ymin;
+	x_step = grid->x_step;
+	y_step = grid->y_step;
+	rows = grid->rows = 1 + ylen/y_step;
+	cols = grid->cols = 1 + xlen/x_step;
+
+	orig = grid->origin = (point_t){
+		box->xmin + (xlen - x_step*cols)/2,
+		box->ymin + (ylen - y_step*rows)/2 };
+
+	grid->_grid = malloc(cols*rows);
+
+	uint8_t (*cxs)[cols] = grid->_grid;
+
+	memset(grid->_grid, 0, cols*rows);
+
+	for(int k=0; k<poly->len-1; k++)
+	{
+		xmin = MIN(p[k].x, p[k+1].x);
+		xmax = MAX(p[k].x, p[k+1].x);
+		ymin = MIN(p[k].y, p[k+1].y);
+		ymax = MAX(p[k].y, p[k+1].y);
+
+		if (ymin==ymax)
+			continue;
+
+		for(int i=0; i<rows; i++)
+		{
+			y = orig.y + i * y_step;
+
+			if (y<ymin || y>ymax || y==p[k+1].y)
+				continue;
+
+			/* calculate crossing point x */
+			if (y==p[k].y)
+				x = p[k].x;
+			else 
+			if (xmin == xmax)
+				x = xmin;
+			else {
+				x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x;
+				x /= p[k+1].y - p[k].y;
+			}
+
+			j1 = (x-orig.x)/x_step;
+			for(int j=0; j<j1; j++)
+				cxs[i][j]++;
+			
+		}
+	}
+}
+
+void free_grid(grid_t* grid)
+{
+	free(grid);
+}
+
 
 /* Drawing primitives */
 cairo_t* init_cairo() {

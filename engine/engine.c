@@ -156,6 +156,7 @@ void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
 uint32_t make_dorsal(allocation_t* alloc, dorsal_t* dorsal) 
 {
 room_t* room = alloc->room;
+box_t* box = &alloc->wall_grid.box;
 panel_t _panels[MAX_RAILS];
 panel_t trial;
 point_t ofs, ref_point;
@@ -169,7 +170,7 @@ int num_panels, k=0, kp, type;
 	width = dorsal->width;
 	dir = dorsal->heading;
 	
-	while(ofs.x < alloc->box.xmax) {
+	while(ofs.x < box->xmax) {
 
 		for(type=0; type<NUM_PANEL_T; type++){
 
@@ -243,6 +244,7 @@ int count_dorsals(dorsal_t* head)
 uint32_t scanline(allocation_t* alloc)
 {
 int k=0, kp;
+box_t* box = &alloc->wall_grid.box;
 uint32_t max_score = 253, new_score;
 dorsal_t trial, *dorsals = alloc->_dorsals;
 point_t ofs = alloc->offset;
@@ -250,7 +252,7 @@ uint32_t mark=-1;
 
 
 	alloc->dorsals = NULL;
-	while(ofs.y < alloc->box.ymax) {
+	while(ofs.y < box->ymax) {
 
 		dorsals[k].num_panels = 0;
 		dorsals[k].next = alloc->dorsals;
@@ -298,13 +300,13 @@ uint32_t mark=-1;
 
 uint32_t search_offset(allocation_t* alloc)
 {
+box_t *box = &alloc->wall_grid.box;
 point_t offset;
 uint32_t max_score = 0, score;
 double gap = 0;
 
-
 	alloc->panels = NULL;
-	offset = (point_t){alloc->box.xmin, alloc->box.ymin};
+	offset = (point_t){box->xmin, box->ymin};
 	for(int k=0; k<NUM_OFFSETS; k++) {
 
 		alloc->offset = offset;
@@ -331,13 +333,16 @@ double gap = 0;
 
 panel_t* panel_room(room_t* room)
 {
-	allocation_t alc;
+allocation_t alloc;
+grid_t* wall_grid = &alloc.wall_grid;
 
-	alc.room = room;
-	bounding_box(&room->walls, &alc.box);
+	alloc.room = room;
 
-	alc.h_steps = (alc.box.xmax - alc.box.xmin)/OFFSET_STEP;
-	alc.v_steps = (alc.box.ymax - alc.box.ymin)/INTER_LINE_GAP;
+	wall_grid->poly = &room->walls;
+	wall_grid->x_step = OFFSET_STEP;
+	wall_grid->y_step = INTER_LINE_GAP;
+	build_grid(wall_grid);
+
 
 	/* printf("%lf %u\n", */
 	/* 		alc.box.xmax - alc.box.xmin, */
@@ -347,9 +352,9 @@ panel_t* panel_room(room_t* room)
 	/* 		alc.box.ymax - alc.box.ymin, */
 	/* 		alc.v_steps); */
 
-	search_offset(&alc);
+	search_offset(&alloc);
 
-	return alc.panels;
+	return alloc.panels;
 }
 
 

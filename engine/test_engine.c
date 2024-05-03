@@ -300,6 +300,67 @@ long int clock_time;
 	printf("\n");
 	free_room(&rand_room);
 }
+
+void test_grid(int argc, char* argv[])
+{
+room_t rand_room;
+char num_str[256];
+long int clock_time;
+point_t pp;
+double x,y;
+
+grid_t grid;
+
+	create_room(&rand_room, atoi(argv[1]));
+
+	transform_t trsf;
+	trsf.origin = (point_t){320, 240};
+	trsf.scale =(point_t){0.5, -0.5};
+	canvas_t* cp = init_canvas(trsf);
+
+	__debug_canvas = cp;
+
+	draw_polygon(cp, &rand_room.walls, GREEN);
+
+	grid.poly = &rand_room.walls;
+	grid.x_step = INTER_LINE_GAP;
+	grid.y_step = INTER_LINE_GAP;
+	clock_time = clock();
+	build_grid(&grid);	
+	clock_time = clock() - clock_time;
+
+	uint8_t (*cxs)[grid.cols] = grid._grid;
+
+	// printf("%d %d\n", grid.rows, grid.cols);
+	for(int i=0; i<grid.rows; i++) {
+		for(int j=0; j<grid.cols; j++) {
+			//printf("cxs[%d][%d]=%d\n",i,j,cxs[i][j]);
+			// printf("%d",cxs[i][j]);
+			if (cxs[i][j] % 2) {
+				x = grid.origin.x + grid.x_step * j;
+				y = grid.origin.y + grid.y_step * i;
+				pp.x = x;
+				pp.y = y;
+
+				//printf("%.2lf %.2lf\n", x, y);
+				draw_point(cp, pp);
+			}
+		}
+		//printf("\n");
+	}
+	sprintf(num_str, "%04d", random_seed);
+	printf("%d ", random_seed);
+
+	sprintf(num_str, "time=%ld ms", clock_time/1000);
+	printf("(%ld ms)", clock_time/1000);
+	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
+	print_text(cp, num_str, 1);
+	printf("\n");
+	save_png(cp, "grid.png");
+	free_grid(&grid);
+	free_room(&rand_room);
+}
+
 int main(int argc, char* argv[]) 
 {
 
@@ -311,5 +372,6 @@ int main(int argc, char* argv[])
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
 	test_panel_room(argc, argv);
+	//test_grid(argc, argv);
 }
 

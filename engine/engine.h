@@ -79,7 +79,8 @@ typedef struct __dorsal {
 
 typedef struct {
 	room_t* room;
-	box_t box;
+	grid_t wall_grid;
+	grid_t *obs_grid;
 	uint32_t h_steps, v_steps;
 	point_t offset;
 	dorsal_t _dorsals[MAX_DORSALS];

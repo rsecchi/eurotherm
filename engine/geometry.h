@@ -29,6 +29,15 @@ typedef struct {
 } box_t;
 
 typedef struct {
+	polygon_t* poly;
+	box_t box;
+	point_t origin;
+	double x_step, y_step;
+	int cols, rows;
+	void* _grid;
+} grid_t;
+
+typedef struct {
 	point_t origin;
 	point_t scale;
 } transform_t;
@@ -41,6 +50,7 @@ typedef struct {
 	cairo_t* cr;
 	transform_t trans;
 } canvas_t;
+
 
 extern canvas_t _canvas;
 
@@ -71,6 +81,9 @@ box_t box_point(point_t point, double size);
 int self_intersect(polygon_t* pgon);
 double area_polygon(polygon_t* pgon);
 double hdist(point_t* p, polygon_t* pgon);
+
+void build_grid(grid_t* grid);
+void free_grid(grid_t* grid);
 
 canvas_t* init_canvas(transform_t trfs);
 void draw_polygon(canvas_t* ct, polygon_t* poly, colour_t col);
