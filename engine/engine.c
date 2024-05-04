@@ -73,7 +73,6 @@ double x,y;
 uint8_t (*gv)[p->grid->cols] = p->grid->_gridv;
 uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 
-	box = p->pbox;
 
 	n1 = p->row;
 	m1 = p->col;
@@ -94,42 +93,30 @@ uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 		x = room->obstacles[i].poly[0].x;
 		y = room->obstacles[i].poly[0].y;
 	
+		box = p->pbox;
 		if (p->pbox.xmin<x && x<p->pbox.xmax &&
-			p->pbox.ymin<y && y<p->pbox.ymax)
-			 return 0;
+			p->pbox.ymin<y && y<p->pbox.ymax) {
+			if (!(p->type == LUX))
+				return 0;
 
+			lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2;
+			lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2;
+			lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
+			lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
+
+			for(i=0; i<room->obs_num; i++) {
+				if (polygon_inside_box(&room->obstacles[i], &lux_box)) 
+					continue;
+
+				if (!check_box(OUTSIDE, &box, &room->obstacles[i])) 
+					return 0;
+			}
+
+		}
 	}
 
 	return 1;
 
-	/* check if inside room */
-	//if (!check_box(INSIDE, &p->pbox, &r->walls))
-	//	return 0;
-
-	/* if (p->type == LUX) { */
-
-	/* 	lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2; */
-	/* 	lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2; */
-	/* 	lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2; */
-	/* 	lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2; */
-
-	/* 	for(i=0; i<r->obs_num; i++) { */
-	/* 		if (polygon_inside_box(&r->obstacles[i], &lux_box)) */ 
-	/* 			continue; */
-
-	/* 		if (!check_box(OUTSIDE, &box, &r->obstacles[i])) */ 
-	/* 			return 0; */
-	/* 	} */
-
-	/* 	return 1; */
-	/* } */
-
-	/* /1* check if outside obstacles *1/ */
-	/* for(i=0; i<r->obs_num; i++) */ 
-	/* 	if (!check_box(OUTSIDE, &box, &(r->obstacles[i]))) */
-	/* 		return 0; */
-
-	/* return 1; */
 }
 
 
@@ -194,10 +181,8 @@ double x,y;
 uint32_t make_dorsal(allocation_t* alloc, dorsal_t* dorsal) 
 {
 room_t* room = alloc->room;
-box_t* box = &alloc->wall_grid.box;
 panel_t _panels[MAX_RAILS];
 panel_t trial;
-point_t ofs, ref_point;
 grid_pos_t pos;
 dorsal_width_t width;
 heading_t dir;
@@ -205,7 +190,8 @@ int max_score = 0, new_score;
 int score;
 int num_panels, k=0, kp, type;
 
-	ofs = dorsal->offset;
+	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
+
 	width = dorsal->width;
 	dir = dorsal->heading;
 
@@ -213,19 +199,16 @@ int num_panels, k=0, kp, type;
 	pos.i = dorsal->offset_row;
 	pos.j = dorsal->offset_col;
 
-	while(ofs.x < box->xmax) {
+	while(pos.j < bounds[pos.i][0] + 2*INTER_RAIL_STEPS)
+		pos.j += INTER_RAIL_STEPS;
 
+	while(pos.j<= bounds[pos.i][1]) {
 		for(type=0; type<NUM_PANEL_T; type++){
 
 			if (width==NARROW && 
 			   (type==FULL || type==LUX || type==HALF))
 				continue;
 			
-			ref_point = ofs;
-			if (dir == DOWN && width==WIDE &&
-				(type == SPLIT || type==QUARTER))
-				ref_point.y -= 60;
-
 			panel(&trial, type, pos, dir);
 			if (fit(&trial, room) && gap_ok(&trial, alloc)) {
 				new_score = panel_desc[type].score;
@@ -241,7 +224,6 @@ int num_panels, k=0, kp, type;
 		}
 		_panels[k].score = max_score;
 
-		ofs.x += INTER_RAIL_GAP;
 		k++;
 		pos.j += INTER_RAIL_STEPS;
 	}

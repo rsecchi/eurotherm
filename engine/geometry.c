@@ -275,10 +275,17 @@ int rows, cols;
 
 	grid->_gridh = malloc(cols*rows);
 	grid->_gridv = malloc(cols*rows);
+	grid->bounds = malloc(rows*sizeof(uint32_t)*2);
 
 	memset(grid->_gridh, 0, cols*rows);
 	memset(grid->_gridv, 0, cols*rows);
 
+	uint32_t (*bounds)[2] = grid->bounds;
+	for(int i=0; i<rows; i++) {
+		bounds[i][0] = cols;
+		bounds[i][1] = 0;
+	}
+		
 }
 
 void update_grid(grid_t* grid)
@@ -297,6 +304,7 @@ double xmin, xmax, ymin, ymax;
 
 	uint8_t (*gh)[cols] = grid->_gridh;
 	uint8_t (*gv)[cols] = grid->_gridv;
+	uint32_t (*bounds)[2] = grid->bounds;
 
 	for(int k=0; k<poly->len-1; k++)
 	{
@@ -311,6 +319,7 @@ double xmin, xmax, ymin, ymax;
 		for(int i=0; i<rows; i++)
 		{
 			y = orig.y + i * y_step;
+
 
 			if (y<ymin || y>ymax || y==p[k+1].y)
 				continue;
@@ -327,7 +336,10 @@ double xmin, xmax, ymin, ymax;
 			}
 
 			j1 = (x-orig.x)/x_step;
-			for(int j=0; j<j1; j++)
+			bounds[i][0] = MIN(j1, bounds[i][0]);
+			bounds[i][1] = MAX(j1, bounds[i][1]);
+
+			for(int j=0; j<=j1; j++)
 				gh[i][j]++;
 			
 		}
@@ -356,7 +368,7 @@ next:
 			}
 
 			i1 = (y-orig.y)/y_step;
-			for(int i=0; i<i1; i++)
+			for(int i=0; i<=i1; i++)
 				gv[i][j]++;
 			
 		}
@@ -367,7 +379,9 @@ next:
 
 void free_grid(grid_t* grid)
 {
-	free(grid);
+	free(grid->_gridh);
+	free(grid->_gridh);
+	free(grid->bounds);
 }
 
 

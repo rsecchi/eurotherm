@@ -37,6 +37,7 @@ typedef struct {
 	int cols, rows;
 	void* _gridh;
 	void* _gridv;
+	void* bounds;
 } grid_t;
 
 typedef struct {
