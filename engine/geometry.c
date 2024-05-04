@@ -253,14 +253,12 @@ point_t a, b;
 	return fabs(area_tot);
 }
 
-void build_grid(grid_t* grid)
+void init_grid(grid_t* grid)
 {
 polygon_t* poly = grid->poly;
-point_t orig, *p = poly->poly;
 box_t* box = &grid->box;
-double xlen, ylen, x_step, y_step, x, y;
-int rows, cols, j1;
-double xmin, xmax, ymin, ymax;
+double xlen, ylen, x_step, y_step;
+int rows, cols;
 
 	bounding_box(poly, box);
 
@@ -271,15 +269,34 @@ double xmin, xmax, ymin, ymax;
 	rows = grid->rows = 1 + ylen/y_step;
 	cols = grid->cols = 1 + xlen/x_step;
 
-	orig = grid->origin = (point_t){
+	grid->origin = (point_t){
 		box->xmin + (xlen - x_step*cols)/2,
 		box->ymin + (ylen - y_step*rows)/2 };
 
-	grid->_grid = malloc(cols*rows);
+	grid->_gridh = malloc(cols*rows);
+	grid->_gridv = malloc(cols*rows);
 
-	uint8_t (*cxs)[cols] = grid->_grid;
+	memset(grid->_gridh, 0, cols*rows);
+	memset(grid->_gridv, 0, cols*rows);
 
-	memset(grid->_grid, 0, cols*rows);
+}
+
+void update_grid(grid_t* grid)
+{
+polygon_t* poly = grid->poly;
+point_t orig, *p = poly->poly;
+double x_step, y_step, x, y;
+int rows, cols, i1, j1;
+double xmin, xmax, ymin, ymax;
+
+	x_step = grid->x_step;
+	y_step = grid->y_step;
+	rows = grid->rows;
+	cols = grid->cols;
+	orig = grid->origin;
+
+	uint8_t (*gh)[cols] = grid->_gridh;
+	uint8_t (*gv)[cols] = grid->_gridv;
 
 	for(int k=0; k<poly->len-1; k++)
 	{
@@ -289,7 +306,7 @@ double xmin, xmax, ymin, ymax;
 		ymax = MAX(p[k].y, p[k+1].y);
 
 		if (ymin==ymax)
-			continue;
+			goto next;
 
 		for(int i=0; i<rows; i++)
 		{
@@ -311,11 +328,42 @@ double xmin, xmax, ymin, ymax;
 
 			j1 = (x-orig.x)/x_step;
 			for(int j=0; j<j1; j++)
-				cxs[i][j]++;
+				gh[i][j]++;
+			
+		}
+
+next:
+		if (xmin==xmax)
+			continue;
+
+		for(int j=0; j<cols; j++)
+		{
+			x = orig.x + j * x_step;
+
+			if (x<xmin || x>xmax || x==p[k+1].x)
+				continue;
+
+			/* calculate crossing point y */
+			if (x==p[k].x)
+				y = p[k].y;
+			else 
+			if (ymin == ymax)
+				y = ymin;
+			else {
+				/* x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x; */
+				y = (x-p[k].x)*p[k+1].y - (x-p[k+1].x)*p[k].y;
+				y /= p[k+1].x - p[k].x;
+			}
+
+			i1 = (y-orig.y)/y_step;
+			for(int i=0; i<i1; i++)
+				gv[i][j]++;
 			
 		}
 	}
 }
+
+
 
 void free_grid(grid_t* grid)
 {

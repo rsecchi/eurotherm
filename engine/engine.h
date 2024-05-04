@@ -14,13 +14,12 @@
 #define MAX_DORSALS         512
 #define MAX_DORSAL_PANELS    64
 #define INTER_RAIL_GAP       50.
+#define INTER_RAIL_STEPS     10
 #define INTER_LINE_GAP        2
 #define DIST_FROM_WALLS      18.
 
-
 #define NUM_OFFSETS          10
 #define OFFSET_STEP           5.
-
 
 #define HD_STEPS  PANEL_HEIGHT/INTER_LINE_GAP
 #define INTER_DORSAL_GAP    16/INTER_LINE_GAP
@@ -47,6 +46,8 @@ typedef struct{
 	uint32_t score;
 	uint32_t prev;
 	char name[16];
+	uint32_t x_steps;
+	uint32_t y_steps;
 } panel_desc_t;
 
 extern panel_desc_t panel_desc[]; 
@@ -60,6 +61,9 @@ typedef struct{
 typedef struct __panel {
 	ptype type;
 	point_t pos;
+	grid_t* grid;
+	uint32_t row;
+	uint32_t col;
 	heading_t heading;
 	box_t pbox;
 	uint32_t score;
@@ -73,16 +77,17 @@ typedef struct __dorsal {
 	panel_t panels[MAX_DORSAL_PANELS];
 	int num_panels;
 	uint32_t score;
-	uint32_t level;
+	uint32_t offset_row;
+	uint32_t offset_col;
 	struct __dorsal* next;
 } dorsal_t;
 
 typedef struct {
 	room_t* room;
 	grid_t wall_grid;
-	grid_t *obs_grid;
 	uint32_t h_steps, v_steps;
 	point_t offset;
+	uint32_t offset_col;
 	dorsal_t _dorsals[MAX_DORSALS];
 	dorsal_t* dorsals;
 	uint32_t score;
@@ -96,7 +101,7 @@ int fit(panel_t*, room_t*);
 int gap_ok(panel_t*, allocation_t*);
 
 int count_panels(panel_t*);
-void panel(panel_t*, ptype, point_t, heading_t);
+void panel(panel_t*, ptype, grid_pos_t, heading_t);
 uint32_t make_dorsal(allocation_t*, dorsal_t*);
 uint32_t scanline(allocation_t*);
 uint32_t search_offset(allocation_t*);

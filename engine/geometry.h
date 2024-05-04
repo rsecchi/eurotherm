@@ -3,6 +3,7 @@
 
 #include <cairo/cairo.h>
 #include <math.h>
+#include <stdint.h>
 
 #define EPS 1e-6
 #define NO_CROSS  0
@@ -34,8 +35,14 @@ typedef struct {
 	point_t origin;
 	double x_step, y_step;
 	int cols, rows;
-	void* _grid;
+	void* _gridh;
+	void* _gridv;
 } grid_t;
+
+typedef struct {
+	uint32_t i, j;
+	grid_t* grid;
+} grid_pos_t;
 
 typedef struct {
 	point_t origin;
@@ -83,6 +90,8 @@ double area_polygon(polygon_t* pgon);
 double hdist(point_t* p, polygon_t* pgon);
 
 void build_grid(grid_t* grid);
+void init_grid(grid_t* grid);
+void update_grid(grid_t* grid);
 void free_grid(grid_t* grid);
 
 canvas_t* init_canvas(transform_t trfs);

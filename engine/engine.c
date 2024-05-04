@@ -8,11 +8,11 @@ canvas_t * __debug_canvas;
 
 panel_desc_t panel_desc[] =
 {
-	{200., 120., 2.4, 1024, 4, "full"},
-	{200., 120., 2.4, 1024, 4, "lux"},
-	{200.,  60., 1.2, 511, 4, "split"},
-	{100., 120., 1.2, 511, 2, "half"},
-	{100.,  60., 0.6, 254, 2, "quarter"}
+	{200., 120., 2.4, 1024, 4, "full", 40, 60},
+	{200., 120., 2.4, 1024, 4, "lux", 40, 60},
+	{200.,  60., 1.2, 511, 4, "split", 40, 30},
+	{100., 120., 1.2, 511, 2, "half", 20, 60},
+	{100.,  60., 0.6, 254, 2, "quarter", 20, 30}
 };
 
 
@@ -65,41 +65,71 @@ double active_area(panel_t* head)
 	return tot;
 }
 
-int fit(panel_t* p, room_t* r)
+int fit(panel_t* p, room_t* room)
 {
-int i;
+int i, m1, m2, n1, n2;
 box_t box, lux_box;
+double x,y;
+uint8_t (*gv)[p->grid->cols] = p->grid->_gridv;
+uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 
 	box = p->pbox;
 
-	/* check if inside room */
-	if (!check_box(INSIDE, &p->pbox, &r->walls))
+	n1 = p->row;
+	m1 = p->col;
+	n2 = n1 - panel_desc[p->type].y_steps;
+	m2 = m1 - panel_desc[p->type].x_steps;
+
+	if (m2<0 || n2<=0)
 		return 0;
 
-	if (p->type == LUX) {
+	if (!((gv[n1][m1] & 0x01) &&
+			gh[n1][m1] == gh[n1][m2] && 
+			gv[n1][m2] == gv[n2][m2] &&
+			gh[n2][m2] == gh[n2][m1] &&
+			gv[n2][m1] == gv[n1][m1] ))
+		return 0;
 
-		lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2;
-		lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2;
-		lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
-		lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
+	for(i=0; i<room->obs_num; i++) {
+		x = room->obstacles[i].poly[0].x;
+		y = room->obstacles[i].poly[0].y;
+	
+		if (p->pbox.xmin<x && x<p->pbox.xmax &&
+			p->pbox.ymin<y && y<p->pbox.ymax)
+			 return 0;
 
-		for(i=0; i<r->obs_num; i++) {
-			if (polygon_inside_box(&r->obstacles[i], &lux_box)) 
-				continue;
-
-			if (!check_box(OUTSIDE, &box, &r->obstacles[i])) 
-				return 0;
-		}
-
-		return 1;
 	}
 
-	/* check if outside obstacles */
-	for(i=0; i<r->obs_num; i++) 
-		if (!check_box(OUTSIDE, &box, &(r->obstacles[i])))
-			return 0;
-
 	return 1;
+
+	/* check if inside room */
+	//if (!check_box(INSIDE, &p->pbox, &r->walls))
+	//	return 0;
+
+	/* if (p->type == LUX) { */
+
+	/* 	lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2; */
+	/* 	lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2; */
+	/* 	lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2; */
+	/* 	lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2; */
+
+	/* 	for(i=0; i<r->obs_num; i++) { */
+	/* 		if (polygon_inside_box(&r->obstacles[i], &lux_box)) */ 
+	/* 			continue; */
+
+	/* 		if (!check_box(OUTSIDE, &box, &r->obstacles[i])) */ 
+	/* 			return 0; */
+	/* 	} */
+
+	/* 	return 1; */
+	/* } */
+
+	/* /1* check if outside obstacles *1/ */
+	/* for(i=0; i<r->obs_num; i++) */ 
+	/* 	if (!check_box(OUTSIDE, &box, &(r->obstacles[i]))) */
+	/* 		return 0; */
+
+	/* return 1; */
 }
 
 
@@ -132,24 +162,32 @@ double gap, gap_left, gap_right;
 }
 
 
-void panel(panel_t* pp, ptype pt, point_t pos, heading_t ht)
+void panel(panel_t* pp, ptype pt, grid_pos_t pos, heading_t ht)
 {
+double x,y;
+
+	pp->grid = pos.grid;
+	pp->row = pos.i;
+	pp->col = pos.j;
+	x = pos.grid->origin.x + pos.j*pos.grid->x_step;
+	y = pos.grid->origin.y + pos.i*pos.grid->y_step;
+
 	pp->type = pt;
-	pp->pos = pos;
+	pp->pos = (point_t){x, y};
 	pp->heading = ht;
 	pp->next = NULL;
 	pp->score = 0;
-	pp->pbox.xmax = pos.x;
-	pp->pbox.ymax = pos.y;
+	pp->pbox.xmax = x;
+	pp->pbox.ymax = y;
 	if (pt==FULL || pt==SPLIT || pt==LUX)
-		pp->pbox.xmin = pos.x - 200;
+		pp->pbox.xmin = x - 200;
 	else
-		pp->pbox.xmin = pos.x - 100;
+		pp->pbox.xmin = x - 100;
 
 	if (pt==FULL || pt==HALF || pt==LUX)
-		pp->pbox.ymin = pos.y - 120;
+		pp->pbox.ymin = y - 120;
 	else
-		pp->pbox.ymin = pos.y - 60;
+		pp->pbox.ymin = y - 60;
 }
 
 
@@ -160,6 +198,7 @@ box_t* box = &alloc->wall_grid.box;
 panel_t _panels[MAX_RAILS];
 panel_t trial;
 point_t ofs, ref_point;
+grid_pos_t pos;
 dorsal_width_t width;
 heading_t dir;
 int max_score = 0, new_score;
@@ -169,7 +208,11 @@ int num_panels, k=0, kp, type;
 	ofs = dorsal->offset;
 	width = dorsal->width;
 	dir = dorsal->heading;
-	
+
+	pos.grid = &alloc->wall_grid;
+	pos.i = dorsal->offset_row;
+	pos.j = dorsal->offset_col;
+
 	while(ofs.x < box->xmax) {
 
 		for(type=0; type<NUM_PANEL_T; type++){
@@ -183,7 +226,7 @@ int num_panels, k=0, kp, type;
 				(type == SPLIT || type==QUARTER))
 				ref_point.y -= 60;
 
-			panel(&trial, type, ref_point, dir);
+			panel(&trial, type, pos, dir);
 			if (fit(&trial, room) && gap_ok(&trial, alloc)) {
 				new_score = panel_desc[type].score;
 				kp = k - panel_desc[type].prev;
@@ -200,6 +243,7 @@ int num_panels, k=0, kp, type;
 
 		ofs.x += INTER_RAIL_GAP;
 		k++;
+		pos.j += INTER_RAIL_STEPS;
 	}
 
 	k--;
@@ -250,8 +294,9 @@ dorsal_t trial, *dorsals = alloc->_dorsals;
 point_t ofs = alloc->offset;
 uint32_t mark=-1;
 
-
 	alloc->dorsals = NULL;
+	trial.offset_col = alloc->offset_col;
+
 	while(ofs.y < box->ymax) {
 
 		dorsals[k].num_panels = 0;
@@ -262,7 +307,7 @@ uint32_t mark=-1;
 				trial.offset = ofs;
 				trial.width = width;
 				trial.heading = head;
-				trial.level = k;
+				trial.offset_row = k;
 				new_score = make_dorsal(alloc, &trial);
 
 				kp = (width==WIDE)?(k - 2*HD_STEPS):
@@ -311,6 +356,7 @@ double gap = 0;
 
 		alloc->offset = offset;
 		alloc->gap = 0;
+		alloc->offset_col = k;
 
 		score = scanline(alloc);
 		if (score>max_score || 
@@ -325,6 +371,7 @@ double gap = 0;
 		}
 
 		offset.x += OFFSET_STEP;
+		
 	}
 
 	return max_score;
@@ -334,29 +381,37 @@ double gap = 0;
 panel_t* panel_room(room_t* room)
 {
 allocation_t alloc;
-grid_t* wall_grid = &alloc.wall_grid;
+grid_t* grid = &alloc.wall_grid;
 
 	alloc.room = room;
 
-	wall_grid->poly = &room->walls;
-	wall_grid->x_step = OFFSET_STEP;
-	wall_grid->y_step = INTER_LINE_GAP;
-	build_grid(wall_grid);
+	grid->poly = &room->walls;
+	grid->x_step = OFFSET_STEP;
+	grid->y_step = INTER_LINE_GAP;
+	//build_grid(wall_grid);
+	init_grid(grid);
+	update_grid(grid);
 
+	for(int i=0; i<room->obs_num; i++) {
+		grid->poly = &room->obstacles[i];
+		update_grid(grid);
+	}
 
-	/* printf("%lf %u\n", */
-	/* 		alc.box.xmax - alc.box.xmin, */
-	/* 		alc.h_steps); */
+	printf("cols=%d, rows=%d x_step=%.3lf y_step=%.3lf\n", 
+		grid->cols, grid->rows,
+		grid->x_step, grid->y_step);
 
-	/* printf("%lf %u\n", */
-	/* 		alc.box.ymax - alc.box.ymin, */
-	/* 		alc.v_steps); */
+	printf("xmin=%.3lf xmax=%.3lf ymin=%.3lf ymax=%.3lf\n", 
+			grid->box.xmin,
+			grid->box.xmax,
+			grid->box.ymin,
+			grid->box.ymax
+			);
 
 	search_offset(&alloc);
 
 	return alloc.panels;
 }
-
 
 
 /* libcairo drawing support */

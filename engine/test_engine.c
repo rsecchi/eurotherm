@@ -110,18 +110,21 @@ box_t obs_box, walls_box;
 void generate_random_panels(canvas_t* cp, room_t* room, heading_t h)
 {
 panel_t test_panel;
-point_t pos;
 box_t box;
+grid_t grid;
+grid_pos_t pos;
 
-	bounding_box(&room->walls, &box);
+	//bounding_box(&room->walls, &box);
+	grid.poly = &room->walls;
+	init_grid(&grid);
+	pos.grid = &grid;
+
 	for(int i=0; i<NUM_PANEL_T; i++) {
 		do {
-			pos = random_point(&box);
-			printf("%d, %lf %lf\n", i, pos.x, pos.y);
 			panel(&test_panel, i, pos, h); 
 		} while(!fit(&test_panel, room));
 		draw_panel(cp, &test_panel);
-		draw_point(cp, pos); 
+		//draw_point(cp, pos); 
 	}
 }
 
@@ -326,10 +329,10 @@ grid_t grid;
 	grid.x_step = INTER_LINE_GAP;
 	grid.y_step = INTER_LINE_GAP;
 	clock_time = clock();
-	build_grid(&grid);	
+	init_grid(&grid);	
 	clock_time = clock() - clock_time;
 
-	uint8_t (*cxs)[grid.cols] = grid._grid;
+	uint8_t (*cxs)[grid.cols] = grid._gridh;
 
 	// printf("%d %d\n", grid.rows, grid.cols);
 	for(int i=0; i<grid.rows; i++) {
