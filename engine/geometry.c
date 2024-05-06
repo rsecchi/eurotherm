@@ -277,10 +277,12 @@ int rows, cols;
 	grid->_gridv = malloc(cols*rows);
 	grid->bounds = malloc(rows*sizeof(uint32_t)*2);
 	grid->gaps   = malloc(cols*rows*sizeof(uint32_t));
+	grid->flags  = malloc(cols*rows*sizeof(uint16_t));
 
 	memset(grid->_gridh, 0, cols*rows);
 	memset(grid->_gridv, 0, cols*rows);
 	memset(grid->gaps, 0xFF, cols*rows*sizeof(uint32_t));
+	memset(grid->flags, 0, cols*rows*sizeof(uint16_t));
 
 	uint32_t (*bounds)[2] = grid->bounds;
 	for(int i=0; i<rows; i++) {
@@ -399,8 +401,10 @@ next:
 void free_grid(grid_t* grid)
 {
 	free(grid->_gridh);
-	free(grid->_gridh);
+	free(grid->_gridv);
 	free(grid->bounds);
+	free(grid->gaps);
+	free(grid->flags);
 }
 
 

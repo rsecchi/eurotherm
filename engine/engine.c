@@ -8,13 +8,14 @@ canvas_t * __debug_canvas;
 
 panel_desc_t panel_desc[] =
 {
-	{200., 120., 2.4, 1024, 4, "full", 40, 60},
-	{200., 120., 2.4, 1024, 4, "lux", 40, 60},
-	{200.,  60., 1.2, 511, 4, "split", 40, 30},
-	{100., 120., 1.2, 511, 2, "half", 20, 60},
-	{100.,  60., 0.6, 254, 2, "quarter", 20, 30}
+	{200., 120., 2.4, 1024, 4, "full",   40, 60, 0xC000, 0xB000},
+	{200., 120., 2.4, 1024, 4, "lux",    40, 60, 0x3000, 0x2000},
+	{200.,  60., 1.2, 511, 4, "split",   40, 30, 0x0C00, 0x0800},
+	{100., 120., 1.2, 511, 2, "half",    20, 60, 0x0300, 0x0200},
+	{100.,  60., 0.6, 254, 2, "quarter", 20, 30, 0x00C0, 0x0080},
 };
 
+#define ALL_FAIL  0xFFC0
 
 int count_panels(panel_t* head)
 {
@@ -65,13 +66,14 @@ double active_area(panel_t* head)
 	return tot;
 }
 
-int fit(panel_t* p, room_t* room)
+int fit(panel_t* p, room_t* room, uint16_t* flag)
 {
 int i, m1, m2, n1, n2;
 box_t box, lux_box;
 double x,y;
 uint8_t (*gv)[p->grid->cols] = p->grid->_gridv;
 uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
+polygon_t *pgon;
 
 
 	n1 = p->row;
@@ -80,43 +82,43 @@ uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 	m2 = m1 - panel_desc[p->type].x_steps;
 
 	if (m2<0 || n2<=0)
-		return 0;
+		goto fail;
 
 	if (!((gv[n1][m1] & 0x01) &&
 			gh[n1][m1] == gh[n1][m2] && 
 			gv[n1][m2] == gv[n2][m2] &&
 			gh[n2][m2] == gh[n2][m1] &&
-			gv[n2][m1] == gv[n1][m1] ))
-		return 0;
+			gv[n2][m1] == gv[n1][m1] )) 
+		goto fail;
 
 	for(i=0; i<room->obs_num; i++) {
-		x = room->obstacles[i].poly[0].x;
-		y = room->obstacles[i].poly[0].y;
+		pgon = &room->obstacles[i];
+		x = pgon->poly[0].x;
+		y = pgon->poly[0].y;
 	
 		box = p->pbox;
 		if (p->pbox.xmin<x && x<p->pbox.xmax &&
 			p->pbox.ymin<y && y<p->pbox.ymax) {
-			if (!(p->type == LUX))
-				return 0;
+			if (!(p->type == LUX)) 
+				goto fail;
 
 			lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2;
 			lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2;
 			lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
 			lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
 
-			for(i=0; i<room->obs_num; i++) {
-				if (polygon_inside_box(&room->obstacles[i], &lux_box)) 
-					continue;
-
-				if (!check_box(OUTSIDE, &box, &room->obstacles[i])) 
-					return 0;
-			}
-
+			for(int i=1; i<pgon->len-1; i++)
+				if (!point_inside_box(&pgon->poly[i], &lux_box))
+					goto fail;	
 		}
 	}
 
+	*flag |= panel_desc[p->type].done_ok;
 	return 1;
 
+fail:
+	*flag |= panel_desc[p->type].done_fail;
+	return 0;
 }
 
 
@@ -185,8 +187,11 @@ heading_t dir;
 int max_score = 0, new_score;
 int score;
 int num_panels, k=0, kp, type;
+uint16_t *flag, panel_done, panel_fail;
 
 	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
+
+	uint16_t (*flags)[alloc->wall_grid.cols] = alloc->wall_grid.flags;
 
 	width = dorsal->width;
 	dir = dorsal->heading;
@@ -199,25 +204,54 @@ int num_panels, k=0, kp, type;
 		pos.j += INTER_RAIL_STEPS;
 
 	while(pos.j<= bounds[pos.i][1]) {
+
+		flag = &flags[pos.i][pos.j];
+
+		/* skip all panels if they already failed */
+		if ((*flag & ALL_FAIL) == ALL_FAIL)
+			goto next;
+
+		panel_fail = 0x4000;
+		panel_done = 0x8000;
+
 		for(type=0; type<NUM_PANEL_T; type++){
 
+			/* skip panel type if dorsal does not support panel*/
 			if (width==NARROW && 
-			   (type==FULL || type==LUX || type==HALF))
+			    (type==FULL || type==LUX || type==HALF)) {
+
+				panel_fail >>= 2;
+				panel_done >>= 2;
 				continue;
-			
-			panel(&trial, type, pos, dir);
-			if (fit(&trial, room) && gap_ok(&trial, pos, alloc)) {
-				new_score = panel_desc[type].score;
-				kp = k - panel_desc[type].prev;
-				if (kp>=0)
-					new_score += _panels[kp].score;
-			
-				if (new_score>max_score) {
-					max_score = new_score;
-					_panels[k] = trial;
-				}
 			}
+
+			/* skip panel if check already failed for it */
+			if (*flag & panel_fail) {
+				panel_fail >>= 2;
+				panel_done >>= 2;
+				continue;
+			}
+
+			/* test if panel fit */
+			panel(&trial, type, pos, dir);
+		
+			if ( ((*flag & panel_done) || fit(&trial, room, flag)) 
+				 && gap_ok(&trial, pos, alloc)) {
+
+					new_score = panel_desc[type].score;
+					kp = k - panel_desc[type].prev;
+					if (kp>=0)
+						new_score += _panels[kp].score;
+				
+					if (new_score>max_score) {
+						max_score = new_score;
+						_panels[k] = trial;
+					}	
+			}
+			panel_fail >>= 2;
+			panel_done >>= 2;
 		}
+next:
 		_panels[k].score = max_score;
 
 		k++;
@@ -266,21 +300,22 @@ int count_dorsals(dorsal_t* head)
 uint32_t scanline(allocation_t* alloc)
 {
 int k=0, kp;
-box_t* box = &alloc->wall_grid.box;
 uint32_t max_score = 253, new_score;
 dorsal_t trial, *dorsals = alloc->_dorsals;
 point_t ofs = alloc->offset;
 uint32_t mark=-1;
+int rows;
 
 	alloc->dorsals = NULL;
 	trial.offset_col = alloc->offset_col;
+	rows = alloc->wall_grid.rows;
 
-	while(ofs.y < box->ymax) {
+	while(k < rows) {
 
 		dorsals[k].num_panels = 0;
 		dorsals[k].next = alloc->dorsals;
 
-		if (k<HD_STEPS)
+		if (k<=HD_STEPS)
 			goto next;
 
 		for(int width=0; width<2; width++)
@@ -303,10 +338,9 @@ uint32_t mark=-1;
 					if (trial.next)
 						new_score += dorsals[kp].score;
 				}
-
 				if (new_score>max_score ||
 					(new_score==max_score && k>mark &&
-					 k<alloc->v_steps/2)) {
+					 k<rows/2)) {
 					max_score = new_score;
 					dorsals[k] = trial;
 					alloc->dorsals = &dorsals[k];
@@ -378,18 +412,22 @@ grid_t* grid = &alloc.wall_grid;
 		update_grid(grid, 0);
 	}
 
-	printf("cols=%d, rows=%d x_step=%.3lf y_step=%.3lf\n", 
-		grid->cols, grid->rows,
-		grid->x_step, grid->y_step);
+	/* printf("cols=%d, rows=%d x_step=%.3lf y_step=%.3lf\n", */ 
+	/* 	grid->cols, grid->rows, */
+	/* 	grid->x_step, grid->y_step); */
 
-	printf("xmin=%.3lf xmax=%.3lf ymin=%.3lf ymax=%.3lf\n", 
-			grid->box.xmin,
-			grid->box.xmax,
-			grid->box.ymin,
-			grid->box.ymax
-			);
+	/* printf("xmin=%.3lf xmax=%.3lf ymin=%.3lf ymax=%.3lf\n", */ 
+	/* 		grid->box.xmin, */
+	/* 		grid->box.xmax, */
+	/* 		grid->box.ymin, */
+	/* 		grid->box.ymax */
+	/* 		); */
+
+	alloc._dorsals = malloc(sizeof(dorsal_t)*grid->rows);
 
 	search_offset(&alloc);
+	free_grid(grid);
+	free(alloc._dorsals);
 
 	return alloc.panels;
 }

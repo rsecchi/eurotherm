@@ -6,13 +6,13 @@
 
 #include "engine.h"
 
-#define MIN_CORNERS   4 
-#define MAX_CORNERS   8 
-#define MIN_OBS       0
-#define MAX_OBS       4
+#define MIN_CORNERS   6 
+#define MAX_CORNERS   12 
+#define MIN_OBS       7
+#define MAX_OBS       14
 #define MIN_AREA     8.0
 #define MIN_OBS_LEN   5
-#define MAX_OBS_LEN  25
+#define MAX_OBS_LEN  250
 
 int random_seed;
 
@@ -63,8 +63,8 @@ box_t obs_box, walls_box;
 		qsort(angle, corners, sizeof(double), compare);
 
 		for(i=0; i<corners; i++){
-			poly[2*i].x = 500*cos(angle[i]);
-			poly[2*i].y = 400*sin(angle[i]);
+			poly[2*i].x = 800*cos(angle[i]);
+			poly[2*i].y = 600*sin(angle[i]);
 		}
 		poly[2*corners].x = poly[0].x;
 		poly[2*corners].y = poly[0].y;
@@ -110,9 +110,9 @@ box_t obs_box, walls_box;
 void generate_random_panels(canvas_t* cp, room_t* room, heading_t h)
 {
 panel_t test_panel;
-box_t box;
 grid_t grid;
 grid_pos_t pos;
+uint16_t flags;
 
 	//bounding_box(&room->walls, &box);
 	grid.poly = &room->walls;
@@ -122,7 +122,7 @@ grid_pos_t pos;
 	for(int i=0; i<NUM_PANEL_T; i++) {
 		do {
 			panel(&test_panel, i, pos, h); 
-		} while(!fit(&test_panel, room));
+		} while(!fit(&test_panel, room, &flags));
 		draw_panel(cp, &test_panel);
 		//draw_point(cp, pos); 
 	}
@@ -276,7 +276,7 @@ long int clock_time;
 
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
-	trsf.scale =(point_t){0.5, -0.5};
+	trsf.scale =(point_t){0.3, -0.3};
 	canvas_t* cp = init_canvas(trsf);
 
 	__debug_canvas = cp;
@@ -292,15 +292,16 @@ long int clock_time;
 	printf("%d ", random_seed);
 	strcat(filename, num_str); 
 	strcat(filename, ".png"); 
-	print_text(cp, num_str, 0);
+	//print_text(cp, num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
 	printf("%ld", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
-	print_text(cp, num_str, 1);
-	print_summary(cp, &rand_room, panels);
+	//print_text(cp, num_str, 1);
+	// print_summary(cp, &rand_room, panels);
 	save_png(cp, filename);
 	printf("\n");
+	free_panels(panels);
 	free_room(&rand_room);
 }
 

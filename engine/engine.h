@@ -48,6 +48,8 @@ typedef struct{
 	char name[16];
 	uint32_t x_steps;
 	uint32_t y_steps;
+	uint16_t done_fail;
+	uint16_t done_ok;
 } panel_desc_t;
 
 extern panel_desc_t panel_desc[]; 
@@ -88,7 +90,7 @@ typedef struct {
 	uint32_t h_steps, v_steps;
 	point_t offset;
 	uint32_t offset_col;
-	dorsal_t _dorsals[MAX_DORSALS];
+	dorsal_t* _dorsals;
 	dorsal_t* dorsals;
 	uint32_t score;
 	double gap;
@@ -97,7 +99,7 @@ typedef struct {
 
 
 double active_area(panel_t*);
-int fit(panel_t*, room_t*);
+int fit(panel_t*, room_t*, uint16_t*);
 int gap_ok(panel_t*, grid_pos_t, allocation_t*);
 
 int count_panels(panel_t*);

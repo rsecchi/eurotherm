@@ -39,6 +39,7 @@ typedef struct {
 	void* _gridv;
 	void* bounds;
 	void* gaps;
+	void* flags;
 } grid_t;
 
 typedef struct {
