@@ -38,6 +38,7 @@ typedef struct {
 	void* _gridh;
 	void* _gridv;
 	void* bounds;
+	void* gaps;
 } grid_t;
 
 typedef struct {
@@ -92,7 +93,7 @@ double hdist(point_t* p, polygon_t* pgon);
 
 void build_grid(grid_t* grid);
 void init_grid(grid_t* grid);
-void update_grid(grid_t* grid);
+void update_grid(grid_t* grid, int);
 void free_grid(grid_t* grid);
 
 canvas_t* init_canvas(transform_t trfs);

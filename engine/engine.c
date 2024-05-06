@@ -120,30 +120,26 @@ uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 }
 
 
-int gap_ok(panel_t *panel, allocation_t *alloc)
+int gap_ok(panel_t *panel, grid_pos_t pos, allocation_t *alloc)
 {
-room_t* room = alloc->room;
-point_t ref_point_left, ref_point_right;
-double w = panel_desc[panel->type].width;
-double h = panel_desc[panel->type].height;
-double gap, gap_left, gap_right;
+int w = panel_desc[panel->type].x_steps;
+int h = panel_desc[panel->type].y_steps;
+int gap_left;
+uint32_t i;
 
-	ref_point_left  = (point_t){panel->pos.x-w, panel->pos.y};
-	ref_point_right = (point_t){panel->pos.x,   panel->pos.y};
-	if (panel->heading == DOWN) {
-		ref_point_left.y -= h;
-		ref_point_right.y -= h;
-	}
+	uint32_t (*gaps)[alloc->wall_grid.cols] = alloc->wall_grid.gaps;
 
-	gap_left  = hdist(&ref_point_left,  &(room->walls));
-	gap_right = hdist(&ref_point_right, &(room->walls));
+	i = pos.i;
+	if (panel->heading == DOWN)
+		i -= h;
 
-	if (gap_left<DIST_FROM_WALLS)
+	gap_left = gaps[i][pos.j-w];
+
+	if (gap_left < DIST_FROM_WALLS)
 		return 0;
 
-	gap = MIN(gap_left, gap_right);
-	if (gap < alloc->gap)
-		alloc->gap = gap;
+	if (gap_left < alloc->gap)
+		alloc->gap = gap_left;
 
 	return 1;
 }
@@ -210,7 +206,7 @@ int num_panels, k=0, kp, type;
 				continue;
 			
 			panel(&trial, type, pos, dir);
-			if (fit(&trial, room) && gap_ok(&trial, alloc)) {
+			if (fit(&trial, room) && gap_ok(&trial, pos, alloc)) {
 				new_score = panel_desc[type].score;
 				kp = k - panel_desc[type].prev;
 				if (kp>=0)
@@ -284,6 +280,9 @@ uint32_t mark=-1;
 		dorsals[k].num_panels = 0;
 		dorsals[k].next = alloc->dorsals;
 
+		if (k<HD_STEPS)
+			goto next;
+
 		for(int width=0; width<2; width++)
 			for(int head=0; head<2; head++) {
 				trial.offset = ofs;
@@ -314,7 +313,7 @@ uint32_t mark=-1;
 					mark = k;
 				}
 			}
-
+next:
 		dorsals[k].score = max_score;
 
 		ofs.y += INTER_LINE_GAP;
@@ -372,11 +371,11 @@ grid_t* grid = &alloc.wall_grid;
 	grid->y_step = INTER_LINE_GAP;
 	//build_grid(wall_grid);
 	init_grid(grid);
-	update_grid(grid);
+	update_grid(grid, 1);
 
 	for(int i=0; i<room->obs_num; i++) {
 		grid->poly = &room->obstacles[i];
-		update_grid(grid);
+		update_grid(grid, 0);
 	}
 
 	printf("cols=%d, rows=%d x_step=%.3lf y_step=%.3lf\n", 

@@ -270,15 +270,17 @@ int rows, cols;
 	cols = grid->cols = 1 + xlen/x_step;
 
 	grid->origin = (point_t){
-		box->xmin + (xlen - x_step*cols)/2,
-		box->ymin + (ylen - y_step*rows)/2 };
+		box->xmin + (xlen - x_step*(cols-1))/2,
+		box->ymin + (ylen - y_step*(rows-1))/2 };
 
 	grid->_gridh = malloc(cols*rows);
 	grid->_gridv = malloc(cols*rows);
 	grid->bounds = malloc(rows*sizeof(uint32_t)*2);
+	grid->gaps   = malloc(cols*rows*sizeof(uint32_t));
 
 	memset(grid->_gridh, 0, cols*rows);
 	memset(grid->_gridv, 0, cols*rows);
+	memset(grid->gaps, 0xFF, cols*rows*sizeof(uint32_t));
 
 	uint32_t (*bounds)[2] = grid->bounds;
 	for(int i=0; i<rows; i++) {
@@ -288,13 +290,15 @@ int rows, cols;
 		
 }
 
-void update_grid(grid_t* grid)
+void update_grid(grid_t* grid, int do_gaps)
 {
 polygon_t* poly = grid->poly;
 point_t orig, *p = poly->poly;
 double x_step, y_step, x, y;
 int rows, cols, i1, j1;
+uint32_t gap;
 double xmin, xmax, ymin, ymax;
+int x_cm, x_step_cm = grid->x_step;
 
 	x_step = grid->x_step;
 	y_step = grid->y_step;
@@ -305,6 +309,7 @@ double xmin, xmax, ymin, ymax;
 	uint8_t (*gh)[cols] = grid->_gridh;
 	uint8_t (*gv)[cols] = grid->_gridv;
 	uint32_t (*bounds)[2] = grid->bounds;
+	uint32_t (*gaps)[cols] = grid->gaps;
 
 	for(int k=0; k<poly->len-1; k++)
 	{
@@ -319,7 +324,6 @@ double xmin, xmax, ymin, ymax;
 		for(int i=0; i<rows; i++)
 		{
 			y = orig.y + i * y_step;
-
 
 			if (y<ymin || y>ymax || y==p[k+1].y)
 				continue;
@@ -342,6 +346,14 @@ double xmin, xmax, ymin, ymax;
 			for(int j=0; j<=j1; j++)
 				gh[i][j]++;
 			
+			if (do_gaps) {
+				x_cm = x - orig.x;
+				for(int j=0; j<cols; j++) {
+					gap =  abs(x_cm-j*x_step_cm);
+					if (gap < gaps[i][j])
+						gaps[i][j] =  gap;
+				}
+			}
 		}
 
 next:
@@ -373,6 +385,13 @@ next:
 			
 		}
 	}
+
+	/* for(int i=0; i<cols; i++) { */
+	/* 	printf("%d: ",i); */
+	/* 	for(int j=0; j<rows; j++) */
+	/* 		printf("%d ", gaps[i][j]); */
+	/* 	printf("\n"); */
+	/* } */
 }
 
 

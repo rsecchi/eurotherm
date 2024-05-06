@@ -98,7 +98,7 @@ typedef struct {
 
 double active_area(panel_t*);
 int fit(panel_t*, room_t*);
-int gap_ok(panel_t*, allocation_t*);
+int gap_ok(panel_t*, grid_pos_t, allocation_t*);
 
 int count_panels(panel_t*);
 void panel(panel_t*, ptype, grid_pos_t, heading_t);
