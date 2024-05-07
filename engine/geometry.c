@@ -286,7 +286,7 @@ int rows, cols;
 
 	uint32_t (*bounds)[2] = grid->bounds;
 	for(int i=0; i<rows; i++) {
-		bounds[i][0] = cols;
+		bounds[i][0] = cols-1;
 		bounds[i][1] = 0;
 	}
 		
@@ -342,10 +342,14 @@ int x_cm, x_step_cm = grid->x_step;
 			}
 
 			j1 = (x-orig.x)/x_step;
-			bounds[i][0] = MIN(j1, bounds[i][0]);
-			bounds[i][1] = MAX(j1, bounds[i][1]);
 
-			for(int j=0; j<=j1; j++)
+			if (do_gaps) {
+				bounds[i][0] = MIN(j1, bounds[i][0]);
+				bounds[i][1] = MAX(j1, bounds[i][1]);
+			}
+			
+
+			for(int j=0; j<=MIN(j1,cols-1); j++)
 				gh[i][j]++;
 			
 			if (do_gaps) {
@@ -382,17 +386,17 @@ next:
 			}
 
 			i1 = (y-orig.y)/y_step;
-			for(int i=0; i<=i1; i++)
+
+			for(int i=0; i<=MIN(i1,rows-1); i++)
 				gv[i][j]++;
 			
 		}
 	}
 
-	/* for(int i=0; i<cols; i++) { */
-	/* 	printf("%d: ",i); */
-	/* 	for(int j=0; j<rows; j++) */
-	/* 		printf("%d ", gaps[i][j]); */
-	/* 	printf("\n"); */
+	
+	/* for(int i=0; i<rows; i++) { */
+	/* 		printf("%d\n", (int)bounds[i][1]); */
+	/* 			/1* bounds[i][1]); *1/ */
 	/* } */
 }
 

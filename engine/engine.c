@@ -75,7 +75,6 @@ uint8_t (*gv)[p->grid->cols] = p->grid->_gridv;
 uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 polygon_t *pgon;
 
-
 	n1 = p->row;
 	m1 = p->col;
 	n2 = n1 - panel_desc[p->type].y_steps;
@@ -422,7 +421,6 @@ grid_t* grid = &alloc.wall_grid;
 	/* 		grid->box.ymin, */
 	/* 		grid->box.ymax */
 	/* 		); */
-
 	alloc._dorsals = malloc(sizeof(dorsal_t)*grid->rows);
 
 	search_offset(&alloc);
