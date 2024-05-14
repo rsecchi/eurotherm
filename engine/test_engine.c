@@ -205,22 +205,22 @@ void print_summary(canvas_t* cp, room_t* room, panel_t* panels)
 	double area, act_area, eff;
 
 	sprintf(buffer, "#panels = %d", count_panels(panels));
-	print_text(cp, buffer, 2);
+	print_text(cp, buffer, 4);
 
 	area = area_polygon(&room->walls)/10000;
 	sprintf(buffer, "area = %6.2lf", area); 	
 	printf("%6.2lf ", area); 	
-	print_text(cp, buffer, 3);
+	print_text(cp, buffer, 5);
 
 	act_area = active_area(panels);
 	sprintf(buffer, "active_ area = %.2lf", act_area); 
 	printf("%.2lf ", act_area); 
-	print_text(cp, buffer, 4);
+	print_text(cp, buffer, 6);
 
 	eff = 100*act_area/area;
 	sprintf(buffer, "perc. active = %.2lf%%", eff);
 	printf("%.2lf ", eff);
-	print_text(cp, buffer, 5);
+	print_text(cp, buffer, 7);
 }
 
 void test_search_offset(int argc, char* argv[])
@@ -270,6 +270,8 @@ room_t rand_room;
 panel_t* panels;
 char filename[256] = "polygon-";
 char num_str[256];
+char rows_str[256];
+char score_str[256];
 long int clock_time;
 
 	create_room(&rand_room, atoi(argv[1]));
@@ -289,16 +291,22 @@ long int clock_time;
 	draw_panels(cp, panels);
 
 	sprintf(num_str, "%04d", random_seed);
+	sprintf(rows_str, "-%04d", __max_row_debug);
+	sprintf(score_str, "score=%d", __score);
+
 	printf("%d ", random_seed);
 	strcat(filename, num_str); 
+	strcat(filename, rows_str); 
 	strcat(filename, ".png"); 
-	//print_text(cp, num_str, 0);
+	print_text(cp, num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
 	printf("%ld", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
-	//print_text(cp, num_str, 1);
-	// print_summary(cp, &rand_room, panels);
+	print_text(cp, num_str, 1);
+	print_text(cp, rows_str, 2);
+	print_text(cp, score_str, 3);
+	print_summary(cp, &rand_room, panels);
 	save_png(cp, filename);
 	printf("\n");
 	free_panels(panels);
@@ -375,7 +383,11 @@ int main(int argc, char* argv[])
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	test_panel_room(argc, argv);
+	for(int i=31; i<400; i++) {
+		__max_row_debug = i;
+		/* __max_row_debug = 1000; */
+		test_panel_room(argc, argv);
+	}
 	//test_grid(argc, argv);
 }
 

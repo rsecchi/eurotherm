@@ -26,6 +26,8 @@
 
 
 extern canvas_t* __debug_canvas;
+extern int __max_row_debug;
+extern uint32_t __score;
 
 typedef enum {
 	FULL,    // panel 200 x 120 cm
@@ -90,7 +92,8 @@ typedef struct {
 	uint32_t h_steps, v_steps;
 	point_t offset;
 	uint32_t offset_col;
-	dorsal_t* _dorsals;
+	dorsal_t* _dors_up;
+	dorsal_t* _dors_down;
 	dorsal_t* dorsals;
 	uint32_t score;
 	double gap;

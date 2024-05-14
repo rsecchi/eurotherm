@@ -19,3 +19,7 @@ run: test_engine
 
 tags:
 	ctags -R .
+
+print:
+	a2ps engine.c --font-size=8 --columns=1 --portrait -o engine.ps
+	ps2pdf engine.ps

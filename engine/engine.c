@@ -5,6 +5,8 @@
 
 
 canvas_t * __debug_canvas;
+int __max_row_debug;
+uint32_t __score;
 
 panel_desc_t panel_desc[] =
 {
@@ -180,13 +182,14 @@ uint32_t make_dorsal(allocation_t* alloc, dorsal_t* dorsal)
 room_t* room = alloc->room;
 panel_t _panels[MAX_RAILS];
 panel_t trial;
-grid_pos_t pos;
+grid_pos_t pos, tpos;
 dorsal_width_t width;
 heading_t dir;
 int max_score = 0, new_score;
 int score;
 int num_panels, k=0, kp, type;
 uint16_t *flag, panel_done, panel_fail;
+int level;
 
 	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
 
@@ -199,21 +202,33 @@ uint16_t *flag, panel_done, panel_fail;
 	pos.i = dorsal->offset_row;
 	pos.j = dorsal->offset_col;
 
-	while(pos.j < bounds[pos.i][0] + 2*INTER_RAIL_STEPS)
+	level = pos.i;
+	if (dir==DOWN) {
+		level = pos.i - HD_STEPS*((width==NARROW)?1:2);
+		if (level<0) {
+			dorsal->num_panels = 0;
+			return 0;
+		}
+	}
+
+	while(pos.j < bounds[level][0] + 2*INTER_RAIL_STEPS)
 		pos.j += INTER_RAIL_STEPS;
 
-	while(pos.j<= bounds[pos.i][1]) {
+	while(pos.j<= bounds[level][1]) {
 
-		flag = &flags[pos.i][pos.j];
+		/* tpos = pos; */
 
-		/* skip all panels if they already failed */
-		if ((*flag & ALL_FAIL) == ALL_FAIL)
-			goto next;
+		/* flag = &flags[pos.i][pos.j]; */
+
+		/* /1* skip all panels if they already failed *1/ */
+		/* if ((*flag & ALL_FAIL) == ALL_FAIL) */
+		/* 	goto next; */
 
 		panel_fail = 0x4000;
 		panel_done = 0x8000;
 
 		for(type=0; type<NUM_PANEL_T; type++){
+
 
 			/* skip panel type if dorsal does not support panel*/
 			if (width==NARROW && 
@@ -224,6 +239,12 @@ uint16_t *flag, panel_done, panel_fail;
 				continue;
 			}
 
+			tpos = pos;
+			if (width== WIDE && dir==DOWN && (type==SPLIT || type==QUARTER))
+				tpos.i -= HD_STEPS;
+
+			flag = &flags[tpos.i][tpos.j]; 
+
 			/* skip panel if check already failed for it */
 			if (*flag & panel_fail) {
 				panel_fail >>= 2;
@@ -232,10 +253,10 @@ uint16_t *flag, panel_done, panel_fail;
 			}
 
 			/* test if panel fit */
-			panel(&trial, type, pos, dir);
+			panel(&trial, type, tpos, dir);
 		
 			if ( ((*flag & panel_done) || fit(&trial, room, flag)) 
-				 && gap_ok(&trial, pos, alloc)) {
+				 && gap_ok(&trial, tpos, alloc)) {
 
 					new_score = panel_desc[type].score;
 					kp = k - panel_desc[type].prev;
@@ -250,7 +271,6 @@ uint16_t *flag, panel_done, panel_fail;
 			panel_fail >>= 2;
 			panel_done >>= 2;
 		}
-next:
 		_panels[k].score = max_score;
 
 		k++;
@@ -296,11 +316,14 @@ int count_dorsals(dorsal_t* head)
 	return tot;
 }
 
+
 uint32_t scanline(allocation_t* alloc)
 {
-int k=0, kp;
-uint32_t max_score = 253, new_score;
-dorsal_t trial, *dorsals = alloc->_dorsals;
+int k=0, kp, kq;
+uint32_t max_score = 0, score, score_up, score_down;
+dorsal_t trial, *nxt_up, *nxt_down;
+dorsal_t *dors_up = alloc->_dors_up;
+dorsal_t *dors_down = alloc->_dors_down;
 point_t ofs = alloc->offset;
 uint32_t mark=-1;
 int rows;
@@ -309,45 +332,89 @@ int rows;
 	trial.offset_col = alloc->offset_col;
 	rows = alloc->wall_grid.rows;
 
-	while(k < rows) {
+	while(k < MIN(rows,__max_row_debug)) {
 
-		dorsals[k].num_panels = 0;
-		dorsals[k].next = alloc->dorsals;
+		dors_up[k].num_panels = 0;
+		dors_up[k].next = alloc->dorsals;
+		dors_up[k].score = 0;
 
-		if (k<=HD_STEPS)
+		dors_down[k].num_panels = 0;
+		dors_down[k].next = alloc->dorsals;
+		dors_down[k].score = 0;
+
+		if (k<HD_STEPS)
 			goto next;
 
-		for(int width=0; width<2; width++)
-			for(int head=0; head<2; head++) {
+		for(int width=0; width<2; width++) {
+
+			for(int head=0; head<1; head++) {
+				
+				/* calculate score of current dorsal */
 				trial.offset = ofs;
 				trial.width = width;
 				trial.heading = head;
 				trial.offset_row = k;
-				new_score = make_dorsal(alloc, &trial);
+				score_up = score_down = make_dorsal(alloc, &trial);
+				/* determine the baseline score */
+				kq = kp = (width==WIDE)?(k - 2*HD_STEPS):
+							(k - HD_STEPS);
 
-				kp = (width==WIDE)?(k - 2*HD_STEPS):
-				                   (k - HD_STEPS);
 
-				if (kp>=0 && dorsals[kp].num_panels>0) {
-					new_score += dorsals[kp].score;
-					trial.next = &dorsals[kp];
+				if (kp>=0 && dors_up[kp].num_panels>0 && 
+						head==UP) {
+					score_up += dors_up[kp].score;
+					nxt_up = &dors_up[kp];
 				} else {
 					kp -= INTER_DORSAL_GAP;
-					trial.next = (kp>=0)?&dorsals[kp]:NULL;
-					if (trial.next)
-						new_score += dorsals[kp].score;
+					nxt_up = (kp>=0)?&dors_up[kp]:NULL;
+					if (nxt_up)
+						score_up += dors_up[kp].score;
 				}
-				if (new_score>max_score ||
-					(new_score==max_score && k>mark &&
+
+				if (kq>=0 && dors_down[kq].num_panels>0) {
+					score_down += dors_down[kq].score;
+					nxt_down = &dors_down[kq];
+				} else {
+					kq -= INTER_DORSAL_GAP;
+					nxt_down = (kq>=0)?&dors_down[kq]:NULL;
+					if (nxt_down)
+						score_down += dors_down[kq].score;
+				}
+
+				trial.next = (score_up >= score_down)?
+					nxt_up:nxt_down;
+
+				score = MAX(score_up, score_down);
+
+
+				if (head==UP && dors_up[k].score<score) {
+					dors_up[k] = trial;
+					dors_up[k].score = score;
+				}
+
+				if (head==DOWN && dors_down[k].score<score) {
+					dors_down[k] = trial;
+					dors_down[k].score = score;
+				}	
+				
+				if (score_up>max_score ||
+					(score_up==max_score && k>mark &&
 					 k<rows/2)) {
-					max_score = new_score;
-					dorsals[k] = trial;
-					alloc->dorsals = &dorsals[k];
+					max_score = score_up;
+					alloc->dorsals = &dors_up[k];
 					mark = k;
 				}
+
+				if (score_down>max_score) {
+					max_score = score_down;
+					alloc->dorsals = &dors_down[k];
+				}
 			}
+		}
+
 next:
-		dorsals[k].score = max_score;
+		dors_up[k].score = max_score;
+		dors_down[k].score = max_score;
 
 		ofs.y += INTER_LINE_GAP;
 		k++;
@@ -366,8 +433,8 @@ double gap = 0;
 
 	alloc->panels = NULL;
 	offset = (point_t){box->xmin, box->ymin};
-	for(int k=0; k<NUM_OFFSETS; k++) {
-
+	//for(int k=0; k<NUM_OFFSETS; k++) {
+	int k=4;
 		alloc->offset = offset;
 		alloc->gap = 0;
 		alloc->offset_col = k;
@@ -377,7 +444,7 @@ double gap = 0;
 		    ((score == max_score) && alloc->gap > gap)) {
 			max_score = score;
 			gap = alloc->gap;
-
+			printf("new max at offset=%d\n",k);
 			/* copy dorsals */
 			if (alloc->panels)
 				free_panels(alloc->panels);
@@ -386,7 +453,7 @@ double gap = 0;
 
 		offset.x += OFFSET_STEP;
 		
-	}
+	//}
 
 	return max_score;
 }
@@ -421,11 +488,15 @@ grid_t* grid = &alloc.wall_grid;
 	/* 		grid->box.ymin, */
 	/* 		grid->box.ymax */
 	/* 		); */
-	alloc._dorsals = malloc(sizeof(dorsal_t)*grid->rows);
+	alloc._dors_up = malloc(sizeof(dorsal_t)*grid->rows);
+	alloc._dors_down = malloc(sizeof(dorsal_t)*grid->rows);
 
-	search_offset(&alloc);
+	alloc.score = search_offset(&alloc);
+
+	__score = alloc.score;
 	free_grid(grid);
-	free(alloc._dorsals);
+	free(alloc._dors_up);
+	free(alloc._dors_down);
 
 	return alloc.panels;
 }
