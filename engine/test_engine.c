@@ -268,11 +268,16 @@ void test_panel_room(int argc, char* argv[])
 {
 room_t rand_room;
 panel_t* panels;
+polygon_t line;
+box_t box;
 char filename[256] = "polygon-";
 char num_str[256];
 char rows_str[256];
 char score_str[256];
 long int clock_time;
+
+	line.len = 2;
+	line.poly = malloc(2*sizeof(point_t));
 
 	create_room(&rand_room, atoi(argv[1]));
 
@@ -307,6 +312,14 @@ long int clock_time;
 	print_text(cp, rows_str, 2);
 	print_text(cp, score_str, 3);
 	print_summary(cp, &rand_room, panels);
+
+	int h = 2*__max_row_debug;
+	bounding_box(&rand_room.walls, &box);
+	line.poly[0] = (point_t){box.xmin, box.ymin + h};
+	line.poly[1] = (point_t){box.xmax, box.ymin + h};
+
+	draw_polygon(cp, &line, ORANGE);
+
 	save_png(cp, filename);
 	printf("\n");
 	free_panels(panels);
@@ -383,11 +396,11 @@ int main(int argc, char* argv[])
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	//for(int i=31; i<400; i++) {
-	//	__max_row_debug = i;
+	/* for(int i=31; i<400; i++) { */
+	/* 	__max_row_debug = i; */
 		__max_row_debug = 1000;
 		test_panel_room(argc, argv);
-	//}
+	/* } */
 	//test_grid(argc, argv);
 }
 

@@ -76,6 +76,7 @@ extern canvas_t _canvas;
 #define GREEN  (colour_t){0., 1., 0.}
 #define BLUE   (colour_t){0., 0., 1.}
 #define YELLOW (colour_t){1., 1., 0.}
+#define ORANGE (colour_t){1., .5, 0.}
 #define BLACK  (colour_t){0., 0., 0.}
 
 int point_inside_polygon(point_t*q, polygon_t* pgon);

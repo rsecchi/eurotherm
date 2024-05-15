@@ -421,15 +421,14 @@ double gap = 0;
 	rows = alloc->wall_grid.rows;
 	alloc->panels = NULL;
 	offset = (point_t){box->xmin, box->ymin};
-	//for(int k=0; k<NUM_OFFSETS; k++) {
-	int k=4;
+	for(int k=0; k<NUM_OFFSETS; k++) {
 		alloc->offset = offset;
 		alloc->gap = 0;
 		alloc->offset_col = k;
 
 		/* reset scoreboards */
 		memset(alloc->_dors_up, 0, rows*sizeof(dorsal_t));
-		memset(alloc->_dors_up, 0, rows*sizeof(dorsal_t));
+		memset(alloc->_dors_down, 0, rows*sizeof(dorsal_t));
 		memset(alloc->_dorsal_score, 0, rows*sizeof(dorsal_score_t));
 
 		score = scanline(alloc);
@@ -446,7 +445,7 @@ double gap = 0;
 
 		offset.x += OFFSET_STEP;
 		
-	//}
+	}
 
 	return max_score;
 }
