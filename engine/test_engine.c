@@ -9,10 +9,10 @@
 #define MIN_CORNERS   6 
 #define MAX_CORNERS   12 
 #define MIN_OBS       7
-#define MAX_OBS       14
+#define MAX_OBS       10
 #define MIN_AREA     8.0
 #define MIN_OBS_LEN   5
-#define MAX_OBS_LEN  250
+#define MAX_OBS_LEN  20
 
 int random_seed;
 
@@ -25,7 +25,7 @@ int compare(const void *a, const void *b) {
 
 
 void create_room(room_t* rm, int seed) {
-int i;
+int i, k;
 int corners;
 
 point_t poly[MAX_CORNERS*2 + 1];
@@ -72,8 +72,12 @@ box_t obs_box, walls_box;
 			poly[2*i+1].x = poly[2*i].x;
 			poly[2*i+1].y = poly[2*(i+1)].y;
 		}
+		k = 1 + random() % (len-2);
+		for(i=k; i<len-1; i++)
+			poly[i] = poly[i+1];
+
 		walls.poly = &poly[0];
-		walls.len = len;
+		walls.len = len-1;
 		areap = area_polygon(&walls)/10000;
 	} while(self_intersect(&walls) || areap<MIN_AREA);
 
@@ -398,16 +402,14 @@ int rows;
 	bounding_box(&rand_room.walls, &box);
 
 	rows = MIN(400, (box.xmax-box.xmin)/2);
-	printf("rows=%d\n", rows);	
 
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++) { 
-	/* 	__max_row_debug = i; */
-		/* __max_row_debug = 1000; */
+	/* for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++)  */ 
+		__max_row_debug = 1000;
 		test_panel_room(argc, argv, &rand_room);
-}
+
 	//test_grid(argc, argv);
 	free_room(&rand_room);
 }

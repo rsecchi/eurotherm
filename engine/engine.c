@@ -189,6 +189,7 @@ int max_score = 0, new_score;
 int score;
 int num_panels, k=0, kp, type;
 uint16_t *flag, panel_done, panel_fail;
+uint32_t parity;
 int level;
 
 	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
@@ -203,6 +204,8 @@ int level;
 	pos.j = dorsal->offset_col;
 
 	level = pos.i;
+	parity = dorsal->parity;
+
 	if (dir==DOWN) {
 		level = pos.i - HD_STEPS*((width==NARROW)?1:2);
 		if (level<0) {
@@ -216,6 +219,9 @@ int level;
 
 	while(pos.j<= bounds[level][1]) {
 
+		// parity = ((k+v)&3)>>1;
+		//printf("%d ", parity);
+
 		/* tpos = pos; */
 
 		/* flag = &flags[pos.i][pos.j]; */
@@ -228,7 +234,6 @@ int level;
 		panel_done = 0x8000;
 
 		for(type=0; type<NUM_PANEL_T; type++){
-
 
 			/* skip panel type if dorsal does not support panel*/
 			if (width==NARROW && 
@@ -263,7 +268,8 @@ int level;
 					if (kp>=0)
 						new_score += _panels[kp].score;
 				
-					if (new_score>max_score) {
+					if (new_score>max_score ||
+						(new_score==max_score && parity)) {
 						max_score = new_score;
 						_panels[k] = trial;
 					}	
@@ -276,6 +282,7 @@ int level;
 		k++;
 		pos.j += INTER_RAIL_STEPS;
 	}
+	// printf("\n");
 
 	k--;
 	score = dorsal->score = _panels[k].score;
@@ -346,6 +353,7 @@ int rows;
 
 			/* evaluating up dorsals */
 			trial.heading = UP;
+			trial.parity = dors_up[kp[width]].parity ^ 1;
 			dorsal_score = make_dorsal(alloc, &trial);
 
 			eval = dorsal_score + dors_up[kp[width]].score;
@@ -371,6 +379,7 @@ int rows;
 
 			/* evaluating down dorsals */
 			trial.heading = DOWN;
+			trial.parity = dors_down[kp[width]].parity ^ 1;
 			dorsal_score = make_dorsal(alloc, &trial);
 	
 			eval = dorsal_score + dors_down[kp[width]].score;
@@ -442,8 +451,7 @@ double gap = 0;
 			alloc->panels = copy_panels(alloc);
 		}
 
-		offset.x += OFFSET_STEP;
-		
+		offset.x += OFFSET_STEP;		
 	}
 
 	return max_score;

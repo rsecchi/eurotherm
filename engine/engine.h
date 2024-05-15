@@ -77,6 +77,7 @@ typedef struct __panel {
 typedef struct __dorsal {
 	heading_t heading;
 	dorsal_width_t width;
+	uint32_t parity;
 	panel_t panels[MAX_DORSAL_PANELS];
 	int num_panels;
 	uint32_t score;
