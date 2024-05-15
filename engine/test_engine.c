@@ -264,9 +264,8 @@ long int clock_time;
 	free_room(&rand_room);
 }
 
-void test_panel_room(int argc, char* argv[])
+void test_panel_room(int argc, char* argv[], room_t* rand_room)
 {
-room_t rand_room;
 panel_t* panels;
 polygon_t line;
 box_t box;
@@ -279,7 +278,6 @@ long int clock_time;
 	line.len = 2;
 	line.poly = malloc(2*sizeof(point_t));
 
-	create_room(&rand_room, atoi(argv[1]));
 
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
@@ -288,10 +286,10 @@ long int clock_time;
 
 	__debug_canvas = cp;
 
-	draw_room(cp, &rand_room);
+	draw_room(cp, rand_room);
 
 	clock_time = clock();
-	panels = panel_room(&rand_room);
+	panels = panel_room(rand_room);
 	clock_time = clock() - clock_time;
 	draw_panels(cp, panels);
 
@@ -311,10 +309,10 @@ long int clock_time;
 	print_text(cp, num_str, 1);
 	print_text(cp, rows_str, 2);
 	print_text(cp, score_str, 3);
-	print_summary(cp, &rand_room, panels);
+	print_summary(cp, rand_room, panels);
 
 	int h = 2*__max_row_debug;
-	bounding_box(&rand_room.walls, &box);
+	bounding_box(&rand_room->walls, &box);
 	line.poly[0] = (point_t){box.xmin, box.ymin + h};
 	line.poly[1] = (point_t){box.xmax, box.ymin + h};
 
@@ -323,7 +321,6 @@ long int clock_time;
 	save_png(cp, filename);
 	printf("\n");
 	free_panels(panels);
-	free_room(&rand_room);
 }
 
 void test_grid(int argc, char* argv[])
@@ -388,19 +385,30 @@ grid_t grid;
 
 int main(int argc, char* argv[]) 
 {
+room_t rand_room;
+box_t box;
+int rows;
 
 	if (argc!=2) {
 		fprintf(stderr, "usage: %s <random_seed>\n", argv[0]);
 		exit(1);
 	}
+
+	create_room(&rand_room, atoi(argv[1]));
+	bounding_box(&rand_room.walls, &box);
+
+	rows = MIN(400, (box.xmax-box.xmin)/2);
+	printf("rows=%d\n", rows);	
+
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	/* for(int i=31; i<400; i++) { */
+	for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++) { 
 	/* 	__max_row_debug = i; */
-		__max_row_debug = 1000;
-		test_panel_room(argc, argv);
-	/* } */
+		/* __max_row_debug = 1000; */
+		test_panel_room(argc, argv, &rand_room);
+}
 	//test_grid(argc, argv);
+	free_room(&rand_room);
 }
 

@@ -404,7 +404,6 @@ int rows;
 		}	
 		k++;
 	}
-	printf("%d\n", score[k-1].score);
 	alloc->dorsals = score[k-1].dorsal;
 
 	return score[k-1].score;
