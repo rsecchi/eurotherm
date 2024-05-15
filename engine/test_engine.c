@@ -160,7 +160,7 @@ box_t box;
 
 	alloc.room = &rand_room;
 
-	dorsal.offset = (point_t){box.xmin,(box.ymin+box.ymax)/2};
+	//dorsal.offset = (point_t){box.xmin,(box.ymin+box.ymax)/2};
 	dorsal.width = rand() % 2;
 	dorsal.heading = rand() % 2;
 	
@@ -383,11 +383,11 @@ int main(int argc, char* argv[])
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	for(int i=31; i<400; i++) {
-		__max_row_debug = i;
-		/* __max_row_debug = 1000; */
+	//for(int i=31; i<400; i++) {
+	//	__max_row_debug = i;
+		__max_row_debug = 1000;
 		test_panel_room(argc, argv);
-	}
+	//}
 	//test_grid(argc, argv);
 }
 

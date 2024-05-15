@@ -75,7 +75,6 @@ typedef struct __panel {
 } panel_t;
 
 typedef struct __dorsal {
-	point_t offset;
 	heading_t heading;
 	dorsal_width_t width;
 	panel_t panels[MAX_DORSAL_PANELS];
@@ -87,6 +86,11 @@ typedef struct __dorsal {
 } dorsal_t;
 
 typedef struct {
+	uint32_t score;
+	dorsal_t* dorsal;
+} dorsal_score_t;
+
+typedef struct {
 	room_t* room;
 	grid_t wall_grid;
 	uint32_t h_steps, v_steps;
@@ -94,6 +98,7 @@ typedef struct {
 	uint32_t offset_col;
 	dorsal_t* _dors_up;
 	dorsal_t* _dors_down;
+	dorsal_score_t* _dorsal_score;
 	dorsal_t* dorsals;
 	uint32_t score;
 	double gap;
