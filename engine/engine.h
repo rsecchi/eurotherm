@@ -17,6 +17,7 @@
 #define INTER_RAIL_STEPS     10
 #define INTER_LINE_GAP        2
 #define DIST_FROM_WALLS      18.
+#define LID_STEPS            10
 
 #define NUM_OFFSETS          10
 #define OFFSET_STEP           5.
@@ -24,6 +25,10 @@
 #define HD_STEPS  PANEL_HEIGHT/INTER_LINE_GAP
 #define INTER_DORSAL_GAP    16/INTER_LINE_GAP
 
+
+#define ROTATE  0x00000001
+#define INVERT  0x00000002
+#define MIRROR  0x00000004
 
 extern canvas_t* __debug_canvas;
 extern int __max_row_debug;
@@ -60,6 +65,7 @@ typedef struct{
 	polygon_t walls;
 	polygon_t* obstacles;
 	int obs_num;
+	point_t collector_pos;
 } room_t;
 
 typedef struct __panel {
@@ -71,6 +77,7 @@ typedef struct __panel {
 	heading_t heading;
 	box_t pbox;
 	uint32_t score;
+	uint32_t orient_flags;
 	struct __panel* next;
 } panel_t;
 
@@ -101,7 +108,6 @@ typedef struct {
 	dorsal_t* _dors_down;
 	dorsal_score_t* _dorsal_score;
 	dorsal_t* dorsals;
-	uint32_t score;
 	double gap;
 	panel_t* panels;
 } allocation_t;
@@ -116,7 +122,8 @@ void panel(panel_t*, ptype, grid_pos_t, heading_t);
 uint32_t make_dorsal(allocation_t*, dorsal_t*);
 uint32_t scanline(allocation_t*);
 uint32_t search_offset(allocation_t*);
-panel_t* panel_room(room_t*);
+panel_t* panel_room(room_t*, uint32_t*);
+panel_t* build_room(room_t*);
 
 panel_t* copy_panels(allocation_t*);
 void free_panels(panel_t*);

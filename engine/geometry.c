@@ -253,6 +253,25 @@ point_t a, b;
 	return fabs(area_tot);
 }
 
+void copy_polygon(polygon_t* poly_in, polygon_t* poly_out)
+{
+int len;
+
+	len = poly_out->len = poly_in->len;
+
+	poly_out->poly = malloc(len*sizeof(point_t));
+	for(int i=0; i<len; i++)
+		poly_out->poly[i] = poly_in->poly[i];
+
+}
+
+void free_polygon(polygon_t* poly)
+{
+	free(poly->poly);
+	free(poly);
+}
+
+
 void init_grid(grid_t* grid)
 {
 polygon_t* poly = grid->poly;
@@ -399,8 +418,6 @@ next:
 	/* 			/1* bounds[i][1]); *1/ */
 	/* } */
 }
-
-
 
 void free_grid(grid_t* grid)
 {

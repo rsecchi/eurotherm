@@ -31,19 +31,20 @@ int count_panels(panel_t* head)
 panel_t* copy_panels(allocation_t* alloc)
 {
 panel_t* head = NULL, *np;
-int num_dorsals=0, mallocs=0;
+int num_dorsals=0;
 
 	for(dorsal_t* d=alloc->dorsals; d!=NULL; d=d->next)  {
 		for(int k=0; k<d->num_panels; k++) {
 			np = (panel_t*)malloc(sizeof(panel_t));
-			mallocs++;
 			*np = d->panels[k];
 			np->next = head;
 			head = np;
+			np->orient_flags = 0;
 		}
 		num_dorsals++;
 	}
 	return head;
+
 }
 
 void free_panels(panel_t* head)
@@ -77,10 +78,10 @@ uint8_t (*gv)[p->grid->cols] = p->grid->_gridv;
 uint8_t (*gh)[p->grid->cols] = p->grid->_gridh;
 polygon_t *pgon;
 
-	n1 = p->row;
-	m1 = p->col;
-	n2 = n1 - panel_desc[p->type].y_steps;
-	m2 = m1 - panel_desc[p->type].x_steps;
+	n1 = (int)p->row;
+	m1 = (int)p->col;
+	n2 = n1 - (int)panel_desc[p->type].y_steps;
+	m2 = m1 - (int)panel_desc[p->type].x_steps;
 
 	if (m2<0 || n2<=0)
 		goto fail;
@@ -108,8 +109,8 @@ polygon_t *pgon;
 			lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
 			lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
 
-			for(int i=1; i<pgon->len-1; i++)
-				if (!point_inside_box(&pgon->poly[i], &lux_box))
+			for(int j=1; i<pgon->len-1; j++)
+				if (!point_inside_box(&pgon->poly[j], &lux_box))
 					goto fail;	
 		}
 	}
@@ -125,24 +126,32 @@ fail:
 
 int gap_ok(panel_t *panel, grid_pos_t pos, allocation_t *alloc)
 {
-int w = panel_desc[panel->type].x_steps;
-int h = panel_desc[panel->type].y_steps;
-int gap_left;
-uint32_t i;
+int w = (int)panel_desc[panel->type].x_steps;
+int h = (int)panel_desc[panel->type].y_steps;
+int gap1_left, gap2_left;
+int i1, i2;
 
 	uint32_t (*gaps)[alloc->wall_grid.cols] = alloc->wall_grid.gaps;
 
-	i = pos.i;
-	if (panel->heading == DOWN)
-		i -= h;
+	i1 = pos.i;
+	i2 = i1 - LID_STEPS;
+	if (panel->heading == DOWN) {
+		i1 -= h;
+		i2 = i1 + LID_STEPS;
+	}
 
-	gap_left = gaps[i][pos.j-w];
+	gap1_left = gaps[i1][pos.j-w];
+	gap2_left = gaps[i2][pos.j-w];
 
-	if (gap_left < DIST_FROM_WALLS)
+	if (gap1_left < DIST_FROM_WALLS || 
+		gap2_left < DIST_FROM_WALLS)
 		return 0;
 
-	if (gap_left < alloc->gap)
-		alloc->gap = gap_left;
+	if (gap1_left < alloc->gap)
+		alloc->gap = gap1_left;
+
+	if (gap2_left < alloc->gap)
+		alloc->gap = gap2_left;
 
 	return 1;
 }
@@ -458,10 +467,11 @@ double gap = 0;
 }
 
 
-panel_t* panel_room(room_t* room)
+panel_t* panel_room(room_t* room, uint32_t* score)
 {
 allocation_t alloc;
 grid_t* grid = &alloc.wall_grid;
+
 
 	alloc.room = room;
 
@@ -486,16 +496,14 @@ grid_t* grid = &alloc.wall_grid;
 	/* 		grid->box.xmax, */
 	/* 		grid->box.ymin, */
 	/* 		grid->box.ymax */
-	/* 		); */
+	/* ); */
+
 	alloc._dors_up = malloc(sizeof(dorsal_t)*grid->rows);
 	alloc._dors_down = malloc(sizeof(dorsal_t)*grid->rows);
 	alloc._dorsal_score = 
 		malloc(sizeof(dorsal_score_t)*grid->rows);
 
-
-	alloc.score = search_offset(&alloc);
-
-	__score = alloc.score;
+	*score = __score = search_offset(&alloc);
 
 	free(alloc._dorsal_score);
 	free(alloc._dors_down);
@@ -504,6 +512,62 @@ grid_t* grid = &alloc.wall_grid;
 
 	return alloc.panels;
 }
+
+void copy_room(room_t* room_in, room_t* room_out)
+{
+int len = room_in->obs_num;
+
+	copy_polygon(&room_in->walls,&room_out->walls);
+	room_out->obs_num = len;
+	room_out->collector_pos = room_in->collector_pos;
+	room_out->obstacles = malloc(sizeof(polygon_t)*len);
+	for(int i=0; i<len; i++)
+		copy_polygon(&room_in->obstacles[i], 
+				&room_out->obstacles[i]);
+
+}
+
+void free_room(room_t* room)
+{
+	free(room->obstacles);
+}
+
+panel_t* build_room(room_t* room)
+{
+double t;
+room_t trial_room;
+panel_t *panels_upright, *panels_flat, *pn;
+uint32_t upright_score, flat_score;
+
+	copy_room(room, &trial_room);
+
+	printf("collector pos (%.2lf, %.2lf)",
+			room->collector_pos.x,
+			room->collector_pos.y);
+
+	/* rotate 90 degrees */
+	for(int i=0; i<room->walls.len; i++) {
+
+		t = room->walls.poly[i].x;
+		trial_room.walls.poly[i].x = -trial_room.walls.poly[i].y;
+		trial_room.walls.poly[i].y = t;
+	}
+
+	panels_upright = panel_room(&trial_room, &upright_score);
+	panels_flat = panel_room(room, &flat_score);
+
+	for(pn=panels_upright; pn!=NULL; pn=pn->next){ 
+		pn->orient_flags |= ROTATE;
+	}
+	
+	free_room(&trial_room);
+
+	if (upright_score > flat_score)
+		return panels_upright;
+
+	return panels_flat; 
+}
+
 
 
 /* libcairo drawing support */
@@ -537,7 +601,7 @@ void draw_panel(canvas_t* ct, panel_t* p)
 {
 point_t centre;
 box_t box;
-
+double t;
 point_t poly[9];
 polygon_t pgon;
 	
@@ -557,6 +621,15 @@ polygon_t pgon;
 		for(int i=0; i<9; i++) 
 			poly[i].y = p->pbox.ymax + p->pbox.ymin - poly[i].y;
 
+
+	if (p->orient_flags & ROTATE) {
+		for(int i=0; i<9; i++) {
+			t = poly[i].x;
+			poly[i].x = poly[i].y;
+			poly[i].y = -t;
+		}
+	}
+
 	draw_polygon(ct, &pgon, GREEN);
 
 	if (p->type == LUX) {
@@ -575,6 +648,7 @@ void draw_dorsal(canvas_t*cp, dorsal_t* dorsal)
 {
 	for(int i=0; i<dorsal->num_panels; i++)
 		draw_panel(cp, &dorsal->panels[i]);
+
 }
 
 void draw_panels(canvas_t*cp, panel_t* panels)

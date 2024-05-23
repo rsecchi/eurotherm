@@ -104,7 +104,8 @@ void draw_box(canvas_t* ct, box_t* box, colour_t col);
 void draw_point(canvas_t* ct, point_t point);
 void print_text(canvas_t* ct, char* text, int line);
 void save_png(canvas_t* ct, char* filename);
-
+void copy_polygon(polygon_t*, polygon_t*);
+void free_polygon(polygon_t*);
 
 
 #endif
