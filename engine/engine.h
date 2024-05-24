@@ -13,11 +13,14 @@
 #define MAX_LINES          2048
 #define MAX_DORSALS         512
 #define MAX_DORSAL_PANELS    64
+#define MAX_LINE_SIZE        20
 #define INTER_RAIL_GAP       50.
 #define INTER_RAIL_STEPS     10
 #define INTER_LINE_GAP        2
 #define DIST_FROM_WALLS      18.
 #define LID_STEPS            10
+
+#define STEPS_RIGHT_GAP     200
 
 #define NUM_OFFSETS          10
 #define OFFSET_STEP           5.

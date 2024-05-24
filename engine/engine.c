@@ -129,6 +129,7 @@ int gap_ok(panel_t *panel, grid_pos_t pos, allocation_t *alloc)
 int w = (int)panel_desc[panel->type].x_steps;
 int h = (int)panel_desc[panel->type].y_steps;
 int gap1_left, gap2_left;
+int gap1_right, gap2_right;
 int i1, i2;
 
 	uint32_t (*gaps)[alloc->wall_grid.cols] = alloc->wall_grid.gaps;
@@ -146,6 +147,15 @@ int i1, i2;
 	if (gap1_left < DIST_FROM_WALLS || 
 		gap2_left < DIST_FROM_WALLS)
 		return 0;
+
+	if (pos.j > STEPS_RIGHT_GAP) {
+		gap1_right = gaps[i1][pos.j];
+		gap2_right = gaps[i2][pos.j];
+		if (gap1_right < DIST_FROM_WALLS || 
+			gap2_right < DIST_FROM_WALLS)
+			return 0;
+	}
+
 
 	if (gap1_left < alloc->gap)
 		alloc->gap = gap1_left;
@@ -276,7 +286,7 @@ int level;
 					kp = k - panel_desc[type].prev;
 					if (kp>=0)
 						new_score += _panels[kp].score;
-				
+			
 					if (new_score>max_score ||
 						(new_score==max_score && parity)) {
 						max_score = new_score;
@@ -540,10 +550,6 @@ panel_t *panels_upright, *panels_flat, *pn;
 uint32_t upright_score, flat_score;
 
 	copy_room(room, &trial_room);
-
-	printf("collector pos (%.2lf, %.2lf)",
-			room->collector_pos.x,
-			room->collector_pos.y);
 
 	/* rotate 90 degrees */
 	for(int i=0; i<room->walls.len; i++) {

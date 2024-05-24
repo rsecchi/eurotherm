@@ -14,7 +14,7 @@
 #define MIN_OBS_LEN   10
 #define MAX_OBS_LEN  130
 #define ROOM_WIDTH   800
-#define ROOM_HEIGHT  800
+#define ROOM_HEIGHT  600
 
 int random_seed;
 int __add_obstacles;
@@ -330,14 +330,14 @@ long int clock_time;
 	sprintf(rows_str, "-%04d", __max_row_debug);
 	sprintf(score_str, "score=%d", __score);
 
-	printf("%d ", random_seed);
+	printf("%3d ", random_seed);
 	strcat(filename, num_str); 
 	strcat(filename, rows_str); 
 	strcat(filename, ".png"); 
 	print_text(cp, num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
-	printf("%ld", clock_time/1000);
+	printf("%5ld  ", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
 	print_text(cp, num_str, 1);
 	print_text(cp, rows_str, 2);
