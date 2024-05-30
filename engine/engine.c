@@ -19,6 +19,10 @@ panel_desc_t panel_desc[] =
 
 #define ALL_FAIL  0xFFC0
 
+
+config_t config;
+
+
 int count_panels(panel_t* head)
 {
 	int tot = 0;
@@ -69,6 +73,8 @@ double active_area(panel_t* head)
 	return tot;
 }
 
+int __flag;
+
 int fit(panel_t* p, room_t* room, uint16_t* flag)
 {
 int i, m1, m2, n1, n2;
@@ -101,6 +107,7 @@ polygon_t *pgon;
 		box = p->pbox;
 		if (p->pbox.xmin<x && x<p->pbox.xmax &&
 			p->pbox.ymin<y && y<p->pbox.ymax) {
+
 			if (!(p->type == LUX)) 
 				goto fail;
 
@@ -109,9 +116,9 @@ polygon_t *pgon;
 			lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
 			lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
 
-			for(int j=1; i<pgon->len-1; j++)
+			for(int j=0; j<pgon->len-1; j++) 
 				if (!point_inside_box(&pgon->poly[j], &lux_box))
-					goto fail;	
+					goto fail;
 		}
 	}
 
@@ -253,6 +260,9 @@ int level;
 		panel_done = 0x8000;
 
 		for(type=0; type<NUM_PANEL_T; type++){
+
+			if (!config.enable_quarters && type==QUARTER)
+				continue;
 
 			/* skip panel type if dorsal does not support panel*/
 			if (width==NARROW && 
@@ -559,6 +569,15 @@ uint32_t upright_score, flat_score;
 		trial_room.walls.poly[i].y = t;
 	}
 
+	for(int i=0; i<room->obs_num; i++) {
+		for(int k=0; k<room->obstacles[i].len; k++) {
+			t = room->obstacles[i].poly[k].x;
+			trial_room.obstacles[i].poly[k].x = 
+				-trial_room.obstacles[i].poly[k].y;
+			trial_room.obstacles[i].poly[k].y = t;
+		}
+	}
+
 	panels_upright = panel_room(&trial_room, &upright_score);
 	panels_flat = panel_room(room, &flat_score);
 
@@ -609,7 +628,8 @@ point_t centre;
 box_t box;
 double t;
 point_t poly[9];
-polygon_t pgon;
+point_t lux[5];
+polygon_t pgon, plux;
 	
 	pgon.len = 9;
 	pgon.poly = (point_t*)poly;
@@ -643,11 +663,28 @@ polygon_t pgon;
 			(p->pbox.xmin+p->pbox.xmax)/2,
 			(p->pbox.ymin+p->pbox.ymax)/2
 		};
+
 		box.xmin = centre.x - LUX_WIDTH/2;
 		box.xmax = centre.x + LUX_WIDTH/2;
 		box.ymin = centre.y - LUX_HEIGHT/2;
 		box.ymax = centre.y + LUX_HEIGHT/2;
-		draw_rect(ct, &box, GREEN);
+		lux[0] = (point_t){box.xmin, box.ymin};
+		lux[1] = (point_t){box.xmin, box.ymax};
+		lux[2] = (point_t){box.xmax, box.ymax};
+		lux[3] = (point_t){box.xmax, box.ymin};
+		lux[4] = (point_t){box.xmin, box.ymin};
+		plux.poly = lux;
+		plux.len = 5;
+		if (p->orient_flags & ROTATE) {
+			for(int i=0; i<5; i++) {
+				t = lux[i].x;
+				lux[i].x = lux[i].y;
+				lux[i].y = -t;
+			}
+		}
+
+		draw_polygon(__debug_canvas, &plux, GREEN);
+		
 	}
 }
 void draw_dorsal(canvas_t*cp, dorsal_t* dorsal)

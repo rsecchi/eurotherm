@@ -2,7 +2,7 @@
 
 rm polygon-*.png
 
-for i in $(seq 1 100);
+for i in $(seq 1 1000);
 do
 	./test_engine  $i
 done

@@ -37,6 +37,12 @@ extern canvas_t* __debug_canvas;
 extern int __max_row_debug;
 extern uint32_t __score;
 
+typedef struct {
+	int enable_quarters;
+} config_t;
+
+extern config_t config;
+
 typedef enum {
 	FULL,    // panel 200 x 120 cm
 	LUX,     // lux panel  200 x 120 cm
@@ -114,6 +120,7 @@ typedef struct {
 	double gap;
 	panel_t* panels;
 } allocation_t;
+
 
 
 double active_area(panel_t*);

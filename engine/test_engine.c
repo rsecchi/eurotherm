@@ -6,18 +6,49 @@
 
 #include "engine.h"
 
-#define MIN_CORNERS   6 
-#define MAX_CORNERS   12 
+/* 15 m2 */
+#define MIN_CORNERS   3 
+#define MAX_CORNERS   6 
+
+/* 36ms, 45ms */
+/* #define MIN_CORNERS   6 */ 
+/* #define MAX_CORNERS   12 */ 
+
 #define MIN_OBS       12
 #define MAX_OBS       12
 #define MIN_AREA     8.0
 #define MIN_OBS_LEN   10
 #define MAX_OBS_LEN  130
-#define ROOM_WIDTH   800
-#define ROOM_HEIGHT  600
+
+
+/* 15 m2 */
+#define ROOM_WIDTH   340
+#define ROOM_HEIGHT  260
+
+/* 36 m2 */
+/* #define ROOM_WIDTH   420 */
+/* #define ROOM_HEIGHT  380 */
+
+/* 45 m2 */
+/* #define ROOM_WIDTH   500 */
+/* #define ROOM_HEIGHT  400 */
+
+/* #define ROOM_WIDTH   800 */
+/* #define ROOM_HEIGHT  600 */
+
+/* 15m2  */
+#define ROOFVENTS       0
+
+/* 36m2, 45m2  */
+/* #define ROOFVENTS       3 */
+#define ROOFVENT_SIZE  10.
+#define DIVIDERS        2
+#define DIV_THICKNESS  20.
+#define DIV_LENGTH    120.
+
 
 int random_seed;
-int __add_obstacles;
+int __add_obstacles = 1;
 
 int compare(const void *a, const void *b) {
     double difference = (*(double*)a - *(double*)b);
@@ -103,7 +134,8 @@ box_t obs_box, walls_box;
 	}
 
 	bounding_box(&walls, &walls_box);
-	rm->obs_num = random() % (MAX_OBS-MIN_OBS+1) + MIN_OBS;
+	/* rm->obs_num = random() % (MAX_OBS-MIN_OBS+1) + MIN_OBS; */
+	rm->obs_num = ROOFVENTS + DIVIDERS;
 	rm->obstacles = (polygon_t*)malloc(sizeof(polygon_t)*rm->obs_num);
 	for(i=0; i<rm->obs_num; i++) {
 		do {
@@ -111,20 +143,21 @@ box_t obs_box, walls_box;
 			ymin_obs = drand48()*(walls_box.ymax-walls_box.ymin)+walls_box.ymin;
 			//xlen_obs = drand48()*(MAX_OBS_LEN - MIN_OBS_LEN) + MIN_OBS_LEN;
 			//ylen_obs = drand48()*(MAX_OBS_LEN - MIN_OBS_LEN) + MIN_OBS_LEN;
-			if ((i % 4)==0) {
-				xlen_obs = MAX_OBS_LEN;
-				ylen_obs = MIN_OBS_LEN;
+			if ((i % 2)==0) {
+				xlen_obs = DIV_THICKNESS;
+				ylen_obs = DIV_LENGTH;
 			} 
 
-			if ((i % 4)==1) {
-				xlen_obs = MIN_OBS_LEN;
-				ylen_obs = MAX_OBS_LEN;
+			if ((i % 2)==1) {
+				xlen_obs = DIV_LENGTH;
+				ylen_obs = DIV_THICKNESS;
 			}
 
-			if ((i % 4)>1) {
-				xlen_obs = MIN_OBS_LEN;
-				ylen_obs = MIN_OBS_LEN;
+			if (i>=DIVIDERS) {
+				xlen_obs = ROOFVENT_SIZE;
+				ylen_obs = ROOFVENT_SIZE;
 			}
+
 			obs_box = (box_t){xmin_obs, xmin_obs+xlen_obs, 
 							ymin_obs, ymin_obs+ylen_obs};
 		} while(!check_box(INSIDE, &obs_box, &walls));
@@ -242,17 +275,17 @@ void print_summary(canvas_t* cp, room_t* room, panel_t* panels)
 
 	area = area_polygon(&room->walls)/10000;
 	sprintf(buffer, "area = %6.2lf", area); 	
-	printf("%6.2lf ", area); 	
+	printf("%7.2lf ", area); 	
 	print_text(cp, buffer, 5);
 
 	act_area = active_area(panels);
 	sprintf(buffer, "active_ area = %.2lf", act_area); 
-	printf("%.2lf ", act_area); 
+	printf("%8.2lf ", act_area); 
 	print_text(cp, buffer, 6);
 
 	eff = 100*act_area/area;
 	sprintf(buffer, "perc. active = %.2lf%%", eff);
-	printf("%.2lf ", eff);
+	printf("%8.2lf ", eff);
 	print_text(cp, buffer, 7);
 }
 
@@ -307,10 +340,11 @@ char num_str[256];
 char rows_str[256];
 char score_str[256];
 long int clock_time;
+int k;
+int panel_stats[NUM_PANEL_T];
 
 	line.len = 2;
 	line.poly = malloc(2*sizeof(point_t));
-
 
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
@@ -325,6 +359,14 @@ long int clock_time;
 	panels = build_room(rand_room);
 	clock_time = clock() - clock_time;
 	draw_panels(cp, panels);
+
+
+	memset(panel_stats, 0, NUM_PANEL_T*sizeof(int));
+	k = 0;
+	for(panel_t* p=panels; p!=NULL; p=p->next) {
+		k++;
+		panel_stats[p->type]++;
+	}
 
 	sprintf(num_str, "%04d", random_seed);
 	sprintf(rows_str, "-%04d", __max_row_debug);
@@ -344,14 +386,19 @@ long int clock_time;
 	print_text(cp, score_str, 3);
 	print_summary(cp, rand_room, panels);
 
+	printf("%3d ", k);
+	for(k=0; k<NUM_PANEL_T; k++)
+		printf("%3d ", panel_stats[k]);
+
 	int h = 2*__max_row_debug;
 	bounding_box(&rand_room->walls, &box);
 	line.poly[0] = (point_t){box.xmin, box.ymin + h};
 	line.poly[1] = (point_t){box.xmax, box.ymin + h};
 
-	draw_polygon(cp, &line, ORANGE);
-
-	save_png(cp, filename);
+	if (random_seed<100) {
+		draw_polygon(cp, &line, ORANGE);
+		save_png(cp, filename);
+	}
 	printf("\n");
 	free_panels(panels);
 }
@@ -427,6 +474,9 @@ int rows;
 		exit(1);
 	}
 
+
+	config.enable_quarters = 1;
+
 	create_room(&rand_room, atoi(argv[1]));
 	bounding_box(&rand_room.walls, &box);
 
@@ -435,7 +485,7 @@ int rows;
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	/* for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++)  */ 
+	// for(__max_row_debug=31; __max_row_debug<63; __max_row_debug++) 
 		__max_row_debug = 1000;
 		test_panel_room(argc, argv, &rand_room);
 
