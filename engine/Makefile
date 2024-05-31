@@ -1,17 +1,32 @@
 
+SRC= engine.o geometry.o 
+OBJS= $(SRC: %.c=%.o) 
+SOBJS= $(SRC: %.c=%so)
 
-OBJS= engine.o geometry.o test_engine.o
 
 LIBS= -lcairo -lm -lc
 CFLAGS= -g
 
 
-test_engine: ${OBJS} tags
+test_engine: ${OBJS} %.o
 	ctags -R .
-	${CC} ${CFLAGS} ${OBJS} ${LIBS} -o test_engine
+	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
+
+%.so: %.o
+	${CC} -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
+
+libplanner.so: ${SOBJS}
+	ctags -R .
+	${CC} -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
+
+
+test: ${OBJS} %.o libplanner.so
+	ctags -R .
+	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
+
 
 clean:
-	${RM} ${OBJS} test_engine
+	${RM} *.o *.so 
 	${RM} *.png 
 
 run: test_engine
