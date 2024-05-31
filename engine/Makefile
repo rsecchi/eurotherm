@@ -1,28 +1,25 @@
 
-SRC= engine.o geometry.o 
+SRC= engine.o geometry.o
 OBJS= $(SRC: %.c=%.o) 
-SOBJS= $(SRC: %.c=%so)
 
 
 LIBS= -lcairo -lm -lc
-CFLAGS= -g
+CFLAGS= -g -Wall -fPIC
 
 
-test_engine: ${OBJS} %.o
+test_engine: ${OBJS} test_engine.o
 	ctags -R .
 	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
 
-%.so: %.o
-	${CC} -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
 
-libplanner.so: ${SOBJS}
+libplanner.so: ${OBJS} planner.o
 	ctags -R .
 	${CC} -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
 
 
-test: ${OBJS} %.o libplanner.so
+test: ${SOBJS} test.o planner.o libplanner.so
 	ctags -R .
-	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
+	${CC} -g $^ ${LIBS} -o $@ 
 
 
 clean:
