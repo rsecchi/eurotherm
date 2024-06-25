@@ -29,9 +29,13 @@
 #define INTER_DORSAL_GAP    16/INTER_LINE_GAP
 
 
-#define ROTATE  0x00000001
-#define INVERT  0x00000002
-#define MIRROR  0x00000004
+#define ROTATE     0x00000001
+#define INVERT     0x00000002
+#define BACK_ROT   (ROTATE|INVERT)
+#define ROT_MASK   (ROTATE|INVERT)
+#define MIRROR     0x00000004
+
+
 
 extern canvas_t* __debug_canvas;
 extern int __max_row_debug;

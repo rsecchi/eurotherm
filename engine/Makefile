@@ -27,7 +27,7 @@ clean:
 	${RM} *.png 
 
 run: test_engine
-	./test_engine && timg polygon.png
+	./test_engine 0 && timg polygon.png
 
 tags:
 	ctags -R .

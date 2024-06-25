@@ -2,15 +2,29 @@
 #define PLANNER_H
 #include "engine.h"
 
+/* 
+ * The flags in iso_flgs describe 
+ * the dihedral transformation (D8) around (x,y)
+ *
+ * where bit2 represents the reflection, and bit1:0 
+ * one of the four 90-degree rotation.
+ *
+ * In Leonardo-2 panels are always symmetric
+ * so the reflection bit is always zero.
+ *
+ */ 
+
 typedef struct _pnl
 {
 	ptype type;
+	double x, y;
+	uint32_t iso_flgs;
 	struct _pnl* next;
 } pnl_t;
 
 
-pnl_t* make_list();
+pnl_t* planner(room_t*);
 void free_list(pnl_t*);
-void print(pnl_t*);
+
 
 #endif

@@ -6,6 +6,10 @@
 
 #include "engine.h"
 
+
+int _debug_animation = 1;
+double min_range, max_range;
+
 /* 15 m2 */
 #define MIN_CORNERS   3 
 #define MAX_CORNERS   6 
@@ -22,8 +26,12 @@
 
 
 /* 15 m2 */
-#define ROOM_WIDTH   340
-#define ROOM_HEIGHT  260
+/* #define ROOM_WIDTH   340 */
+/* #define ROOM_HEIGHT  260 */
+
+/* XX m2 */
+#define ROOM_WIDTH   300
+#define ROOM_HEIGHT  200
 
 /* 36 m2 */
 /* #define ROOM_WIDTH   420 */
@@ -36,19 +44,19 @@
 /* #define ROOM_WIDTH   800 */
 /* #define ROOM_HEIGHT  600 */
 
-/* 15m2  */
-#define ROOFVENTS       0
+/* 9ms, 15m2  */
+#define ROOFVENTS       4
 
 /* 36m2, 45m2  */
 /* #define ROOFVENTS       3 */
 #define ROOFVENT_SIZE  10.
-#define DIVIDERS        2
+#define DIVIDERS        4
 #define DIV_THICKNESS  20.
 #define DIV_LENGTH    120.
 
 
 int random_seed;
-int __add_obstacles = 1;
+int __add_obstacles;
 
 int compare(const void *a, const void *b) {
     double difference = (*(double*)a - *(double*)b);
@@ -69,9 +77,10 @@ double collector_angle;
 int len;
 polygon_t walls;
 
-double areap;
+double areap, target_area, scale;
 double xmin_obs, ymin_obs, xlen_obs, ylen_obs;
 box_t obs_box, walls_box;
+int count=0;
 
 	rm->walls.poly = NULL;
 	rm->obs_num = 0;
@@ -120,12 +129,20 @@ box_t obs_box, walls_box;
 		}
 		walls.poly = &poly[0];
 		areap = area_polygon(&walls)/10000;
-	} while(self_intersect(&walls) || areap<MIN_AREA);
+	} while(self_intersect(&walls));
 
 	rm->walls.len = len;
 	rm->walls.poly = (point_t*)malloc(len*sizeof(point_t));
 	for(i=0; i<len; i++)
 		rm->walls.poly[i] = poly[i];
+
+	target_area = min_range + drand48() * (max_range - min_range);
+	scale = sqrt(target_area/areap);
+	for(i=0; i<len; i++) {
+		rm->walls.poly[i].x = scale*(rm->walls.poly[i].x);
+		rm->walls.poly[i].y = scale*(rm->walls.poly[i].y);
+	}
+	areap = area_polygon(&rm->walls)/10000;
 
 	if (!__add_obstacles) {
 		rm->obs_num = 0;
@@ -133,14 +150,21 @@ box_t obs_box, walls_box;
 		return;
 	}
 
-	bounding_box(&walls, &walls_box);
+	bounding_box(&rm->walls, &walls_box);
 	/* rm->obs_num = random() % (MAX_OBS-MIN_OBS+1) + MIN_OBS; */
 	rm->obs_num = ROOFVENTS + DIVIDERS;
 	rm->obstacles = (polygon_t*)malloc(sizeof(polygon_t)*rm->obs_num);
 	for(i=0; i<rm->obs_num; i++) {
 		do {
+			count++;
+			if (count==100) {
+				rm->obs_num = 0;
+				rm->obstacles = NULL;
+				return;
+			}
 			xmin_obs = drand48()*(walls_box.xmax-walls_box.xmin)+walls_box.xmin;
 			ymin_obs = drand48()*(walls_box.ymax-walls_box.ymin)+walls_box.ymin;
+			// printf("%lf %lf\n", ymin_obs, xmin_obs);
 			//xlen_obs = drand48()*(MAX_OBS_LEN - MIN_OBS_LEN) + MIN_OBS_LEN;
 			//ylen_obs = drand48()*(MAX_OBS_LEN - MIN_OBS_LEN) + MIN_OBS_LEN;
 			if ((i % 2)==0) {
@@ -160,7 +184,7 @@ box_t obs_box, walls_box;
 
 			obs_box = (box_t){xmin_obs, xmin_obs+xlen_obs, 
 							ymin_obs, ymin_obs+ylen_obs};
-		} while(!check_box(INSIDE, &obs_box, &walls));
+		} while(!check_box(INSIDE, &obs_box, &rm->walls));
 		rm->obstacles[i].len = 5;
 		obs_poly = rm->obstacles[i].poly = (point_t*)malloc(5*sizeof(point_t));
 
@@ -274,8 +298,8 @@ void print_summary(canvas_t* cp, room_t* room, panel_t* panels)
 	print_text(cp, buffer, 4);
 
 	area = area_polygon(&room->walls)/10000;
-	sprintf(buffer, "area = %6.2lf", area); 	
-	printf("%7.2lf ", area); 	
+	sprintf(buffer, "area = %6.2lf", area);
+	printf("%7.2lf ", area);
 	print_text(cp, buffer, 5);
 
 	act_area = active_area(panels);
@@ -367,8 +391,10 @@ int panel_stats[NUM_PANEL_T];
 		k++;
 		panel_stats[p->type]++;
 	}
-
-	sprintf(num_str, "%04d", random_seed);
+	if (_debug_animation)
+		sprintf(num_str, "%04d-%04d", random_seed, __max_row_debug);
+	else 
+		sprintf(num_str, "%04d", random_seed);
 	sprintf(rows_str, "-%04d", __max_row_debug);
 	sprintf(score_str, "score=%d", __score);
 
@@ -396,9 +422,13 @@ int panel_stats[NUM_PANEL_T];
 	line.poly[1] = (point_t){box.xmax, box.ymin + h};
 
 	if (random_seed<100) {
+		save_png(cp, filename);
+	}
+	if (_debug_animation) {
 		draw_polygon(cp, &line, ORANGE);
 		save_png(cp, filename);
 	}
+
 	printf("\n");
 	free_panels(panels);
 }
@@ -469,25 +499,33 @@ room_t rand_room;
 box_t box;
 int rows;
 
-	if (argc!=2) {
-		fprintf(stderr, "usage: %s <random_seed>\n", argv[0]);
+	if (argc!=6) {
+		fprintf(stderr, "usage: %s <random_seed> <quarters=0|1> <obstacles=0|1>" 
+				 " <min_range> <max_range>\n", argv[0]);
 		exit(1);
 	}
 
+	config.enable_quarters = atoi(argv[2]);
+	__add_obstacles = atoi(argv[3]);
 
-	config.enable_quarters = 1;
+	min_range = atof(argv[4]);
+	max_range = atof(argv[5]);
 
 	create_room(&rand_room, atoi(argv[1]));
 	bounding_box(&rand_room.walls, &box);
 
-	rows = MIN(400, (box.xmax-box.xmin)/2);
-
 	// test_line(argc, argv);
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
-	// for(__max_row_debug=31; __max_row_debug<63; __max_row_debug++) 
+
+	if (_debug_animation) {
+		rows = MIN(400, (box.xmax-box.xmin)/2);
+		for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++) 
+			test_panel_room(argc, argv, &rand_room);
+	} else {
 		__max_row_debug = 1000;
 		test_panel_room(argc, argv, &rand_room);
+	}
 
 	//test_grid(argc, argv);
 	free_random_room(&rand_room);

@@ -22,7 +22,6 @@ panel_desc_t panel_desc[] =
 
 config_t config;
 
-
 int count_panels(panel_t* head)
 {
 	int tot = 0;
@@ -47,6 +46,7 @@ int num_dorsals=0;
 		}
 		num_dorsals++;
 	}
+
 	return head;
 
 }
@@ -367,7 +367,7 @@ int rows;
 	trial.offset_col = alloc->offset_col;
 	rows = alloc->wall_grid.rows;
 
-	while(k < MIN(rows,__max_row_debug)) {
+	while(k < rows) {
 
 		kp[NARROW] = k - HD_STEPS;
 		kp[WIDE]   = MAX(k - 2*HD_STEPS, 0);
@@ -552,18 +552,41 @@ void free_room(room_t* room)
 	free(room->obstacles);
 }
 
+void set_orient_flags(panel_t* head)
+{
+ptype pt;
+panel_t* pn;
+	
+	for(pn=head; pn!=NULL; pn=pn->next){ 
+		pt = pn->type;
+		pn->orient_flags |= INVERT;
+		pn->pos.x -= panel_desc[pt].width;
+		pn->pos.y -= panel_desc[pt].height;
+	}
+
+}
+
+
 panel_t* build_room(room_t* room)
 {
 double t;
 room_t trial_room;
 panel_t *panels_upright, *panels_flat, *pn;
-uint32_t upright_score, flat_score;
+panel_t *pnls_sel;
+uint32_t upright_score=0, flat_score=0;
 
+uint32_t flags;
+
+	/* calculate panel flats */
+	panels_flat = panel_room(room, &flat_score);
+	set_orient_flags(panels_flat);
+
+
+	/* calculate panels upright*/
 	copy_room(room, &trial_room);
 
-	/* rotate 90 degrees */
+	// rotate 90 degrees
 	for(int i=0; i<room->walls.len; i++) {
-
 		t = room->walls.poly[i].x;
 		trial_room.walls.poly[i].x = -trial_room.walls.poly[i].y;
 		trial_room.walls.poly[i].y = t;
@@ -579,20 +602,27 @@ uint32_t upright_score, flat_score;
 	}
 
 	panels_upright = panel_room(&trial_room, &upright_score);
-	panels_flat = panel_room(room, &flat_score);
-
+	set_orient_flags(panels_upright);
+	
+	// back rotate panels 
 	for(pn=panels_upright; pn!=NULL; pn=pn->next){ 
-		pn->orient_flags |= ROTATE;
+		printf("%d --> ", pn->orient_flags);
+		flags = pn->orient_flags;
+		pn->orient_flags = (flags + 3) % 4;
+		printf("%d\n", pn->orient_flags);
+		t = pn->pos.x;
+		pn->pos.x = pn->pos.y;
+		pn->pos.y = -t;
 	}
 	
 	free_room(&trial_room);
 
-	if (upright_score > flat_score)
-		return panels_upright;
+	pnls_sel = (upright_score > flat_score) ?
+		panels_upright:panels_flat;
 
-	return panels_flat; 
+
+	return pnls_sel; 
 }
-
 
 
 /* libcairo drawing support */
@@ -646,7 +676,6 @@ polygon_t pgon, plux;
 	if (p->heading == DOWN)
 		for(int i=0; i<9; i++) 
 			poly[i].y = p->pbox.ymax + p->pbox.ymin - poly[i].y;
-
 
 	if (p->orient_flags & ROTATE) {
 		for(int i=0; i<9; i++) {
