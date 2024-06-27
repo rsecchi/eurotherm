@@ -10,5 +10,6 @@ logfile      = tmp + "log"
 
 load_page    = local_dir + "/www/loading.html"
 done_page    = local_dir + "/www/done.html"
-script       = local_dir + "/leonardo.py"
+#script       = local_dir + "/leonardo.py"
+script       = local_dir + "/leonardo2.py"
 
