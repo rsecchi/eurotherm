@@ -14,7 +14,7 @@ test_engine: ${OBJS} test_engine.o
 
 libplanner.so: ${OBJS} planner.o
 	ctags -R .
-	${CC} -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
+	${CC} -g -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
 
 
 test: ${SOBJS} test.o planner.o libplanner.so

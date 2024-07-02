@@ -1,6 +1,7 @@
+import os
 from ctypes import Structure, POINTER, c_double, c_int, CDLL, pointer
-from ezdxf.filemanagement import new
 
+#from ezdxf.filemanagement import new
 
 class Pnl(Structure):
 	pass
@@ -39,7 +40,11 @@ class Room(Structure):
 
 
 # Load the shared library
-mylib = CDLL('./libplanner.so')
+current_file = os.path.abspath(__file__) 
+current_path = os.path.dirname(current_file)
+libname = current_path + '/libplanner.so'
+
+mylib = CDLL(libname)
 
 # Define the functions
 mylib.planner.argtypes = [POINTER(Room)]
@@ -88,9 +93,12 @@ class Panel:
 		for i, _ in enumerate(self.poly):
 			poly[i] = (x0+poly[i][0], y0+poly[i][1])
 
-	def draw_panel(self, msp):
+	def draw_panel(self, msp, scale):
 		self.polyline()
-		msp.add_lwpolyline(self.poly)
+		poly = list()
+		for i, _ in enumerate(self.poly):
+			poly.append((self.poly[i][0]/scale, self.poly[i][1]/scale))
+		msp.add_lwpolyline(poly)
 		
 
 class Planner:
@@ -106,7 +114,6 @@ class Planner:
 			walls.poly[i].y = point[1]
 			i += 1
 
-		print(i)
 		walls.len = len(contour)
 		room.walls = walls
 
@@ -156,33 +163,40 @@ def print_list(panels):
 		current = current.contents.next	
 	
 
-###############################################
+######### PLANNER INTERFACE TEST #############################
+# from ezdxf.filemanagement import new
 
 # room = RectangularRoom(400, 600)
 
 # print_list(panels)
 
-b = 400
-h = 600
-
-contour = [(0,0), (b,0), (b,h), (0,h), (0,0)]
-planner = Planner(contour)
-
-panels = planner.get_panels()
+# b = 400
+# h = 600
 
 
-# Create a new DXF document
-doc = new(dxfversion='R2010')
-modelspace = doc.modelspace()
+# contour = [(25.85691014875588, -426.3320670724359), (21.43940990902879, -426.3320670724359), (21.43940990902879, -429.8970711923089), (24.60191047038842, -429.8970711923089), (24.60191047038842, -429.337085163202), (25.85691014875588, -429.337085163202), (25.85691014875588, -426.3320670724359)]
 
-modelspace.add_lwpolyline(contour)
-for panel in panels:
-	panel.draw_panel(modelspace)
+# for i, p in enumerate(contour):
+# 	contour[i] = (contour[i][0]*100, contour[i][1]*100)
+
+# # contour = [(0,0), (b,0), (b,h), (0,h), (0,0)]
+# planner = Planner(contour)
+
+# panels = planner.get_panels()
 
 
-# Save the DXF document to a file
-doc.saveas("example.dxf")
+# # Create a new DXF document
+# doc = new(dxfversion='R2010')
+# modelspace = doc.modelspace()
 
-print("DXF file created successfully.")
+# modelspace.add_lwpolyline(contour)
+# for panel in panels:
+# 	panel.draw_panel(modelspace)
+
+
+# # Save the DXF document to a file
+# doc.saveas("example.dxf")
+
+# print("DXF file created successfully.")
 
 

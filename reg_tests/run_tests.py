@@ -46,7 +46,7 @@ for file in sorted(os.listdir("reg_tests")):
 		cfgfile = open("reg_tests/config.cfg", "w")
 		cfgfile.write(data)
 		cfgfile.close()
-		process = Popen(['/usr/bin/python3', 'leo_main.py', 'reg_tests/config.cfg'], stdout=subprocess.PIPE, text=True)
+		process = Popen(['/usr/bin/python3', 'src/leo_main.py', '../reg_tests/config.cfg'], stdout=subprocess.PIPE, text=True)
 		print(process.communicate()[0])
 		
 

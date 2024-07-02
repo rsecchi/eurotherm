@@ -1,6 +1,17 @@
 import os
 import sys
+from typing import Counter
+
+# Script file is local dir
+local_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(local_dir)
+sys.path.append('..')
+
+from engine.planner import Planner
+
 import json
+import atexit
+
 from math import sqrt, ceil, log10, atan2, pi
 
 from ezdxf.addons.importer import Importer as importer
@@ -1426,21 +1437,40 @@ class Model():
 			self.output.print("CRITICAL: Could not connect rooms @\n")
 			return
 
+		# b = 400
+		# h = 600
+
+		# contour = [(0,0), (b,0), (b,h), (0,h), (0,0)]
+		# contour = [(25.85691014875588, -426.3320670724359), (21.43940990902879, -426.3320670724359), (21.43940990902879, -429.8970711923089), (24.60191047038842, -429.8970711923089), (24.60191047038842, -429.337085163202), (25.85691014875588, -429.337085163202), (25.85691014875588, -426.3320670724359)]
+		# for i, p in enumerate(contour):
+		# 	contour[i] = (contour[i][0]*scale, contour[i][1]*scale)
+		# planner = Planner(contour)
+		# panels = planner.get_panels()
+		
+
+		for room in self.processed:
+			contour = list()	
+			for p in room.points:
+				contour.append((p[0]*scale, p[1]*scale))
+			planner = Planner(contour)
+			panels = planner.get_panels()
+			print("PANELS:", len(panels))
+			for panel in panels:
+				panel.draw_panel(self.msp, scale)
+
+		self.doc.saveas("test.dxf")
+
 
 
 ############ START PROCESS ##########################
 
 
-import atexit
-
-# Script file is local dir
-local_dir = os.path.dirname(os.path.realpath(__file__))
-os.chdir(local_dir)
-
 # read configuration file into local dict
 json_file = open(sys.argv[1], "r")
 data = json.loads(json_file.read())
 lock_name = data['lock_name']
+
+
 
 def remove_lock():
 	out = model.outname[:-4]+".txt"
@@ -1452,17 +1482,18 @@ def remove_lock():
 	#pickle.dump(Globals.model, f)
 	os.remove(lock_name)
 
-#if not os.path.exists(lock_name):
+
+if not os.path.exists(lock_name):
 
 	# Acquire lock 
-# open(lock_name, "w")	
-# atexit.register(remove_lock)
+	open(lock_name, "w")	
+	atexit.register(remove_lock)
 
-data['cfg_dir'] = os.path.dirname(sys.argv[1])
+	data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
-model = Model(data)
-model.run()
+	model = Model(data)
+	model.run()
 
+else:
+	print("ABORT: Resource busy")
 
-# else:
-# 	print("ABORT: Resource busy")

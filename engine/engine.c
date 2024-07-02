@@ -577,6 +577,7 @@ uint32_t upright_score=0, flat_score=0;
 
 uint32_t flags;
 
+
 	/* calculate panel flats */
 	panels_flat = panel_room(room, &flat_score);
 	set_orient_flags(panels_flat);
@@ -606,10 +607,8 @@ uint32_t flags;
 	
 	// back rotate panels 
 	for(pn=panels_upright; pn!=NULL; pn=pn->next){ 
-		printf("%d --> ", pn->orient_flags);
 		flags = pn->orient_flags;
 		pn->orient_flags = (flags + 3) % 4;
-		printf("%d\n", pn->orient_flags);
 		t = pn->pos.x;
 		pn->pos.x = pn->pos.y;
 		pn->pos.y = -t;

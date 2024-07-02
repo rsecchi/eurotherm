@@ -9,7 +9,6 @@ pnl_t* planner(room_t* room)
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
 
-
 	/* debug */
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
