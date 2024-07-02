@@ -1,13 +1,13 @@
 import os
 import sys
-from typing import Counter
+from drawing import DxfDrawing
 
 # Script file is local dir
 local_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(local_dir)
 sys.path.append('..')
 
-from engine.planner import Planner
+from engine.planner import RoomPlanner
 
 import json
 import atexit
@@ -1049,7 +1049,7 @@ class Model():
 				collector.freespace += room.feeds
 				collector.freeflow += room.flow
 
-	def run(self):
+	def build_model(self):
  
 		global tot_iterations, max_iterations
 		global scale
@@ -1064,7 +1064,7 @@ class Model():
 			scale = default_scale
 			self.rescale_model()
 			if not self.autoscale():
-				return
+				return False
 		else:
 			scale = float(self.scale)
 
@@ -1100,7 +1100,7 @@ class Model():
 			if (not self.check_polyline_color(poly)):
 				wstr = "ABORT: Polyline color %d not allowed @" % poly.dxf.color
 				self.output.print(wstr)
-				return
+				return False
 
 			room = Room(poly, self.output)
 			self.rooms.append(room)
@@ -1197,7 +1197,7 @@ class Model():
 					if collector.user_zone != None:
 						wstr = "ABORT: Collector inside two user zones @"
 						self.output.print(wstr)
-						return
+						return False
 					else:
 						collector.user_zone = zone
 
@@ -1226,7 +1226,7 @@ class Model():
 					if room.user_zone != None:
 						wstr = "ABORT: Room inside two user zones @"
 						self.output.print(wstr)
-						return
+						return False
 					else:
 						room.user_zone = zone
 					
@@ -1253,7 +1253,7 @@ class Model():
 					room[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
 					self.output_error()
-					return
+					return False
 
 				j += 1
 
@@ -1268,7 +1268,7 @@ class Model():
 					self.collectors[j].poly.dxf.layer = layer_error
 					self.output.print(wstr)
 					self.output_error()
-					return
+					return False
 	
 		# check if vector is in room or 
 		# across collector and room
@@ -1317,7 +1317,7 @@ class Model():
 				v.dxf.layer = layer_error
 				self.output.print(wstr)
 				self.output_error()
-				return
+				return False
 	
 		# orient room without vector
 		for room in self.processed:
@@ -1330,7 +1330,7 @@ class Model():
 			% len(self.collectors))
 		if (len(self.collectors) == 0):
 			self.output.print("ABORT: Please insert at least 1 collector @\n")
-			return
+			return False
 			
 
 		# Check if room too large  for a collector
@@ -1344,7 +1344,7 @@ class Model():
 				room.poly.dxf.layer = layer_error
 				self.output.print(wstr)
 				self.output_error()
-				return
+				return False
 
 		# Check if enough collectors
 		tot_area = feeds_eff = feeds_max = 0
@@ -1392,7 +1392,7 @@ class Model():
 
 		################################################################
 		if not self.create_zones():
-			return
+			return False
 
 		# Disabled room with collector forms its own zone
 		for room in self.processed:
@@ -1404,7 +1404,6 @@ class Model():
 		#self.draw_trees(self.collectors[5])
 
 		#self.draw_gates()	
-		#self.doc.saveas(self.outname)
 		#return
 
 		################################################################
@@ -1435,32 +1434,18 @@ class Model():
 
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms @\n")
-			return
+			return False
 
-		# b = 400
-		# h = 600
+		return True
 
-		# contour = [(0,0), (b,0), (b,h), (0,h), (0,0)]
-		# contour = [(25.85691014875588, -426.3320670724359), (21.43940990902879, -426.3320670724359), (21.43940990902879, -429.8970711923089), (24.60191047038842, -429.8970711923089), (24.60191047038842, -429.337085163202), (25.85691014875588, -429.337085163202), (25.85691014875588, -426.3320670724359)]
-		# for i, p in enumerate(contour):
-		# 	contour[i] = (contour[i][0]*scale, contour[i][1]*scale)
-		# planner = Planner(contour)
-		# panels = planner.get_panels()
-		
 
+	def populate(self):
+
+		self.num_panels = 0
 		for room in self.processed:
-			contour = list()	
-			for p in room.points:
-				contour.append((p[0]*scale, p[1]*scale))
-			planner = Planner(contour)
-			panels = planner.get_panels()
-			print("PANELS:", len(panels))
-			for panel in panels:
-				panel.draw_panel(self.msp, scale)
-
-		self.doc.saveas("test.dxf")
-
-
+			planner = RoomPlanner(room, scale)
+			room.panels = planner.get_panels()
+			self.num_panels += len(room.panels)
 
 ############ START PROCESS ##########################
 
@@ -1492,7 +1477,15 @@ if not os.path.exists(lock_name):
 	data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 	model = Model(data)
-	model.run()
+	model.build_model()
+	model.populate()
+
+	for room in model.processed:
+		for panel in room.panels:
+			panel.draw_panel(model.msp, scale)
+
+	print("DRAWING:", model.outname)
+	model.doc.saveas(model.outname)
 
 else:
 	print("ABORT: Resource busy")

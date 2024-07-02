@@ -3,39 +3,39 @@ from ctypes import Structure, POINTER, c_double, c_int, CDLL, pointer
 
 #from ezdxf.filemanagement import new
 
-class Pnl(Structure):
+class EnginePanel(Structure):
 	pass
 
-Pnl._fields_ = [
+EnginePanel._fields_ = [
 	("type", c_int),
 	("x", c_double),
 	("y", c_double),
 	("iso_flgs", c_int),
-	("next", POINTER(Pnl))
+	("next", POINTER(EnginePanel))
 ]
 
 
-##### Room definition #####
-class Point(Structure):
+##### Planner Room is an Interface for engine #####
+class EnginePoint(Structure):
 	_fields_ = [
 		("x", c_double),
 		("y", c_double),
 	]
 
 
-class Polygon(Structure):
+class EnginePolygon(Structure):
 	_fields_ = [
-		("poly", POINTER(Point)),
+		("poly", POINTER(EnginePoint)),
 		("len", c_int),
 	]
 
 
-class Room(Structure):
+class EngineRoom(Structure):
 	_fields_ = [
-		("walls", Polygon),
-		("obstacles", POINTER(Polygon)),
+		("walls", EnginePolygon),
+		("obstacles", POINTER(EnginePolygon)),
 		("obs_num", c_int),
-		("collector_pos", Point)
+		("collector_pos", EnginePoint)
 	]
 
 
@@ -47,10 +47,10 @@ libname = current_path + '/libplanner.so'
 mylib = CDLL(libname)
 
 # Define the functions
-mylib.planner.argtypes = [POINTER(Room)]
-mylib.planner.restype = POINTER(Pnl) 
+mylib.planner.argtypes = [POINTER(EngineRoom)]
+mylib.planner.restype = POINTER(EnginePanel) 
 
-mylib.free_list.argtypes = [POINTER(Pnl)]
+mylib.free_list.argtypes = [POINTER(EnginePanel)]
 mylib.free_list.restype = None
 
 
@@ -60,7 +60,7 @@ class Panel:
 	size = [(200,120), (200,120), (200,60), (100,120), (100,60)]
 	rotate = [ [1,0,0,1], [0,-1,1,0], [-1,0,0,-1], [0,1,-1,0] ]
 
-	def __init__(self, panel: Pnl):
+	def __init__(self, panel: EnginePanel):
 		self.pos = (panel.contents.x, panel.contents.y)
 		self.rot = panel.contents.iso_flgs
 		self.type = panel.contents.type
@@ -101,20 +101,22 @@ class Panel:
 		msp.add_lwpolyline(poly)
 		
 
-class Planner:
-	def __init__(self, contour):
+class RoomPlanner:
+	def __init__(self, model_room, scale):
 
-		room = self.room = Room()
-		walls = Polygon()
-		walls.poly = (len(contour)*Point)()
+		room = self.room = EngineRoom()
+		walls = EnginePolygon()
+		walls.poly = (len(model_room.points)*EnginePoint)()
+
+		self.scale = scale
 
 		i = 0
-		for point in contour:
-			walls.poly[i].x = point[0]
-			walls.poly[i].y = point[1]
+		for point in model_room.points:
+			walls.poly[i].x = point[0]*scale
+			walls.poly[i].y = point[1]*scale
 			i += 1
 
-		walls.len = len(contour)
+		walls.len = len(model_room.points)
 		room.walls = walls
 
 		room.obs_num = 0
@@ -137,9 +139,9 @@ class Planner:
 
 def RectangularRoom(base, height):
 	
-	room = Room()
-	walls = Polygon()
-	walls.poly = (5*Point)()
+	room = EngineRoom()
+	walls = EnginePolygon()
+	walls.poly = (5*EnginePoint)()
 	walls.poly[0].x = 0; walls.poly[0].y = 0;
 	walls.poly[1].x = 0; walls.poly[1].y = height;
 	walls.poly[2].x = base; walls.poly[2].y = height;
