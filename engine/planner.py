@@ -116,6 +116,9 @@ class RoomPlanner:
 			walls.poly[i].y = point[1]*scale
 			i += 1
 
+		for obs in model_room.obstacles:
+			print(type(obs))
+
 		walls.len = len(model_room.points)
 		room.walls = walls
 
