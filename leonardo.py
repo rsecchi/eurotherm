@@ -5663,7 +5663,8 @@ class Model():
 
 			# header
 			for i in range(65,85):
-				ws.column_dimensions[chr(i)].width = 10
+				if (67<=i<=78):
+					ws.column_dimensions[chr(i)].width = 10
 				ws[chr(i)+'23'].alignment = \
 					Alignment(wrapText=True, 
 						vertical ='center',
