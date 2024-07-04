@@ -4052,6 +4052,11 @@ class Model():
 		if (not root):
 			return None
 
+		# if collector contained_in room already assigned
+		# return that root
+		if (root.zone):
+			return root.zone
+
 		root.walk = 0
 		root.uplink = root
 		root.set_as_root(self.processed.copy(), collector)
@@ -4173,6 +4178,7 @@ class Model():
 
 		for room in self.processed:
 
+			i = 0
 			for i, link in enumerate(room.links):
 				if (link[1]>max_clt_distance 
 					or i>=max_clt_break):
