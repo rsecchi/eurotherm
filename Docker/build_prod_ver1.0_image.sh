@@ -5,7 +5,7 @@ if ! git diff --exit-code; then
 	exit
 fi
 
-docker build --no-cache --network=host -t raffauser/leonardoplanner:prod -f Dockerfile.ver1.0 .
+docker build --no-cache --network=host -t raffauser/leonardoplanner:ver1 -f Dockerfile.ver1.0 .
 
 #docker login
 #docker tag eurotherm:devel raffauser/leonardoplanner:devel
