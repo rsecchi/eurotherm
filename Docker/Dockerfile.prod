@@ -1,6 +1,6 @@
 FROM raffauser/leonardoplanner:devel
 
-RUN cd /usr/local/src/ && curl -L http://github.com/rsecchi/eurotherm/archive/frame.tar.gz | tar zxf - && mv eurotherm-frame eurotherm
+RUN cd /usr/local/src/ && curl -L http://github.com/rsecchi/eurotherm/archive/main.tar.gz | tar zxf - && mv eurotherm-main eurotherm
 
 
 

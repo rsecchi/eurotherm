@@ -1,0 +1,6 @@
+FROM raffauser/leonardoplanner:devel
+
+RUN cd /usr/local/src/ && curl -L http://github.com/rsecchi/eurotherm/archive/ver1.0-fixes.tar.gz | tar zxf - && mv eurotherm-ver1.0-fixes eurotherm
+
+
+

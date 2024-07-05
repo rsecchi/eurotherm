@@ -4052,6 +4052,11 @@ class Model():
 		if (not root):
 			return None
 
+		# if collector contained_in room already assigned
+		# return that root
+		if (root.zone):
+			return root.zone
+
 		root.walk = 0
 		root.uplink = root
 		root.set_as_root(self.processed.copy(), collector)
@@ -4173,6 +4178,7 @@ class Model():
 
 		for room in self.processed:
 
+			i = 0
 			for i, link in enumerate(room.links):
 				if (link[1]>max_clt_distance 
 					or i>=max_clt_break):
@@ -5657,7 +5663,8 @@ class Model():
 
 			# header
 			for i in range(65,85):
-				ws.column_dimensions[chr(i)].width = 10
+				if (67<=i<=78):
+					ws.column_dimensions[chr(i)].width = 10
 				ws[chr(i)+'23'].alignment = \
 					Alignment(wrapText=True, 
 						vertical ='center',
