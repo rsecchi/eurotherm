@@ -22,6 +22,7 @@ DOCKER_SRC=/usr/local/src/eurotherm
 
 
 container_name="devel"
+export MODE=testing
 
 if docker ps -a --format '{{.Names}}' | grep -q "^$container_name$"; then
 	docker stop "$container_name" >/dev/null 2>&1

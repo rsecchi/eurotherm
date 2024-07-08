@@ -117,11 +117,12 @@ class RoomPlanner:
 			i += 1
 
 		for obs in model_room.obstacles:
-			print(type(obs))
+			print(obs.points)
 
 		walls.len = len(model_room.points)
 		room.walls = walls
 
+		# room.obs_num = len(model_room.obstacles)
 		room.obs_num = 0
 		room.obstacles = None
 
