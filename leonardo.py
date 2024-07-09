@@ -4052,17 +4052,18 @@ class Model():
 		if (not root):
 			return None
 
+		leader = None 
+
 		# if collector contained_in room already assigned
-		# return that root
+		# the leader is the root of that zone
 		if (root.zone):
-			return root.zone
+			leader = root.zone
 
 		root.walk = 0
 		root.uplink = root
 		root.set_as_root(self.processed.copy(), collector)
 
 		# leader: reference zone for collector
-		leader = None 
 		if collector.user_zone and collector.user_zone.leader:
 			leader = collector.user_zone.leader
 
