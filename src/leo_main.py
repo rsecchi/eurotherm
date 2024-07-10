@@ -1,6 +1,6 @@
 import os
 import sys
-from drawing import DxfDrawing
+#from drawing import DxfDrawing
 
 # Script file is local dir
 local_dir = os.path.dirname(os.path.realpath(__file__))

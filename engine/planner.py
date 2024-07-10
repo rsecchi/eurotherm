@@ -29,6 +29,17 @@ class EnginePolygon(Structure):
 		("len", c_int),
 	]
 
+	def __init__(self, points, scale):
+
+		self.len = len(points)
+		self.poly = (self.len*EnginePoint)()
+
+		self.scale = scale
+
+		for i, point in enumerate(points):
+			self.poly[i].x = point[0]*scale
+			self.poly[i].y = point[1]*scale
+
 
 class EngineRoom(Structure):
 	_fields_ = [
@@ -105,26 +116,14 @@ class RoomPlanner:
 	def __init__(self, model_room, scale):
 
 		room = self.room = EngineRoom()
-		walls = EnginePolygon()
-		walls.poly = (len(model_room.points)*EnginePoint)()
+		room.walls = EnginePolygon(model_room.points, scale)
 
-		self.scale = scale
+		room.obs_num = len(model_room.obstacles)
+		room.obstacles = (room.obs_num*EnginePolygon)()
 
-		i = 0
-		for point in model_room.points:
-			walls.poly[i].x = point[0]*scale
-			walls.poly[i].y = point[1]*scale
-			i += 1
+		for j, obs in enumerate(model_room.obstacles):
+			room.obstacles[j] = EnginePolygon(obs.points, scale)
 
-		for obs in model_room.obstacles:
-			print(obs.points)
-
-		walls.len = len(model_room.points)
-		room.walls = walls
-
-		# room.obs_num = len(model_room.obstacles)
-		room.obs_num = 0
-		room.obstacles = None
 
 	def get_panels(self):
 
