@@ -327,6 +327,12 @@ ac_label = {
 	"dehum_int_ren": "Deuclima VMC"
 }
 
+ac_label_eng = {
+	"dehum":         "dehumidifier",
+	"dehum_int":     "deuclima",
+	"dehum_int_ren": "deuclima VMC"
+}
+
 
 # couplings geometry
 stripe_width = 0.08
@@ -548,15 +554,22 @@ LEFT = 0
 TOP = 1
 BOTTOM = 0
 
-xlsx_template = 'leo_template.xlsx'
+xlsx_template_ita = 'leo_template.xlsx'
+xlsx_template_eng = 'leo_template_eng.xlsx'
 sheet_template_1 = 'LEONARDO 5.5'
 sheet_template_2 = 'LEONARDO 3.5'
 sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
-sheet_breakdown = [
+sheet_breakdown_ita = [
 	('Dettaglio Stanze L55', 85.0, 51.8), 
 	('Dettaglio Stanze L35', 84.2, 64.8),
 	('Dettaglio Stanze 30p', 82.3, 80.9)
+]
+
+sheet_breakdown_eng = [
+	('Room Breakdown L55', 85.0, 51.8), 
+	('Room Breakdown L35', 84.2, 64.8),
+	('Room Breakdown 30p', 82.3, 80.9)
 ]
 
 #show_panel_list = True
@@ -3976,6 +3989,7 @@ class Model():
 		self.text_nav = ""
 		self.cnd = list()
 		self.laid = "without"
+		self.lang = "ita"
 
 	def print(self, text):
 		self.text += text
@@ -4934,22 +4948,36 @@ class Model():
 			return ""
 
 		mtype = self.regulator
-		mtype_label = ac_label[mtype]
+		if self.lang == "ita":
+			mtype_label = ac_label[mtype]
+		else:
+			mtype_label = ac_label_eng[mtype]
+
 		mount = 'V' if self.mtype[-4:] == "vert" else 'O'
-		mount_label = 'verticale' if self.mtype[-4:] == "vert" else 'orizzontale'
+
+		if self.lang == "ita":
+			mount_label = 'verticale' if self.mtype[-4:] == "vert" else 'orizzontale'
+		else:
+			mount_label = 'Vertical' if self.mtype[-4:] == "vert" else 'Horizontal'
 
 		for ac in air_conditioners:
 			if (mtype == ac['type'] and mount == ac['mount']):
 				self.cnd.append(ac)
 
 		html =  '<div class="section" >'
-		html += '<h4>Eurotherm consiglia</h4>'
+		if self.lang == "ita":
+			html += '<h4>Eurotherm consiglia</h4>'
+		else:
+			html += '<h4>Eurotherm suggests</h4>'
 
 		for clt in self.collectors:
 			if not clt.is_leader:
 				continue
 				
-			html += '<p id="suggest"><b><u>Zona %d</u></b></p>' % clt.zone_num
+			if self.lang == "ita":
+				html += '<p id="suggest"><b><u>Zona %d</u></b></p>' % clt.zone_num
+			else:
+				html += '<p id="suggest"><b><u>Zone %d</u></b></p>' % clt.zone_num
 
 			zone_area = 0
 			for room in clt.zone_rooms:
@@ -4957,8 +4985,13 @@ class Model():
 
 			self.volume = float(self.height) * zone_area
 
-			html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
-			html += 'per una portata di %.2f m3/h:</p>' % self.volume
+			if self.lang == "ita":
+				html += '<p id="suggest">%s ad installazione %s ' % (mtype_label, mount_label)
+				html += 'per una portata di %.2f m3/h:</p>' % self.volume
+			else:
+				html += '<p id="suggest">%s installation %s ' % (mount_label, mtype_label)
+				html += 'with a capacity of %.2f m3/h:</p>' % self.volume
+
 
 			self.find_air_conditioners()
 			self.zone.append(self.best_ac)
@@ -4966,8 +4999,12 @@ class Model():
 			for k, ac in enumerate(self.cnd):
 				if (self.best_ac[k] > 0):
 					html += '<p id="mtype">%d x ' % self.best_ac[k] + ac['model'] + '</p>'
-			html += '<p id="suggest">copertura %.2f m3/h,' % self.best_flow
-			html += 'eccesso %.2f m3/h</p>' % (self.best_flow-self.volume)
+			if self.lang == "ita":
+				html += '<p id="suggest">copertura %.2f m3/h,' % self.best_flow
+				html += 'eccesso %.2f m3/h</p>' % (self.best_flow-self.volume)
+			else:
+				html += '<p id="suggest">coverage %.2f m3/h,' % self.best_flow
+				html += 'excess %.2f m3/h</p>' % (self.best_flow-self.volume)
 
 		# final count 
 		l = len(self.cnd)
@@ -5588,11 +5625,21 @@ class Model():
 
 
 	def save_in_xls(self):
+
+		xlsx_template = xlsx_template_ita
+		if self.lang == "eng":
+			xlsx_template = xlsx_template_eng
+
+
 		wb = openpyxl.load_workbook(xlsx_template)
 		ws1 = wb[sheet_template_1]
 		ws2 = wb[sheet_template_2]
 		ws3 = wb[sheet_template_3]
-	
+
+		sheet_breakdown = sheet_breakdown_ita
+		if self.lang == "eng":
+			sheet_breakdown = sheet_breakdown_eng
+
 		sheet_bd = deepcopy(sheet_breakdown)
 		sheet_bd[0] += (ws1,)
 		sheet_bd[1] += (ws2,)
@@ -5671,33 +5718,120 @@ class Model():
 						vertical ='center',
 						horizontal ='center')
 
-			ws['A23'] = "Zona"
-			ws['B23'] = "Collettore"
-			ws['C23'] = "Stanza"
+			if self.lang == "ita":
+				ws['A23'] = "Zona"
+				ws['B23'] = "Collettore"
+				ws['C23'] = "Stanza"
 
-			ws['D23'] = "Attiva\n[m2]"
-			ws['E23'] = "Area\n[m2]"
-			ws['F23'] = "% cop."
-			ws['G23'] = "linee"
+				ws['D23'] = "Attiva\n[m2]"
+				ws['E23'] = "Area\n[m2]"
+				ws['F23'] = "% cop."
+				ws['G23'] = "linee"
 
-			ws['H23'] = "Pannelli\n200x120"
-			ws['I23'] = "Pannelli\n200x60"
-			ws['J23'] = "Pannelli\n100x120"
-			ws['K23'] = "Pannelli\n100x60"
-				
-			#ws.column_dimensions['M'].width = 2
+				ws['H23'] = "Pannelli\n200x120"
+				ws['I23'] = "Pannelli\n200x60"
+				ws['J23'] = "Pannelli\n100x120"
+				ws['K23'] = "Pannelli\n100x60"
+					
+				#ws.column_dimensions['M'].width = 2
 
-			ws['L22'] = 'Riscaldamento'
-			ws['L23'] = "Q, resa\n[W]"
-			ws['M23'] = "Q, tot\n[W]"
-			ws['N23'] = "Portata\n[kg/h]"
+				ws['L22'] = 'Riscaldamento'
+				ws['L23'] = "Q, resa\n[W]"
+				ws['M23'] = "Q, tot\n[W]"
+				ws['N23'] = "Portata\n[kg/h]"
 
-			#ws.column_dimensions['Q'].width = 2
+				#ws.column_dimensions['Q'].width = 2
 
-			ws['O22'] = 'Raffrescamento'
-			ws['O23'] = "Q, resa\n[W]"
-			ws['P23'] = "Q, tot\n[W]"
-			ws['Q23'] = "Portata\n[kg/h]"
+				ws['O22'] = 'Raffrescamento'
+				ws['O23'] = "Q, resa\n[W]"
+				ws['P23'] = "Q, tot\n[W]"
+				ws['Q23'] = "Portata\n[kg/h]"
+
+				ws['A23'] = "Zona"
+				ws['B23'] = "Collettore"
+				ws['C23'] = "Stanza"
+
+				ws['D23'] = "Attiva\n[m2]"
+				ws['E23'] = "Area\n[m2]"
+				ws['F23'] = "% cop."
+				ws['G23'] = "linee"
+
+				ws['H23'] = "Pannelli\n200x120"
+				ws['I23'] = "Pannelli\n200x60"
+				ws['J23'] = "Pannelli\n100x120"
+				ws['K23'] = "Pannelli\n100x60"
+					
+				#ws.column_dimensions['M'].width = 2
+
+				ws['L22'] = 'Riscaldamento'
+				ws['L23'] = "Q, resa\n[W]"
+				ws['M23'] = "Q, tot\n[W]"
+				ws['N23'] = "Portata\n[kg/h]"
+
+				#ws.column_dimensions['Q'].width = 2
+
+				ws['O22'] = 'Raffrescamento'
+				ws['O23'] = "Q, resa\n[W]"
+				ws['P23'] = "Q, tot\n[W]"
+				ws['Q23'] = "Portata\n[kg/h]"
+
+			if self.lang == "eng":
+				ws['A23'] = "Zone"
+				ws['B23'] = "Collector"
+				ws['C23'] = "Room"
+
+				ws['D23'] = "Active\n[m2]"
+				ws['E23'] = "Area\n[m2]"
+				ws['F23'] = "% cov."
+				ws['G23'] = "lines"
+
+				ws['H23'] = "Panels\n200x120"
+				ws['I23'] = "Panels\n200x60"
+				ws['J23'] = "Panels\n100x120"
+				ws['K23'] = "Panels\n100x60"
+					
+				#ws.column_dimensions['M'].width = 2
+
+				ws['L22'] = 'Heating'
+				ws['L23'] = "Q, yield\n[W]"
+				ws['M23'] = "Q, tot\n[W]"
+				ws['N23'] = "Flow\n[kg/h]"
+
+				#ws.column_dimensions['Q'].width = 2
+
+				ws['O22'] = 'Cooling'
+				ws['O23'] = "Q, yield\n[W]"
+				ws['P23'] = "Q, tot\n[W]"
+				ws['Q23'] = "Flow\n[kg/h]"
+
+				ws['A23'] = "Zone"
+				ws['B23'] = "Collector"
+				ws['C23'] = "Room"
+
+				ws['D23'] = "Active\n[m2]"
+				ws['E23'] = "Area\n[m2]"
+				ws['F23'] = "% cov."
+				ws['G23'] = "lines"
+
+				ws['H23'] = "Panels\n200x120"
+				ws['I23'] = "Panels\n200x60"
+				ws['J23'] = "Panels\n100x120"
+				ws['K23'] = "Panels\n100x60"
+					
+				#ws.column_dimensions['M'].width = 2
+
+				ws['L22'] = 'Heating'
+				ws['L23'] = "Q, yield\n[W]"
+				ws['M23'] = "Q, tot\n[W]"
+				ws['N23'] = "Flow\n[kg/h]"
+
+				#ws.column_dimensions['Q'].width = 2
+
+				ws['O22'] = 'Cooling'
+				ws['O23'] = "Q, yield\n[W]"
+				ws['P23'] = "Q, tot\n[W]"
+				ws['Q23'] = "Flow\n[kg/h]"
+
 
 			set_border(ws, '23', "ABCDEFGHIJKLMNOPQ")
 			ws['A23'].border = thin_left_top
@@ -6323,6 +6457,9 @@ def create_model(data):
 
 	# create model and initialise it
 	model = Globals.model = Model()
+	if 'lang' in data:
+		model.lang = data['lang']
+
 	input_file = data['cfg_dir'] + "/" + data['infile']
 
 	for	ctype in panel_types:
