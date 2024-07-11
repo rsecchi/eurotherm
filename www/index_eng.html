@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="it">
+<html lang="eng">
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -109,9 +109,9 @@
 
         <div class="center">
             <a id="home-link" class="flex-sm-fill text-sm-center nav-link" aria-current="page" href="index_eng.html"><strong>Home</strong></a>
-            <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link" href="cgi-bin/show_file.py"><strong>Results</strong></a>
-            <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link" href="cgi-bin/archive.py"><strong>Archive</strong></a>
-            <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link" href="https://www.eurotherm.info/it/contatti"><strong>Contact</strong></a>
+            <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link" href="cgi-bin/show_file.py?lang=eng"><strong>Results</strong></a>
+            <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link" href="cgi-bin/archive.py?lang=eng"><strong>Archive</strong></a>
+            <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link" href="https://eurotherm.info/fieraISH"><strong>Contacts</strong></a>
         </div>
 
         <div class="right">
@@ -135,6 +135,7 @@
     <form action="cgi-bin/save_file.py" method="post" name="leodata" autocomplete="off" onsubmit="return validate_form()" enctype="multipart/form-data">
 
         <input name="file" id="fileid" hidden />
+		<input name="lang" id="lang" value="eng" hidden>
 
         <div class="form-group">
             <div class="section">

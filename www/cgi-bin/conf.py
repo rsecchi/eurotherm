@@ -8,8 +8,9 @@ out_text     = tmp + ""
 lock_name    = tmp + "eurotherm.lock"
 logfile      = tmp + "log"
 
-load_page    = local_dir + "/www/loading.html"
-done_page    = local_dir + "/www/done.html"
-#script       = local_dir + "/leonardo.py"
-script       = local_dir + "/leonardo2.py"
+load_page_ita    = local_dir + "/www/loading.html"
+load_page_eng    = local_dir + "/www/loading_eng.html"
+done_page_ita    = local_dir + "/www/done.html"
+done_page_eng    = local_dir + "/www/done_eng.html"
+script       = local_dir + "/leonardo.py"
 

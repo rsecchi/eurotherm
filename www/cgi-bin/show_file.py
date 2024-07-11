@@ -1,10 +1,7 @@
 #!/usr/bin/python3 -u
 
-import cgi, os, sys
+import cgi, os
 import cgitb
-import time
-import subprocess
-import re
 import zipfile
 
 
@@ -30,6 +27,15 @@ from conf import *
 	
 form = cgi.FieldStorage()	
 filename = form.getvalue("filename")
+
+lang = form.getvalue("lang")
+load_page = load_page_ita
+if lang == "eng":
+	load_page = load_page_eng
+
+done_page = done_page_ita
+if lang == "eng":
+	done_page = done_page_eng
 
 if os.path.exists(lock_name):
 
@@ -82,7 +88,11 @@ else:
 		update_link(basename, ".zip")
 
 	print('<div class="section">')
-	print('<h4>Risultati calcolo tecnico</h4><ul>')
+	if lang == "ita":
+		print('<h4>Risultati calcolo tecnico</h4><ul>')
+	else:
+		print('<h4>Results of elaboration</h4><ul>')
+
 
 
 	fname = {}
@@ -94,7 +104,10 @@ else:
 		if not os.path.exists(output[ftype]):
 			continue
 		ff = os.path.basename(os.readlink(output[ftype]))
-		print('\t<li><span>Scarica file %s</span>' % ftype, end="")
+		if lang=="ita":
+			print('\t<li><span>Scarica file %s</span>' % ftype, end="")
+		else:
+			print('\t<li><span>Download file %s</span>' % ftype, end="")
 		print('[<a href="/output/%s" download>%s</a>]</li>' % (ff, ff)) 
 
 	
@@ -107,7 +120,10 @@ else:
 		ff = os.path.basename(os.readlink(output[".png"]))
 		print('<div class="section" >')
 		# <img src="img_girl.jpg" alt="Girl in a jacket">
-		print('<h4>Pianta</h4>')
+		if lang=="ita":
+			print('<h4>Pianta</h4>')
+		else:
+			print('<h4>Floor plan</h4>')
 		print('<div style="text-align: center;" >')
 		print('<img src="/output/%s" width="500">' % ff) 
 		print("</div></div>")
@@ -119,7 +135,11 @@ else:
 	if os.path.exists(output[".txt"]):
 		fin = open(output[".txt"], "r")
 		print("<div class='section'>")
-		print('<h4>Relazione Calcolo</h4>')
+		if lang=="ita":
+			print('<h4>Relazione Calcolo</h4>')
+		else:
+			print('<h4>Computation Report</h4>')
+
 		for line in fin:
 			if len(line)>1 and line[-2]=="@":
 				print("<pre style='background-color: yellow;'>")

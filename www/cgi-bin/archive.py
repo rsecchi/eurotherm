@@ -1,16 +1,24 @@
 #!/usr/bin/python3 -u
 
-import cgi, os, sys
+import cgi, os
 import glob
 import cgitb
 import time
-import subprocess
-import re
 
 cgitb.enable()
 
 local_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 from conf import *
+
+
+form = cgi.FieldStorage()
+lang = form.getvalue("lang")
+load_page = load_page_ita
+done_page = done_page_ita
+if lang=="eng":
+	load_page = load_page_eng
+	done_page = done_page_eng
+
 
 if os.path.exists(lock_name):
 
@@ -48,7 +56,11 @@ else:
 					os.remove(ff)
 
 	print('<div class="section">')
-	print('<h4>File dispobili sul server</h4>')
+	if lang == "ita":
+		print('<h4>File dispobili sul server</h4>')
+	else:
+		print('<h4>Files available on server</h4>')
+		
 	print('<ul>')
 
 	files = list(filter(os.path.isfile, glob.glob(tmp + "*.dxf")))

@@ -2,9 +2,10 @@
 
 import cgi, os, sys
 import cgitb
-import time
-from subprocess import Popen, STDOUT, PIPE, run
-import fcntl
+# import time
+# from subprocess import Popen, STDOUT, PIPE, run
+from subprocess import Popen
+# import fcntl
 import json
 
 
@@ -41,14 +42,17 @@ def start_script(cfg_file):
 #############################################
 
 
-def get_filename(fid):
+def get_filename(fid) -> str:
 	bname = fid[:-4]
 	for i in range(1,100):
 		basename = bname + "_leo_%02d.dxf" % i
 		ff = tmp + basename
 		if (not os.path.exists(ff)):
 			return basename
+	return ""
 
+
+output_filename = ""
 
 if not os.path.exists(lock_name):
 
@@ -84,6 +88,9 @@ if not os.path.exists(lock_name):
 	start_script('"'+ tmp + config_filename+'"')
 
 
+load_page = load_page_ita
+if form.getvalue('lang') == "eng":
+	load_page = load_page_eng
 
 ff = open(load_page, "r")
 print(ff.read() % os.path.basename(output_filename))

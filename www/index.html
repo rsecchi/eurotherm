@@ -111,9 +111,9 @@
             <a id="home-link" class="flex-sm-fill text-sm-center nav-link" aria-current="page"
                 href="index.html"><strong>Home</strong></a>
             <a id="risultati-link" class="flex-sm-fill text-sm-center nav-link"
-                href="cgi-bin/show_file.py"><strong>Risultati</strong></a>
+                href="cgi-bin/show_file.py?lang=ita"><strong>Risultati</strong></a>
             <a id="archivio-link" class="flex-sm-fill text-sm-center nav-link"
-                href="cgi-bin/archive.py"><strong>Archivio</strong></a>
+                href="cgi-bin/archive.py?lang=ita"><strong>Archivio</strong></a>
             <a id="contatti-link" class="flex-sm-fill text-sm-center nav-link"
                 href="https://www.eurotherm.info/it/contatti"><strong>Contatti</strong></a>
         </div>
@@ -145,6 +145,7 @@
         onsubmit="return validate_form()" enctype="multipart/form-data">
 
         <input name="file" id="fileid" hidden />
+		<input name="lang" id="lang" value="ita" hidden>
 
         <div class="form-group">
             <div class="section">
