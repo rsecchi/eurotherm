@@ -1,51 +1,24 @@
-import os
-import sys
-#from drawing import DxfDrawing
-
-# Script file is local dir
+import os, sys
 local_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(local_dir)
 sys.path.append('..')
 
-from engine.planner import RoomPlanner
+from reference_frame import ReferenceFrame
+from components import ComponentManager
+from drawing import DxfDrawing
+from settings import Config
 
 import json
 import atexit
 
 from math import sqrt, ceil, log10, atan2, pi
 
-from ezdxf.addons.importer import Importer as importer
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from copy import copy
 
-from ezdxf.filemanagement import new, readfile
-from ezdxf.lldxf import const
+from ezdxf.filemanagement import readfile
 
-dxf_version = "AC1032"
-debug = False
 
-default_input_layer = 'AREE LEONARDO'
-layer_text      = 'Eurotherm_text'
-layer_box       = 'Eurotherm_box'
-layer_panel     = 'Pannelli Leonardo'
-layer_panelp    = 'Eurotherm_prof'
-layer_link      = 'Eurotherm_link'
-layer_error     = 'Eurotherm_error'
-layer_lux       = 'Eurotherm_lux'
-layer_probes    = 'Eurotherm_probes'
-layer_joints    = 'Eurotherm_joints'
-layer_struct    = 'Eurotherm_structure'
-layer_collector = 'Collettori'
-
-# block names (defaults)
-block_blue_120x100  = "LEO_55_120"
-block_blue_60x100   = "LEO_55_60"
-block_green_120x100 = "LEO_55_120_IDRO"
-block_green_60x100  = "LEO_55_60_IDRO"
-block_collector     = "collettore"
-block_collector_W   = "collettore_W"
-
-default_font_size = 10
 
 # Parameter settings (values in cm)
 default_scale = 1  # scale=100 if the drawing is in m
@@ -63,16 +36,6 @@ default_min_dist2 = default_min_dist*default_min_dist
 default_max_clt_distance = 3000
 default_add_offs = 10
 default_add_dist = 4
-
-text_color = 7
-collector_color = 1         ;# red
-obstacle_color = 2          ;# yellow
-bathroom_color = 3          ;# green
-valid_room_color = 5        ;# blue
-neutral_color = 8           ;# grey
-disabled_room_color = 6     ;# magenta
-zone_color = 4              ;# cyan
-box_color = 8               ;# grey
 
 collector_margin_factor = 1.5
 
@@ -211,17 +174,6 @@ def is_gate(line, target):
 
 
 
-def write_text(msp, strn, pos, 
-	align=const.MTEXT_MIDDLE_CENTER, zoom=1, col=text_color):
-	
-	text = msp.add_mtext(strn, 
-		dxfattribs={"style": "Arial"})
-	text.dxf.insert = pos
-	text.dxf.attachment_point = align
-	text.dxf.char_height = font_size*zoom
-	text.dxf.layer = layer_text
-	text.dxf.color = col
-
 
 class Room:
 
@@ -259,6 +211,7 @@ class Room:
 		self.points = list(poly.vertices())	
 		self.vector = None
 		self.vector_auto = False
+		self.frame = ReferenceFrame(self)
 
 		# Add a final point to closed polylines
 		p = self.points
@@ -398,8 +351,6 @@ class Room:
 			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
 				
 
-
-
 	def is_point_inside(self, point):
 
 		p = self.points
@@ -512,10 +463,6 @@ class Room:
 
 
 
-	def draw_label(self, msp):
-
-		write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
-
 
 
 class Model():
@@ -529,6 +476,7 @@ class Model():
 		global area_per_feed_m2
 
 		super(Model, self).__init__()
+		self.data = data
 		self.rooms = list()
 		self.vectors = list()
 		self.collectors = list()
@@ -552,21 +500,15 @@ class Model():
 		self.input_file = data['cfg_dir'] + "/" + data['infile']
 	
 		self.input_doc = readfile(self.input_file)	
+		self.msp = self.input_doc.modelspace()
 		self.refit = False
 		for layer in self.input_doc.layers:
-			if layer.dxf.name == layer_panel:
+			if layer.dxf.name == Config.layer_panel:
 				self.refit = True
 
-		if not self.refit:	
-			self.doc = new(dxf_version)
-		else:
-			self.doc = self.input_doc
 
-		self.doc.header["$LWDISPLAY"] = 1
-		self.msp = self.doc.modelspace()
-		self.scale = data['units']
-		self.inputlayer = default_input_layer
-		self.outname = data['cfg_dir'] + "/" + data['outfile'] 
+		self.scale = default_scale 
+		self.inputlayer = Config.input_layer
 		self.filename = self.input_file 
 		self.control = data['control'] 
 		self.head =  data['head']
@@ -587,8 +529,7 @@ class Model():
 					self.ptype = ptype
 			return
 
-		self.imp = importer(self.input_doc, self.doc)
-		self.ents = self.input_doc.modelspace().query('*[layer=="%s"]' 
+		self.ents = self.msp.query('*[layer=="%s"]' 
 				% self.inputlayer)
 
 		for layer in self.input_doc.layers:
@@ -598,70 +539,17 @@ class Model():
 		if (len(self.ents) == 0):
 			self.print('ABORT: Layer "%s" not available or empty @'
 				% self.inputlayer)
-			return
-
-		self.imp.import_entities(self.ents)
-		self.imp.finalize()
-	
-		self.source_dxf = readfile("Symbol.dxf")
-		self.imp = importer(self.source_dxf, self.doc)
 
 		ctype = self.type
-		
+
 		for ptype in panel_types:
 			if (ctype == ptype['full_name']):
 				self.ptype = ptype
-				handler = "LEO_" + ptype['handler'] + "_"
-				block_blue_120x100 = handler + "120"
-				block_blue_60x100 = handler + "60"
-				block_green_120x100 = handler + "120_IDRO"
-				block_green_60x100 = handler + "60_IDRO"
-
-				if handler == "LEO_30_":
-					block_green_120x100 = block_blue_120x100
-					block_green_60x100 = block_blue_60x100
 
 				area_per_feed_m2 = ptype['panels'] * 2.4
 				flow_per_m2 = ptype['flow_panel'] / 2.4
 				print('Area/line = %g m2' % area_per_feed_m2)
 				print('Flow_per_m2 = %g l/m2' % flow_per_m2)
-
-		self.imp.import_block(block_blue_120x100)
-		self.imp.import_block(block_blue_60x100)
-		self.imp.import_block(block_green_120x100)
-		self.imp.import_block(block_green_60x100)
-		self.imp.import_block(block_collector)
-		self.imp.import_block(block_collector_W)
-		self.imp.import_block("LEO_LUX_120")
-		self.imp.import_block("LEO_LUX_120_IDRO")
-
-		# import fittings
-		self.imp.import_block("Rac_20_10_20_blu")
-		self.imp.import_block("Rac_20_10_20_rosso")
-		self.imp.import_block("Rac_20_10_blu")
-		self.imp.import_block("Rac_20_10_rosso")
-		self.imp.import_block("Rac_20_10_10_20_blu")
-		self.imp.import_block("Rac_20_10_10_20_rosso")
-		self.imp.import_block("Rac_20_10_10_blu")
-		self.imp.import_block("Rac_20_10_10_rosso")
-		self.imp.import_block("Rac_20_10_20_10_blu")
-		self.imp.import_block("Rac_20_10_20_10_rosso")
-		self.imp.import_block("Rac_10_20_10_blu")
-		self.imp.import_block("Rac_10_20_10_rosso")
-		self.imp.import_block("Rac_10_20_10_10_blu")
-		self.imp.import_block("Rac_10_20_10_10_rosso")
-		self.imp.import_block("Rac_20_10_10_20_10_10_blu")
-		self.imp.import_block("Rac_20_10_10_20_10_10_rosso")
-		self.imp.import_block("Rac_10_10_20_10_10_blu")
-		self.imp.import_block("Rac_10_10_20_10_10_rosso")
-		self.imp.import_block("Rac_20_20_dritto")
-		self.imp.import_block("Rac_20_20_curva")
-		self.imp.import_block("Rac_20_20_20_blu")
-		self.imp.import_block("Rac_20_20_20_rosso")
-		self.imp.import_block("Rac_10_10_dritto")
-		self.imp.import_block("sonda T")
-		self.imp.import_block("sonda T_U")
-		self.imp.finalize()
 
 
 	def print(self, text):
@@ -671,26 +559,6 @@ class Model():
 	def insert(self, text):
 		print(text, end='')
 
-	def new_layer(self, layer_name, color):
-		attr = {'linetype': 'CONTINUOUS', 'color': color}
-		self.doc.layers.new(name=layer_name, dxfattribs=attr)
-		
-
-	def create_layers(self):
-		self.new_layer(layer_panel, 0)
-		if (debug):
-			self.new_layer(layer_panelp, 0)
-			self.new_layer(layer_box, box_color)
-		self.new_layer(layer_link, 0)
-		self.new_layer(layer_text, text_color)
-		self.new_layer(layer_error, 0)
-		self.new_layer(layer_lux, 0)
-		self.new_layer(layer_probes, 0)
-		self.new_layer(layer_joints, 0)
-		self.new_layer(layer_struct, 0)
-
-		self.doc.layers.get(layer_lux).off()
-		self.doc.layers.get(layer_struct).off()
 
 	def find_gates(self):
 		
@@ -698,7 +566,6 @@ class Model():
 			for room2 in self.processed:
 				if (room1 != room2):
 					room1.add_gates(room2)
-
 
 
 	def merge_rooms(self, collector):
@@ -814,10 +681,10 @@ class Model():
 					and not room.fixed_collector):
 				self.output.print(
 					"ABORT: No collectors from Room %d @\n" % room.pindex)
-				self.output.print("Check %s layer @" % layer_error + 
+				self.output.print("Check %s layer @" % Config.layer_error + 
 					" to visualize errors @\n")
 
-				room.poly.dxf.layer = layer_error
+				room.poly.dxf.layer = Config.layer_error
 				self.output_error()
 				return False
 
@@ -825,7 +692,7 @@ class Model():
 		bound = 0
 		for room in reversed(self.processed):
 			if (room.fixed_collector or 
-				room.color==disabled_room_color):
+				room.color==Config.color_disabled_room):
 				room.bound = 0
 				continue
 			room.bound = bound
@@ -876,8 +743,10 @@ class Model():
 		global add_offs
 		global add_dist
 
+		scale = self.scale
+
 		tolerance    = default_tolerance/scale
-		font_size  = default_font_size/scale
+		font_size  = Config.font_size/scale
 
 		panel_width = default_panel_width/scale
 		panel_height = default_panel_height/scale
@@ -892,24 +761,9 @@ class Model():
 		add_offs = default_add_offs/scale
 		add_dist = default_add_dist/scale
 
-	def output_error(self):
-		self.doc.layers.remove(layer_panel)
-		self.doc.layers.remove(layer_link)
-		if (debug):
-			self.doc.layers.remove(layer_box)
-			self.doc.layers.remove(layer_panelp)
-
-		for room in self.processed:
-			room.draw_label(self.msp)
-
-		self.doc.saveas(self.outname)
-
-
-		print("DRAW DONE")
 
 	def autoscale(self):
-		global scale
-		
+
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
 				continue
@@ -935,8 +789,8 @@ class Model():
 			tot += rm.area
 			n += 1
 
-		scale = pow(10, ceil(log10(sqrt(n/tot))))
-		print("Autoscale: 1 unit = %g cm\n" % scale)
+		self.scale = pow(10, ceil(log10(sqrt(n/tot))))
+		print("Autoscale: 1 unit = %g cm\n" % self.scale)
 		return True
 
 	def check_polyline_color(self, poly):
@@ -945,13 +799,13 @@ class Model():
 			# BYLAYER poly color
 			poly.dxf.color = self.layer_color
 
-		if (not (poly.dxf.color == collector_color or
-				 poly.dxf.color == obstacle_color or
-				 poly.dxf.color == bathroom_color or
-				 poly.dxf.color == valid_room_color or
-				 poly.dxf.color == zone_color or
-				 poly.dxf.color == neutral_color or
-				 poly.dxf.color == disabled_room_color)):
+		if (not (poly.dxf.color == Config.color_collector or
+				 poly.dxf.color == Config.color_obstacle or
+				 poly.dxf.color == Config.color_bathroom or
+				 poly.dxf.color == Config.color_valid_room or
+				 poly.dxf.color == Config.color_zone or
+				 poly.dxf.color == Config.color_neutral or
+				 poly.dxf.color == Config.color_disabled_room)):
 			return False
 		return True
 
@@ -983,7 +837,7 @@ class Model():
 				self.best_list = list()
 				ir = iter(self.processed)
 				while (x:=next(ir)) != None:
-					if x.color == disabled_room_color:
+					if x.color == Config.color_disabled_room:
 						continue
 					if x.fixed_collector:
 						x.collector = x.fixed_collector
@@ -998,7 +852,7 @@ class Model():
 				return
 
 		# skip disabled room
-		if room.color == disabled_room_color:
+		if room.color == Config.color_disabled_room:
 			self.connect_rooms(copy(room_iter), partial)
 			return
 
@@ -1052,27 +906,25 @@ class Model():
 	def build_model(self):
  
 		global tot_iterations, max_iterations
-		global scale
 
 		if self.refit:
 			self.output.print("******************************************\n");
 			self.output.print("Detected existing plan, disable allocation\n");
 			self.output.print("******************************************\n");
 
-		scale = self.scale
-		if (self.scale == "auto"):
-			scale = default_scale
+
+		if (self.data['units'] == "auto"):
 			self.rescale_model()
 			if not self.autoscale():
 				return False
 		else:
-			scale = float(self.scale)
+			self.scale = float(self.data['units'])
 
 		self.rescale_model()
 
 		Room.index = 1
-		if not self.refit:
-			self.create_layers()
+		# if not self.refit:
+		# 	self.create_layers()
 		
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
@@ -1113,10 +965,10 @@ class Model():
 
 				# Valid polyline, classify room
 				room.error = False
-				area = scale * scale * room.area
+				area = self.scale * self.scale * room.area
 				if (area > max_room_area and
-				    (room.color == valid_room_color or
-				     room.color == bathroom_color)):
+				    (room.color == Config.color_valid_room or
+				     room.color == Config.color_bathroom)):
 					wstr = "ABORT: Zone %d larger than %d m2 @\n" % (room.index, 
 						max_room_area)
 					wstr += "Consider splitting area \n\n"
@@ -1125,32 +977,32 @@ class Model():
 					room.error = True
 					continue
 
-				if (room.color == collector_color):
+				if (room.color == Config.color_collector):
 					self.collectors.append(room)
 					room.is_collector = True
 					continue
 
-				if (room.color == valid_room_color or
-				   room.color == bathroom_color):
+				if (room.color == Config.color_valid_room or
+				   room.color == Config.color_bathroom):
 					self.valid_rooms.append(room)
 
-				if (room.color == obstacle_color or
-				    room.color == neutral_color):
+				if (room.color == Config.color_obstacle or
+				    room.color == Config.color_neutral):
 					self.obstacles.append(room)
 
-				if (room.color == disabled_room_color):
+				if (room.color == Config.color_disabled_room):
 					room.pindex = pindex
 					pindex += 1
 					self.processed.append(room)
 
-				if (room.color == zone_color):
+				if (room.color == Config.color_zone):
 					self.user_zones.append(room)
 					room.leader = None
 
-	
+
 		# check if the room is too small to be processed
 		for room in self.valid_rooms:
-			area = scale * scale * room.area
+			area = self.scale * self.scale * room.area
 			if  (area < min_room_area):
 				wstr = "WARNING: area less than %d m2: " % min_room_area
 				wstr += "Consider changing scale! @\n"
@@ -1213,7 +1065,7 @@ class Model():
 			
 			polyline = self.msp.add_lwpolyline(points)
 			polyline.dxf.layer = self.inputlayer
-			polyline.dxf.color = obstacle_color	
+			polyline.dxf.color = Config.color_obstacle	
 			collector_box = Room(polyline, self.output)
 			collector.box = collector_box
 			collector.contained_in.obstacles.append(collector_box)
@@ -1247,12 +1099,12 @@ class Model():
 				if (room[i].collides_with(room[j])):
 					wstr = "ABORT: Collision between Room %d" % room[i].pindex
 					wstr += " and Room %d @\n" % room[j].pindex
-					wstr += ("Check %s in output drawing" % layer_error +
+					wstr += ("Check %s in output drawing" % Config.layer_error +
 					 " to visualize errors @\n")
-					room[i].poly.dxf.layer = layer_error
-					room[j].poly.dxf.layer = layer_error
+					room[i].poly.dxf.layer = Config.layer_error
+					room[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
-					self.output_error()
+					# self.output_error()
 					return False
 
 				j += 1
@@ -1262,12 +1114,12 @@ class Model():
 			for j in range(i+1, len(self.collectors)):
 				if (self.collectors[i].collides_with(self.collectors[j])):
 					wstr = "ABORT: Collision between collectors @\n"
-					wstr += ("Check %s layer " % layer_error +
+					wstr += ("Check %s layer " % Config.layer_error +
 					 "to visualize errors @")
-					self.collectors[i].poly.dxf.layer = layer_error
-					self.collectors[j].poly.dxf.layer = layer_error
+					self.collectors[i].poly.dxf.layer = Config.layer_error
+					self.collectors[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
-					self.output_error()
+					# self.output_error()
 					return False
 	
 		# check if vector is in room or 
@@ -1312,17 +1164,17 @@ class Model():
 				# Check if vector is vector fixes to collector
 
 				wstr = "ABORT: Vector outside room @\n"
-				wstr += ("Check %s layer" % layer_error + 
+				wstr += ("Check %s layer" % Config.layer_error + 
 					" to visualize errors @")
-				v.dxf.layer = layer_error
+				v.dxf.layer = Config.layer_error
 				self.output.print(wstr)
-				self.output_error()
+				#self.output_error()
 				return False
 	
 		# orient room without vector
-		for room in self.processed:
-			if (not room.vector):
-				room.orient_room()	
+		# for room in self.processed:
+		# 	if (not room.vector):
+		# 		room.orient_room()	
 	
 		self.output.print("Detected rooms ........................... %3d\n" 
 			% len(self.processed))
@@ -1335,15 +1187,15 @@ class Model():
 
 		# Check if room too large  for a collector
 		for room in self.processed:
-			area = scale * scale * room.area
+			area = self.scale * self.scale * room.area
 			flow = area*flow_per_m2
 			if flow > flow_per_collector:
 				wstr = "ABORT: Room %d larger than collector capacity @\n" % room.pindex
-				wstr += ("Check %s layer" % layer_error + 
+				wstr += ("Check %s layer" % Config.layer_error + 
 					" to visualize errors @\n")
-				room.poly.dxf.layer = layer_error
+				room.poly.dxf.layer = Config.layer_error
 				self.output.print(wstr)
-				self.output_error()
+				#self.output_error()
 				return False
 
 		# Check if enough collectors
@@ -1351,13 +1203,13 @@ class Model():
 		flow_eff = flow_max = 0
 		for room in self.processed:
 
-			if room.color == disabled_room_color:
+			if room.color == Config.color_disabled_room:
 				continue
 
 			obs_area_tot = 0
 			for obs in room.obstacles:
-				obs_area_tot += obs.area * scale * scale
-			area = scale * scale * room.area - obs_area_tot
+				obs_area_tot += obs.area * self.scale * self.scale
+			area = self.scale * self.scale * room.area - obs_area_tot
 
 			room.feeds_eff = ceil(area/area_per_feed_m2*target_eff)
 			room.feeds_max = ceil(area/area_per_feed_m2)
@@ -1396,8 +1248,9 @@ class Model():
 
 		# Disabled room with collector forms its own zone
 		for room in self.processed:
-			if (room.color==disabled_room_color and room.zone and
-				not room.collector):
+			if (room.color==Config.color_disabled_room 
+				and room.zone
+				and not room.collector):
 					room.collector = room.zone	
 
 		# for collector in self.collectors:
@@ -1439,13 +1292,13 @@ class Model():
 		return True
 
 
-	def populate(self):
+	# def populate(self):
 
-		self.num_panels = 0
-		for room in self.processed:
-			planner = RoomPlanner(room, scale)
-			room.panels = planner.get_panels()
-			self.num_panels += len(room.panels)
+	# 	self.num_panels = 0
+	# 	for room in self.processed:
+	# 		planner = RoomPlanner(room, scale)
+	# 		room.panels = planner.get_panels()
+	# 		self.num_panels += len(room.panels)
 
 ############ START PROCESS ##########################
 
@@ -1456,37 +1309,34 @@ data = json.loads(json_file.read())
 lock_name = data['lock_name']
 
 
-
 def remove_lock():
-	out = model.outname[:-4]+".txt"
+	out = data['outfile'][:-4]+".txt"
 	f = open(out, "w")
-	print(model.text, file = f)
-
-	#out = Globals.model.outname[:-4]+".mod"
-	#f = open(out, "wb")
-	#pickle.dump(Globals.model, f)
+	print("Early exit", file = f)
 	os.remove(lock_name)
 
 
-if not os.path.exists(lock_name):
-
-	# Acquire lock 
-	open(lock_name, "w")	
-	atexit.register(remove_lock)
-
-	data['cfg_dir'] = os.path.dirname(sys.argv[1])
-
-	model = Model(data)
-	model.build_model()
-	model.populate()
-
-	for room in model.processed:
-		for panel in room.panels:
-			panel.draw_panel(model.msp, scale)
-
-	print("DRAWING:", model.outname)
-	model.doc.saveas(model.outname)
-
-else:
+# Acquire lock 
+if os.path.exists(lock_name):
 	print("ABORT: Resource busy")
+open(lock_name, "w")	
+atexit.register(remove_lock)
+
+
+data['cfg_dir'] = os.path.dirname(sys.argv[1])
+
+model = Model(data)
+manager = ComponentManager()
+
+outfile = data['cfg_dir'] + "/" + data['outfile'] 
+dxfdrawing = DxfDrawing(outfile, model.refit, model.scale)
+
+model.build_model()
+manager.get_components(model)
+
+
+
+dxfdrawing.save()
+
+
 
