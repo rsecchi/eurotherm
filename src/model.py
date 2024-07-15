@@ -1,19 +1,9 @@
-import os, sys
-local_dir = os.path.dirname(os.path.realpath(__file__))
-os.chdir(local_dir)
-sys.path.append('..')
-
 from reference_frame import ReferenceFrame
 from settings import Config
-
-
 from math import sqrt, ceil, log10, atan2, pi
-
 from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
 from copy import copy
-
 from ezdxf.filemanagement import readfile
-
 
 
 # Parameter settings (values in cm)

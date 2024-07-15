@@ -10,6 +10,7 @@ class ComponentManager:
 	
 	def __init__(self):
 		self.num_panels = 0
+		self.panels = list()
 
 	def get_components(self, model):
 
@@ -17,4 +18,5 @@ class ComponentManager:
 		for room in model.processed:
 			planner = RoomPlanner(room, model.scale)
 			room.panels = planner.get_panels()
+			self.panels += room.panels
 			self.num_panels += len(room.panels)

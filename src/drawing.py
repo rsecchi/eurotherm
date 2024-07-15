@@ -1,14 +1,10 @@
-import os, sys
-local_dir = os.path.dirname(os.path.realpath(__file__))
-os.chdir(local_dir)
-sys.path.append('..')
-
-from settings import Config
-# from settings import fitting_names
-from settings import debug
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+
+from settings import Config
+from settings import debug
+
 
 # block names (defaults)
 block_blue_120x100  = "LEO_55_120"
@@ -29,22 +25,24 @@ class DxfDrawing:
 		self.doc.header["$LWDISPLAY"] = 1
 		self.msp = self.doc.modelspace()
 		self.outname = ""
+		self.create_layers()
 
 
 	def import_floorplan(self, filename):
 		input_doc = readfile(filename)
 		importer = Importer(input_doc, self.doc)
 
-		floorplan = input_doc.modelspace().query(
-				'*[layer=="%s"' % Config.input_layer)
+		floorplan = input_doc.query('*[layer=="%s"]' % Config.input_layer)
 
 		importer.import_entities(floorplan)
 		importer.finalize()
 
+
 	def new_layer(self, layer_name, color):
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
 		self.doc.layers.new(name=layer_name, dxfattribs=attr)
-		
+
+
 	def output_error(self, processed):
 		self.doc.layers.remove(Config.layer_panel)
 		self.doc.layers.remove(Config.layer_link)
@@ -56,6 +54,7 @@ class DxfDrawing:
 			room.draw_label(self.msp)
 
 		self.doc.saveas(self.outname)
+
 
 	def create_layers(self):
 		self.new_layer(Config.layer_panel, 0)
@@ -78,7 +77,7 @@ class DxfDrawing:
 
 	def draw_room(self, room):
 		for panel in room.panels:
-			panel.draw_panel(self.msp)
+			panel.draw_panel(self.msp, 100)
 
 	def write_text(self, msp, strn, pos, 
 		align=const.MTEXT_MIDDLE_CENTER, 
@@ -95,7 +94,6 @@ class DxfDrawing:
 	def draw_model(self, model):
 		for room in model.processed:
 			self.draw_room(room)
-
 
 
 	# def import_blocks(self):
