@@ -23,19 +23,12 @@ dxf_version = "AC1032"
 
 class DxfDrawing:
 
-	def __init__(self, filename, refit, scale):
+	def __init__(self):
 
-		self.refit = refit
-		self.scale = scale
-		self.input_doc = readfile(filename)
-
-		if not self.refit:	
-			self.doc = new(dxf_version)
-		else:
-			self.doc = self.input_doc
-
+		self.doc = new(dxf_version)
 		self.doc.header["$LWDISPLAY"] = 1
 		self.msp = self.doc.modelspace()
+		self.outname = ""
 
 
 	def import_floorplan(self, filename):
@@ -52,20 +45,17 @@ class DxfDrawing:
 		attr = {'linetype': 'CONTINUOUS', 'color': color}
 		self.doc.layers.new(name=layer_name, dxfattribs=attr)
 		
-	def output_error(self):
+	def output_error(self, processed):
 		self.doc.layers.remove(Config.layer_panel)
 		self.doc.layers.remove(Config.layer_link)
 		if (debug):
 			self.doc.layers.remove(Config.layer_box)
 			self.doc.layers.remove(Config.layer_panelp)
 
-		for room in self.processed:
+		for room in processed:
 			room.draw_label(self.msp)
 
 		self.doc.saveas(self.outname)
-
-
-		print("DRAW DONE")
 
 	def create_layers(self):
 		self.new_layer(Config.layer_panel, 0)
@@ -147,5 +137,5 @@ class DxfDrawing:
 
 	# 	importer.finalize()
 
-	def save(self):
-		self.doc.saveas("output.dxf")
+	def save(self, filename):
+		self.doc.saveas(filename)

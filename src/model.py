@@ -464,12 +464,6 @@ class Room:
 class Model():
 	def __init__(self, data):
 
-		global block_blue_120x100 
-		global block_blue_60x100 
-		global block_green_120x100
-		global block_green_60x100
-		global block_collector
-		global area_per_feed_m2
 
 		super(Model, self).__init__()
 		self.data = data
@@ -542,9 +536,9 @@ class Model():
 			if (ctype == ptype['full_name']):
 				self.ptype = ptype
 
-				area_per_feed_m2 = ptype['panels'] * 2.4
+				self.area_per_feed_m2 = ptype['panels'] * 2.4
 				flow_per_m2 = ptype['flow_panel'] / 2.4
-				print('Area/line = %g m2' % area_per_feed_m2)
+				print('Area/line = %g m2' % self.area_per_feed_m2)
 				print('Flow_per_m2 = %g l/m2' % flow_per_m2)
 
 
@@ -681,7 +675,7 @@ class Model():
 					" to visualize errors @\n")
 
 				room.poly.dxf.layer = Config.layer_error
-				self.output_error()
+				# self.output_error()
 				return False
 
 
@@ -1207,8 +1201,8 @@ class Model():
 				obs_area_tot += obs.area * self.scale * self.scale
 			area = self.scale * self.scale * room.area - obs_area_tot
 
-			room.feeds_eff = ceil(area/area_per_feed_m2*target_eff)
-			room.feeds_max = ceil(area/area_per_feed_m2)
+			room.feeds_eff = ceil(area/self.area_per_feed_m2*target_eff)
+			room.feeds_max = ceil(area/self.area_per_feed_m2)
 			feeds_eff += room.feeds_eff
 			feeds_max += room.feeds_max
 			# connect room based on max allocation

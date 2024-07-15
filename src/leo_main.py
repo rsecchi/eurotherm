@@ -33,17 +33,20 @@ data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 model = Model(data)
 manager = ComponentManager()
+dxf = DxfDrawing()
 
-outfile = data['cfg_dir'] + "/" + data['outfile'] 
-dxfdrawing = DxfDrawing(outfile, model.refit, model.scale)
+if model.refit:
+	dxf.import_floorplan(model.input_file)
+
 
 if not model.build_model():
-	print("NEED TO PRINT OUTPUT HERE")
+	dxf.output_error(model.processed)
 
 manager.get_components(model)
 
 
-dxfdrawing.save()
+outfile = data['cfg_dir'] + "/" + data['outfile'] 
+dxf.save(outfile)
 
 
 
