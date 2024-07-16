@@ -61,3 +61,5 @@ class Config:
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
 
+	max_room_area = 500
+

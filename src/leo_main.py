@@ -45,6 +45,7 @@ class App:
 			# build and elaborate model
 			if not self.model.build_model():
 				self.dxf.output_error(self.model.processed)
+				return
 
 			self.manager.get_components(self.model)
 

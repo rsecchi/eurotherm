@@ -1,7 +1,7 @@
 from reference_frame import ReferenceFrame
 from settings import Config
 from math import sqrt, ceil, log10, atan2, pi
-from ezdxf.math import Vec2, intersection_line_line_2d, convex_hull_2d
+from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
 from ezdxf.filemanagement import readfile
 
@@ -31,7 +31,6 @@ feeds_per_collector = 13
 target_eff = 0.7
 
 min_room_area = 1
-max_room_area = 500
 max_steps = 20
 max_clt_break = 5
 max_iterations = 5e6
@@ -195,8 +194,6 @@ class Room:
 		self.coord = list()
 
 		self.points = list(poly.vertices())	
-		self.vector = None
-		self.vector_auto = False
 		self.frame = ReferenceFrame(self)
 
 		# Add a final point to closed polylines
@@ -289,53 +286,7 @@ class Room:
 		self.bx = max(self.xcoord)
 		self.ay = min(self.ycoord)
 		self.by = max(self.ycoord)
-		
 
-	def orient_room(self):
-		global max_room_area
-
-		uvx = 0
-		uvy = 0
-		max_rot_orig = 0
-		vtx = [(p[0],p[1],0) for p in self.points]
-		conv_hull = convex_hull_2d(vtx)
-		ch = [(s.x, s.y) for s in conv_hull]
-		ch = [*ch, ch[0]]
-
-		max_area = MAX_DIST2
-		max_uv = (1,0)
-		for i in range(len(ch)-1):
-			p0, p1 = ch[i], ch[i+1]
-			norm_uv = dist(p0, p1)
-			if (norm_uv == 0):
-				continue
-			uvx, uvy = uv = (p1[0]-p0[0])/norm_uv, (p1[1]-p0[1])/norm_uv
-			bxm = bxM = 0; by = 0
-			for p in ch[:-1]:
-				px =  uvx*(p[0]-p0[0]) + uvy*(p[1]-p0[1])
-				py = abs(-uvy*(p[0]-p0[0]) + uvx*(p[1]-p0[1]))
-				if (py > by):
-					by = py
-
-				if (px < bxm):
-					bxm = px
-				if (px > bxM):
-					bxM = px
-
-			Ar = (bxM - bxm)*by
-			if ( Ar < max_area ):
-				max_area = Ar
-				max_uv = uv
-				max_rot_orig = p0
-
-		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
-		if (angle > 0.01):
-			self.vector = True
-			self.vector_auto = True
-			self.uvector = max_uv
-			self.rot_orig = max_rot_orig
-			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
-				
 
 	def is_point_inside(self, point):
 
@@ -665,7 +616,6 @@ class Model():
 					" to visualize errors @\n")
 
 				room.poly.dxf.layer = Config.layer_error
-				# self.output_error()
 				return False
 
 
@@ -903,8 +853,6 @@ class Model():
 		self.rescale_model()
 
 		Room.index = 1
-		# if not self.refit:
-		# 	self.create_layers()
 		
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
@@ -946,11 +894,11 @@ class Model():
 				# Valid polyline, classify room
 				room.error = False
 				area = self.scale * self.scale * room.area
-				if (area > max_room_area and
+				if (area > Config.max_room_area and
 				    (room.color == Config.color_valid_room or
 				     room.color == Config.color_bathroom)):
 					wstr = "ABORT: Zone %d larger than %d m2 @\n" % (room.index, 
-						max_room_area)
+						Config.max_room_area)
 					wstr += "Consider splitting area \n\n"
 					self.output.print(wstr)
 					room.errorstr = wstr
@@ -1084,7 +1032,6 @@ class Model():
 					room[i].poly.dxf.layer = Config.layer_error
 					room[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
-					# self.output_error()
 					return False
 
 				j += 1
@@ -1099,7 +1046,6 @@ class Model():
 					self.collectors[i].poly.dxf.layer = Config.layer_error
 					self.collectors[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
-					# self.output_error()
 					return False
 	
 		# check if vector is in room or 
@@ -1134,9 +1080,8 @@ class Model():
 				if (room.contains_vector(v) and
 					not (p1_clt or p2_clt)):
 					# Allocate vector
-					room.vector = v
 					norm = dist(p1, p2)
-					uv = room.uvector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
+					uv = room.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
 					room.rot_orig = p1
 					room.rot_angle = -atan2(uv[1], -uv[0])*180/pi
 					break
@@ -1148,13 +1093,12 @@ class Model():
 					" to visualize errors @")
 				v.dxf.layer = Config.layer_error
 				self.output.print(wstr)
-				#self.output_error()
 				return False
 	
 		# orient room without vector
-		# for room in self.processed:
-		# 	if (not room.vector):
-		# 		room.orient_room()	
+		for room in self.processed:
+			if (not room.frame.vector):
+				room.frame.orient_room()	
 	
 		self.output.print("Detected rooms ........................... %3d\n" 
 			% len(self.processed))
@@ -1175,7 +1119,6 @@ class Model():
 					" to visualize errors @\n")
 				room.poly.dxf.layer = Config.layer_error
 				self.output.print(wstr)
-				#self.output_error()
 				return False
 
 		# Check if enough collectors

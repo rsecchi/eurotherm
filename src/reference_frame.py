@@ -1,5 +1,6 @@
 from ezdxf.math import convex_hull_2d
 from math import pi, atan2, sqrt
+
 MAX_DIST  = 1e20
 MAX_DIST2 = 1e20
 
@@ -12,15 +13,17 @@ class ReferenceFrame:
 	def __init__(self, room):
 		self.room = room
 		self.points = room.points
+		self.vector = None
+		self.rot_orig = None
+		self.rot_angle = None
 
 	def get_local(self):
 		pass
 
 	def orient_room(self):
-		global max_room_area
 
-		uvx = 0
-		uvy = 0
+		uv = (uvx, uvy) = (1, 0)
+		self.vector = uv
 		max_rot_orig = 0
 		vtx = [(p[0],p[1],0) for p in self.points]
 		conv_hull = convex_hull_2d(vtx)
@@ -55,9 +58,7 @@ class ReferenceFrame:
 
 		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
 		if (angle > 0.01):
-			self.vector = True
-			self.vector_auto = True
-			self.uvector = max_uv
+			self.vector = uv
 			self.rot_orig = max_rot_orig
 			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
 
