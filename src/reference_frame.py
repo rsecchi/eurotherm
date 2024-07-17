@@ -8,24 +8,84 @@ def dist(point1, point2):
 	dx = point1[0] - point2[0]
 	dy = point1[1] - point2[1]
 	return sqrt(dx*dx+dy*dy)
+	
+
+class Outline:
+	def __init__(self):
+		self.points = list()
+		self.obstacles = list()
+
 
 class ReferenceFrame:
 	def __init__(self, room):
 		self.room = room
-		self.points = room.points
-		self.vector = None
-		self.rot_orig = None
-		self.rot_angle = None
+		self.vector = tuple() 
+		self.rot_orig = tuple()
+		self.rot_angle = int()
+		self.scale = 1.
+		self.outline = Outline() 
 
-	def get_local(self):
-		pass
 
-	def orient_room(self):
+	def real_coord(self, points):
+
+		orig = self.rot_orig
+		(ux, uy) = self.vector
+		(vx, vy) = (-uy, ux)
+		scale = self.scale
+
+		rotated_points = list()
+		for point in points:
+			bx = (ux*point[0] + vx*point[1])/scale
+			by = (uy*point[0] + vy*point[1])/scale
+			rotated_points.append((bx+orig[0], by+orig[1]))
+	
+		return rotated_points
+
+
+	def local_coord(self, points):
+
+		orig = self.rot_orig
+		(ux, uy) = self.vector
+		(vx, vy) = (-uy, ux)
+		scale = self.scale
+
+		rotated_points = list()
+		for point in points:
+			(ax, ay) = (point[0]-orig[0], point[1]-orig[1]) 
+			bx = (ux*ax + vx*ay)*scale
+			by = (uy*ax + vy*ay)*scale
+			rotated_points.append((bx, by))
+
+		return rotated_points
+
+
+	def room_outline(self):
+		if not self.vector:
+			return None
+
+		room = self.room
+		outline = self.outline
+		obstacles = self.outline.obstacles
+
+		outline.points = self.local_coord(room.points)
+		for obs in room.obstacles:
+			out_obs = Outline()
+			out_obs.points = self.local_coord(obs.points)
+			obstacles.append(out_obs)
+
+		return outline
+
+
+	def orient_frame(self):
 
 		uv = (uvx, uvy) = (1, 0)
 		self.vector = uv
-		max_rot_orig = 0
-		vtx = [(p[0],p[1],0) for p in self.points]
+
+		self.rot_orig = ((self.room.ax+self.room.bx)/2, 
+						 (self.room.ay+self.room.by)/2)
+
+		max_rot_orig = (.0, .0)
+		vtx = [(p[0],p[1],0) for p in self.room.points]
 		conv_hull = convex_hull_2d(vtx)
 		ch = [(s.x, s.y) for s in conv_hull]
 		ch = [*ch, ch[0]]

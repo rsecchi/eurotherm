@@ -29,16 +29,14 @@ class EnginePolygon(Structure):
 		("len", c_int),
 	]
 
-	def __init__(self, points, scale):
+	def __init__(self, points):
 
 		self.len = len(points)
 		self.poly = (self.len*EnginePoint)()
 
-		self.scale = scale
-
 		for i, point in enumerate(points):
-			self.poly[i].x = point[0]*scale
-			self.poly[i].y = point[1]*scale
+			self.poly[i].x = point[0]
+			self.poly[i].y = point[1]
 
 
 class EngineRoom(Structure):
@@ -104,25 +102,23 @@ class Panel:
 		for i, _ in enumerate(self.poly):
 			poly[i] = (x0+poly[i][0], y0+poly[i][1])
 
-	def draw_panel(self, msp, scale):
+	def draw_panel(self, msp, frame):
 		self.polyline()
-		poly = list()
-		for i, _ in enumerate(self.poly):
-			poly.append((self.poly[i][0]/scale, self.poly[i][1]/scale))
+		poly = frame.real_coord(self.poly)
 		msp.add_lwpolyline(poly)
 		
 
 class RoomPlanner:
-	def __init__(self, model_room, scale):
+	def __init__(self, room_outline):
 
 		room = self.room = EngineRoom()
-		room.walls = EnginePolygon(model_room.points, scale)
+		room.walls = EnginePolygon(room_outline.points)
 
-		room.obs_num = len(model_room.obstacles)
+		room.obs_num = len(room_outline.obstacles)
 		room.obstacles = (room.obs_num*EnginePolygon)()
 
-		for j, obs in enumerate(model_room.obstacles):
-			room.obstacles[j] = EnginePolygon(obs.points, scale)
+		for j, obs in enumerate(room_outline.obstacles):
+			room.obstacles[j] = EnginePolygon(obs.points)
 
 
 	def get_panels(self):
@@ -143,7 +139,7 @@ class RoomPlanner:
 def RectangularRoom(base, height):
 	
 	room = EngineRoom()
-	walls = EnginePolygon()
+	walls = EnginePolygon(room.points)
 	walls.poly = (5*EnginePoint)()
 	walls.poly[0].x = 0; walls.poly[0].y = 0;
 	walls.poly[1].x = 0; walls.poly[1].y = height;

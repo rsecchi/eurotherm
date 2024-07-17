@@ -77,7 +77,7 @@ class DxfDrawing:
 
 	def draw_room(self, room):
 		for panel in room.panels:
-			panel.draw_panel(self.msp, 100)
+			panel.draw_panel(self.msp, room.frame)
 
 	def write_text(self, msp, strn, pos, 
 		align=const.MTEXT_MIDDLE_CENTER, 

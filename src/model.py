@@ -158,8 +158,6 @@ def is_gate(line, target):
 	return (False, (None, None))
 
 
-
-
 class Room:
 
 	index = 1
@@ -1081,9 +1079,9 @@ class Model():
 					not (p1_clt or p2_clt)):
 					# Allocate vector
 					norm = dist(p1, p2)
-					uv = room.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
-					room.rot_orig = p1
-					room.rot_angle = -atan2(uv[1], -uv[0])*180/pi
+					uv = room.frame.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
+					room.frame.rot_orig = p1
+					room.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
 					break
 			else:
 				# Check if vector is vector fixes to collector
@@ -1095,10 +1093,11 @@ class Model():
 				self.output.print(wstr)
 				return False
 	
-		# orient room without vector
 		for room in self.processed:
+			room.frame.scale = self.scale
+			# orient room without vector
 			if (not room.frame.vector):
-				room.frame.orient_room()	
+				room.frame.orient_frame()	
 	
 		self.output.print("Detected rooms ........................... %3d\n" 
 			% len(self.processed))
