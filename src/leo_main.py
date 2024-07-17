@@ -18,7 +18,7 @@ class App:
 	def remove_lock(self):
 		out = self.data['outfile'][:-4]+".txt"
 		f = open(out, "w")
-		print("Early exit", file = f)
+		print("Exit with error", file = f)
 		os.remove(self.lock_name)
 
 

@@ -1,3 +1,4 @@
+import os, time
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
@@ -16,6 +17,8 @@ block_collector_W   = "collettore_W"
 
 
 dxf_version = "AC1032"
+
+
 
 class DxfDrawing:
 
@@ -72,27 +75,47 @@ class DxfDrawing:
 		self.doc.layers.get(Config.layer_lux).off()
 		self.doc.layers.get(Config.layer_struct).off()
 
-	# def draw_label(self, msp):
-	# 	write_text(msp, "Locale %d" % self.pindex, self.pos, zoom=2)
 
-	def draw_room(self, room):
-		for panel in room.panels:
-			panel.draw_panel(self.msp, room.frame)
-
-	def write_text(self, msp, strn, pos, 
-		align=const.MTEXT_MIDDLE_CENTER, 
-				zoom=1, col=Config.color_text):
+	def write_text(self, message, position, 
+		align=const.MTEXT_MIDDLE_CENTER, zoom=1, col=Config.color_text):
 		
-		text = msp.add_mtext(strn, 
+		text = self.msp.add_mtext(message, 
 			dxfattribs={"style": "Arial"})
-		text.dxf.insert = pos
+		text.dxf.insert = position
 		text.dxf.attachment_point = align
-		text.dxf.char_height = Config.font_size*zoom
+		text.dxf.char_height = (Config.font_size)*zoom
 		text.dxf.layer = Config.layer_text
 		text.dxf.color = col
 
+
+	def draw_coord_system(self, room):
+		frame = room.frame
+		scale = frame.scale
+		orig = frame.rot_orig
+		
+		(ux, uy) = frame.vector
+		(vx, vy) = (-uy, ux)
+		p0 = (orig[0] + ux*scale, orig[1] + uy*scale)
+		p1 = (orig[0] + vx*scale, orig[1] + vy*scale)
+		xaxis = [orig, p0]
+		yaxis = [orig, p1]
+		pline = self.msp.add_lwpolyline(xaxis)
+		pline.dxf.color = Config.color_collector
+		self.msp.add_lwpolyline(yaxis)
+
+
+	def draw_room(self, room):
+
+		size = 2/room.frame.scale
+		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
+
+		for panel in room.panels:
+			panel.draw_panel(self.msp, room.frame)
+
+
 	def draw_model(self, model):
 		for room in model.processed:
+			# self.draw_coord_system(room)
 			self.draw_room(room)
 
 

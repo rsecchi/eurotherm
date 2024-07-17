@@ -2,12 +2,15 @@
 #include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 
 pnl_t* planner(room_t* room)
 {
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
+
+	config.enable_quarters = 1;
 
 	/* debug */
 	transform_t trsf;
@@ -33,7 +36,7 @@ pnl_t* planner(room_t* room)
 		pnls = pnl;
 	}
 
-	save_png(cp, "debug.png");
+	save_png(cp, "debug_output.png");
 	return  pnls;
 }
 

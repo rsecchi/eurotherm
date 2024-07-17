@@ -1,5 +1,6 @@
 import os
 from ctypes import Structure, POINTER, c_double, c_int, CDLL, pointer
+from settings import Config
 
 #from ezdxf.filemanagement import new
 
@@ -105,7 +106,8 @@ class Panel:
 	def draw_panel(self, msp, frame):
 		self.polyline()
 		poly = frame.real_coord(self.poly)
-		msp.add_lwpolyline(poly)
+		pline = msp.add_lwpolyline(poly)
+		pline.dxf.layer = Config.layer_panel
 		
 
 class RoomPlanner:

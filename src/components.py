@@ -12,6 +12,7 @@ class ComponentManager:
 
 		self.num_panels = 0
 		for room in model.processed:
+
 			room_outline = room.frame.room_outline()
 
 			planner = RoomPlanner(room_outline)

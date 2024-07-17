@@ -52,8 +52,8 @@ class ReferenceFrame:
 		rotated_points = list()
 		for point in points:
 			(ax, ay) = (point[0]-orig[0], point[1]-orig[1]) 
-			bx = (ux*ax + vx*ay)*scale
-			by = (uy*ax + vy*ay)*scale
+			bx = (ux*ax + uy*ay)*scale
+			by = (vx*ax + vy*ay)*scale
 			rotated_points.append((bx, by))
 
 		return rotated_points
@@ -84,7 +84,6 @@ class ReferenceFrame:
 		self.rot_orig = ((self.room.ax+self.room.bx)/2, 
 						 (self.room.ay+self.room.by)/2)
 
-		max_rot_orig = (.0, .0)
 		vtx = [(p[0],p[1],0) for p in self.room.points]
 		conv_hull = convex_hull_2d(vtx)
 		ch = [(s.x, s.y) for s in conv_hull]
@@ -114,12 +113,10 @@ class ReferenceFrame:
 			if ( Ar < max_area ):
 				max_area = Ar
 				max_uv = uv
-				max_rot_orig = p0
 
 		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
 		if (angle > 0.01):
-			self.vector = uv
-			self.rot_orig = max_rot_orig
+			self.vector = max_uv
 			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
 
 
