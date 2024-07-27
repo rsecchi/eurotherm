@@ -6,7 +6,6 @@ from model import Model
 from components import ComponentManager
 from drawing import DxfDrawing
 
-
 class App:
 
 	def read_configuration(self, filename):
@@ -25,7 +24,7 @@ class App:
 	def acquire_lock(self):
 		if os.path.exists(self.lock_name):
 			print("ABORT: Resource busy")
-		open(self.lock_name, "w")	
+		open(self.lock_name, "w")
 		atexit.register(self.remove_lock)
 
 
@@ -40,6 +39,7 @@ class App:
 		self.dxf = DxfDrawing()
 
 		self.dxf.import_floorplan(self.model.input_file)
+		self.dxf.import_blocks(self.data["ptype"])
 
 		if not self.model.refit:
 			# build and elaborate model
@@ -54,7 +54,6 @@ class App:
 
 		self.outfile = self.data['cfg_dir']+"/"+self.data['outfile'] 
 		self.dxf.save(self.outfile)
-
 
 
 App()

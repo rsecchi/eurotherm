@@ -1,7 +1,7 @@
 
 # defaults
 default_input_layer = 'AREE LEONARDO'
-default_symbol_file = 'Symbol.dxf'
+default_symbol_file = 'Symbol_CS.dxf'
 default_font_size = 10
 
 fitting_names = [
@@ -32,6 +32,73 @@ fitting_names = [
 	"sonda T_U",
 ]
 
+panel_map = ["full", "lux", "split", "half", "quarter"]
+
+
+leo_types = {
+	"55": {
+        "full_name"  : "Leonardo 5,5",
+        "handler"    : "55",
+        "rings"      : 10,
+        "panels"     : 5,
+        "flow_line"  : 280,
+        "flow_ring"  : 28,
+        "flow_panel" : 56,
+		
+		"panel_names_classic": {
+			"full"    : "LEONARDO 5,5 MS - 1200x2000x50mm",
+			"lux"     : "LEONARDO 5,5 MS - 1200x2000x50mm",
+			"split"   : "LEONARDO 5,5 MS - 1200x2000x50mm",
+			"half"    : "LEONARDO 5,5 MS - 600x2000x50mm",
+			"quarter" : "LEONARDO 5,5 MS - 600x2000x50mm",
+		},
+
+		"block_names_classic": {
+			"full"    : "Pannello 55-1200x2000",
+			"lux"     : "Pannello Lux 1200x2000",
+			"split"   : "Pannello 55-600x2000",
+			"half"    : "Mezzo pannello 55-1200x1000",
+			"quarter" : "Mezzo pannello 55-600x1000",
+		},
+
+		"code_names_classic": {
+			"full"    : "6113010431",
+			"lux"     : "6113010432",
+			"split"   : "6114010411",
+			"half"    : "6114010412",
+			"quarter" : "6114010412",
+		},
+
+
+		"panel_names_hydro": {
+			"full"    : "LEONARDO 5,5 IDRO MS - 1200x2000x50mm",
+			"lux"     : "LEONARDO 5,5 IDRO MS - 1200x2000x50mm",
+			"split"   : "LEONARDO 5,5 IDRO MS - 1200x2000x50mm",
+			"half"    : "LEONARDO 5,5 IDRO MS - 600x2000x50mm",
+			"quarter" : "LEONARDO 5,5 IDRO MS - 600x2000x50mm",
+		},
+
+		"block_names_hydro": {
+			"full"    : "Pannello Idro 55-1200x2000",
+			"lux"     : "Pannello Lux Idro 1200x2000",
+			"split"   : "Pannello 55-600x2000",
+			"half"    : "Mezzo pannello Idro 55-1200x1000",
+			"quarter" : "Mezzo pannello 55-600x1000",
+		},
+
+
+		"code_names_hydro": {
+			"full"    : "6113010431",
+			"lux"     : "6113010432",
+			"split"   : "6114010411",
+			"half"    : "6114010412",
+			"quarter" : "6114010412",
+		},
+
+    },
+}
+
+
 debug = False
 
 class Config:
@@ -60,6 +127,9 @@ class Config:
 	color_disabled_room = 6     ;# magenta
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
+
+	block_collector     = "collettore"
+	block_collector_W   = "collettore_W"
 
 	max_room_area = 500
 

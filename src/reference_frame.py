@@ -26,35 +26,48 @@ class ReferenceFrame:
 		self.outline = Outline() 
 
 
-	def real_coord(self, points):
+	def room_rotation(self):
+		print("Here goes nothing")
 
+
+	def real_from_local(self, point):
 		orig = self.rot_orig
 		(ux, uy) = self.vector
 		(vx, vy) = (-uy, ux)
 		scale = self.scale
 
+		bx = (ux*point[0] + vx*point[1])/scale
+		by = (uy*point[0] + vy*point[1])/scale
+
+		return (bx+orig[0], by+orig[1])
+	
+
+	def local_from_real(self, point):
+		orig = self.rot_orig
+		(ux, uy) = self.vector
+		(vx, vy) = (-uy, ux)
+		scale = self.scale
+
+		(ax, ay) = (point[0]-orig[0], point[1]-orig[1]) 
+		bx = (ux*ax + uy*ay)*scale
+		by = (vx*ax + vy*ay)*scale
+		return (bx, by)
+
+
+	def real_coord(self, points):
+
 		rotated_points = list()
 		for point in points:
-			bx = (ux*point[0] + vx*point[1])/scale
-			by = (uy*point[0] + vy*point[1])/scale
-			rotated_points.append((bx+orig[0], by+orig[1]))
+			rotated_points.append(self.real_from_local(point))
 	
 		return rotated_points
 
 
 	def local_coord(self, points):
 
-		orig = self.rot_orig
-		(ux, uy) = self.vector
-		(vx, vy) = (-uy, ux)
-		scale = self.scale
-
 		rotated_points = list()
-		for point in points:
-			(ax, ay) = (point[0]-orig[0], point[1]-orig[1]) 
-			bx = (ux*ax + uy*ay)*scale
-			by = (vx*ax + vy*ay)*scale
-			rotated_points.append((bx, by))
+		for point in points:	
+			rotated_points.append(self.local_from_real(point))
 
 		return rotated_points
 

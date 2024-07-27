@@ -1,6 +1,8 @@
 import os
+from model import Room
 from ctypes import Structure, POINTER, c_double, c_int, CDLL, pointer
 from settings import Config
+from math import atan2, pi
 
 #from ezdxf.filemanagement import new
 
@@ -74,6 +76,14 @@ class Panel:
 		self.pos = (panel.contents.x, panel.contents.y)
 		self.rot = panel.contents.iso_flgs
 		self.type = panel.contents.type
+
+	def block_rotation(self, room: Room):
+		x = room.frame.vector[0]
+		y = room.frame.vector[1]
+		rot = atan2(y,x)*180/pi
+		rotation = self.rot * 90  + rot
+		return rotation
+
 
 	def polyline(self):
 		poly = self.poly = list()

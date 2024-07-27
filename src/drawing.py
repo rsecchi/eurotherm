@@ -1,23 +1,15 @@
-import os, time
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from model import Room
 
 from settings import Config
 from settings import debug
-
-
-# block names (defaults)
-block_blue_120x100  = "LEO_55_120"
-block_blue_60x100   = "LEO_55_60"
-block_green_120x100 = "LEO_55_120_IDRO"
-block_green_60x100  = "LEO_55_60_IDRO"
-block_collector     = "collettore"
-block_collector_W   = "collettore_W"
+from settings import leo_types 
+from settings import panel_map
 
 
 dxf_version = "AC1032"
-
 
 
 class DxfDrawing:
@@ -29,6 +21,9 @@ class DxfDrawing:
 		self.msp = self.doc.modelspace()
 		self.outname = ""
 		self.create_layers()
+		self.typology = dict()
+
+		self.blocks = {}
 
 
 	def import_floorplan(self, filename):
@@ -77,7 +72,7 @@ class DxfDrawing:
 
 
 	def write_text(self, message, position, 
-		align=const.MTEXT_MIDDLE_CENTER, zoom=1, col=Config.color_text):
+		align=const.MTEXT_MIDDLE_CENTER, zoom=1., col=Config.color_text):
 		
 		text = self.msp.add_mtext(message, 
 			dxfattribs={"style": "Arial"})
@@ -104,59 +99,57 @@ class DxfDrawing:
 		self.msp.add_lwpolyline(yaxis)
 
 
-	def draw_room(self, room):
+	def draw_room(self, room: Room):
 
 		size = 2/room.frame.scale
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
 
+		block_names = self.blocks["classic"]
+
 		for panel in room.panels:
 			panel.draw_panel(self.msp, room.frame)
+			name = panel_map[panel.type]
+			block_name = block_names[name]
+
+			orig = room.frame.real_from_local(panel.pos)
+			panel_rotation = panel.block_rotation(room)
+			block = self.msp.add_blockref(
+						block_name,
+						orig,
+						dxfattribs={
+							'xscale': 0.1/room.frame.scale,
+							'yscale': 0.1/room.frame.scale,
+							'rotation': panel_rotation
+						}
+			)
+
+			block.dxf.layer = Config.layer_panel
 
 
 	def draw_model(self, model):
 		for room in model.processed:
-			# self.draw_coord_system(room)
+			self.draw_coord_system(room)
+			print(room.pindex, room.frame.rot_angle)
 			self.draw_room(room)
 
+	def import_blocks(self, ptype):
+		self.source_dxf = readfile(Config.symbol_file)
+		importer = Importer(self.source_dxf, self.doc)
+		self.typology = leo_types[ptype]
 
-	# def import_blocks(self):
-	# 	self.source_dxf = readfile(Config.symbol_file)
-	# 	importer = Importer(self.source_dxf, self.doc)
+		self.blocks["classic"] = leo_types[ptype]["block_names_classic"]
+		self.blocks["hydro"]  = leo_types[ptype]["block_names_hydro"]
 
-	# 	ctype = self.type
-		
-	# 	for ptype in panel_types:
-	# 		if (ctype == ptype['full_name']):
-	# 			self.ptype = ptype
-	# 			handler = "LEO_" + ptype['handler'] + "_"
-	# 			block_blue_120x100 = handler + "120"
-	# 			block_blue_60x100 = handler + "60"
-	# 			block_green_120x100 = handler + "120_IDRO"
-	# 			block_green_60x100 = handler + "60_IDRO"
+		for block in self.blocks["classic"].values():
+			importer.import_block(block)
 
-	# 			if handler == "LEO_30_":
-	# 				block_green_120x100 = block_blue_120x100
-	# 				block_green_60x100 = block_blue_60x100
+		for block in self.blocks["hydro"].values():
+			importer.import_block(block)
 
-	# 			area_per_feed_m2 = ptype['panels'] * 2.4
-	# 			flow_per_m2 = ptype['flow_panel'] / 2.4
-	# 			print('Area/line = %g m2' % area_per_feed_m2)
-	# 			print('Flow_per_m2 = %g l/m2' % flow_per_m2)
+		# 	for fitting_name in fitting_names:
+		# 		importer.import_block(fitting_name)
 
-	# 	importer.import_block(block_blue_120x100)
-	# 	importer.import_block(block_blue_60x100)
-	# 	importer.import_block(block_green_120x100)
-	# 	importer.import_block(block_green_60x100)
-	# 	importer.import_block(block_collector)
-	# 	importer.import_block(block_collector_W)
-	# 	importer.import_block("LEO_LUX_120")
-	# 	importer.import_block("LEO_LUX_120_IDRO")
-
-
-	# 	for fitting_name in fitting_names:
-	# 		importer.import_block(fitting_name)
-
-	# 	importer.finalize()
+		importer.finalize()
 
 	def save(self, filename):
 		self.doc.saveas(filename)
