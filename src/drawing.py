@@ -1,7 +1,7 @@
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
-from model import Room
+from model import Model, Room
 
 from settings import Config
 from settings import debug
@@ -99,12 +99,38 @@ class DxfDrawing:
 		self.msp.add_lwpolyline(yaxis)
 
 
+	def draw_collector(self, model: Model):
+
+		scale = model.scale
+		for collector in model.collectors:
+			pos = collector.pos
+			size = Config.collector_size/scale
+			pos = (pos[0] - size/2, pos[1] - size/2) 
+			block = self.msp.add_blockref(
+				Config.block_collector,
+				pos,
+				dxfattribs={
+					'xscale': 0.1/scale,
+					'yscale': 0.1/scale,
+					'rotation': 0 
+				}
+			)
+
+			block.dxf.layer = Config.layer_panel
+			self.write_text("%s" % collector.name, 
+				   collector.pos, zoom=0.6/scale)
+
+
 	def draw_room(self, room: Room):
 
 		size = 2/room.frame.scale
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
 
-		block_names = self.blocks["classic"]
+	 
+		if (room.color==Config.color_valid_room):
+			block_names = self.blocks["classic"]
+		else:
+			block_names = self.blocks["hydro"]
 
 		for panel in room.panels:
 			panel.draw_panel(self.msp, room.frame)
@@ -126,11 +152,12 @@ class DxfDrawing:
 			block.dxf.layer = Config.layer_panel
 
 
+
 	def draw_model(self, model):
 		for room in model.processed:
-			self.draw_coord_system(room)
-			print(room.pindex, room.frame.rot_angle)
+			# self.draw_coord_system(room)
 			self.draw_room(room)
+			self.draw_collector(model)
 
 	def import_blocks(self, ptype):
 		self.source_dxf = readfile(Config.symbol_file)
@@ -148,6 +175,8 @@ class DxfDrawing:
 
 		# 	for fitting_name in fitting_names:
 		# 		importer.import_block(fitting_name)
+
+		importer.import_block(Config.block_collector)
 
 		importer.finalize()
 

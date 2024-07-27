@@ -132,4 +132,5 @@ class Config:
 	block_collector_W   = "collettore_W"
 
 	max_room_area = 500
+	collector_size = 60
 
