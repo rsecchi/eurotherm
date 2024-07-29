@@ -15,10 +15,10 @@ class App:
 
 
 	def remove_lock(self):
+		os.remove(self.lock_name)
 		out = self.data['outfile'][:-4]+".txt"
 		f = open(out, "w")
 		print("Exit with error", file = f)
-		os.remove(self.lock_name)
 
 
 	def acquire_lock(self):
@@ -54,7 +54,6 @@ class App:
 
 		self.outfile = self.data['cfg_dir']+"/"+self.data['outfile'] 
 		self.dxf.save(self.outfile)
-
 
 App()
 

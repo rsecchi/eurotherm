@@ -18,7 +18,7 @@ from conf import *
 
 def start_script(cfg_file):
 
-	cmd = "/usr/bin/python3 %s %s" % (script, cfg_file)
+	cmd = "/bin/bash %s %s" % (script, cfg_file)
 	
 	# The following code is from:
 	# https://mail.python.org/pipermail/python-list/2001-March/085332.html

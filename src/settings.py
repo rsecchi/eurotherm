@@ -1,7 +1,6 @@
 
 # defaults
 default_input_layer = 'AREE LEONARDO'
-default_symbol_file = 'Symbol_CS.dxf'
 default_font_size = 10
 
 fitting_names = [
@@ -103,7 +102,7 @@ debug = False
 
 class Config:
 	input_layer = default_input_layer
-	symbol_file = default_symbol_file
+	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
 	font_size = default_font_size
 
 	layer_text      = 'Eurotherm_text'

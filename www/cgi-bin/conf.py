@@ -12,5 +12,5 @@ load_page_ita    = local_dir + "/www/loading.html"
 load_page_eng    = local_dir + "/www/loading_eng.html"
 done_page_ita    = local_dir + "/www/done.html"
 done_page_eng    = local_dir + "/www/done_eng.html"
-script       = local_dir + "/leonardo.py"
+script       = "/usr/local/src/eurotherm/run_leo_main.sh"
 
