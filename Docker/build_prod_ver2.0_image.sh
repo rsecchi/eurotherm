@@ -1,9 +1,9 @@
 #!/bin/bash
 
-if ! git diff --exit-code; then
-	echo "Please commit and push changes first"
-	exit
-fi
+# if ! git diff --exit-code; then
+# 	echo "Please commit and push changes first"
+# 	exit
+# fi
 
 docker build --no-cache --network=host -t raffauser/leonardoplanner:ver2 -f Dockerfile.ver2.0 .
 
