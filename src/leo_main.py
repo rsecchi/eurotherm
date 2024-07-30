@@ -5,6 +5,7 @@ import atexit
 from model import Model
 from components import ComponentManager
 from drawing import DxfDrawing
+from excel import XlsDocument
 
 class App:
 
@@ -37,12 +38,15 @@ class App:
 		self.model = Model(self.data)
 		self.manager = ComponentManager()
 		self.dxf = DxfDrawing()
+		self.xls = XlsDocument(self.data)
 
 		self.dxf.import_floorplan(self.model.input_file)
 		self.dxf.import_blocks(self.data["ptype"])
 
+
+		# Create output file for elaborate
+		self.outfile = self.data['cfg_dir']+"/"+self.data['outfile'] 
 		if not self.model.refit:
-			# build and elaborate model
 			if not self.model.build_model():
 				self.dxf.output_error(self.model.processed)
 				return
@@ -52,8 +56,13 @@ class App:
 			if not self.model.refit:
 				self.dxf.draw_model(self.model)
 
-		self.outfile = self.data['cfg_dir']+"/"+self.data['outfile'] 
-		self.dxf.save(self.outfile)
+			self.dxf.save(self.outfile)
+
+
+		if not self.model.refit:
+			self.manager.count_components(self.model, self.dxf.doc)
+			self.xls.save_in_xls(self.model)
+
 
 App()
 

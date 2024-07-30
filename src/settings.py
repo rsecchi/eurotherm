@@ -1,6 +1,5 @@
 
 # defaults
-default_input_layer = 'AREE LEONARDO'
 default_font_size = 10
 
 fitting_names = [
@@ -80,9 +79,9 @@ leo_types = {
 		"block_names_hydro": {
 			"full"    : "Pannello Idro 55-1200x2000",
 			"lux"     : "Pannello Lux Idro 1200x2000",
-			"split"   : "Pannello 55-600x2000",
+			"split"   : "Pannello Idro 55-600x2000",
 			"half"    : "Mezzo pannello Idro 55-1200x1000",
-			"quarter" : "Mezzo pannello 55-600x1000",
+			"quarter" : "Mezzo pannello Idro 35-600x1000",
 		},
 
 
@@ -98,10 +97,11 @@ leo_types = {
 }
 
 
+
 debug = False
 
 class Config:
-	input_layer = default_input_layer
+	input_layer = 'AREE LEONARDO'
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
 	font_size = default_font_size
 
@@ -132,4 +132,38 @@ class Config:
 
 	max_room_area = 500
 	collector_size = 60
+	panel_blocks = dict() 
+	
+	xlsx_template_ita = 'leo_template.xlsx'
+	xlsx_template_eng = 'leo_template_eng.xlsx'
+	sheet_template_1 = 'LEONARDO 5.5'
+	sheet_template_2 = 'LEONARDO 3.5'
+	sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
+	sheet_breakdown_ita = [
+		('Dettaglio Stanze L55', 85.0, 51.8), 
+		('Dettaglio Stanze L35', 84.2, 64.8),
+		('Dettaglio Stanze 30p', 82.3, 80.9)
+	]
+
+	sheet_breakdown_eng = [
+		('Room Breakdown L55', 85.0, 51.8), 
+		('Room Breakdown L35', 84.2, 64.8),
+		('Room Breakdown 30p', 82.3, 80.9)
+	]
+
+	@classmethod
+	def available_panels(cls):
+		if cls.panel_blocks:
+			return cls.panel_blocks
+
+		for typ in leo_types:
+
+			for key, name in leo_types[typ]["block_names_classic"].items():
+				cls.panel_blocks[name] = key + "_classic"
+
+			for key, name in leo_types[typ]["block_names_hydro"].items():
+				cls.panel_blocks[name] = key + "_hydro"
+
+		return cls.panel_blocks
+		

@@ -1,5 +1,6 @@
 from reference_frame import ReferenceFrame
 from settings import Config
+from settings import panel_map
 from math import sqrt, ceil, log10, atan2, pi
 from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
@@ -182,9 +183,14 @@ class Room:
 		self.sup = 0
 		self.inf = 0
 		self.fixed_collector = None
-		self.walk = 0
+
 		self.is_collector = False
 		self.leader = None
+		self.zone = None
+		self.user_zone = None
+		self.uplink = None
+		self.walk = MAX_DIST
+		self.links = list()
 
 		tol = tolerance
 		self.orient = 0
@@ -221,15 +227,29 @@ class Room:
 				p[0] = p[n]
 
 
+		# feeds/flow estimates
+		self.feeds_eff = 0.0
+		self.feeds_max = 0.0
+		self.flow_eff = 0.0
+		self.flow_max = 0.0
+		self.feeds = 0
+		self.flow = 0.0
+
 		self.color = poly.dxf.color
 		# self.arrangement = PanelArrangement(self)
 		self.panels = list()
 		self.bounding_box()
 		self.area = self._area()
+		self.active_m2 = 0.0
 		self.pos = self._barycentre()
 		self.perimeter = self._perimeter()
 		self.collector = None
 		self.inputs = 0 
+
+		self.panel_record = dict()
+		for panel in panel_map:
+			self.panel_record[panel+"_classic"] = 0
+			self.panel_record[panel+"_hydro"] = 0
 
 	def _area(self):
 		a = 0
@@ -237,6 +257,9 @@ class Room:
 		for i in range(0, len(p)-1):
 			a += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
 		return abs(a/10000)
+
+	def area_m2(self):
+		return self._area()/self.frame.scale
 
 	def _centre(self):
 		(cx, cy) = (0, 0)
@@ -410,7 +433,7 @@ class Model():
 		self.vectors = list()
 		self.collectors = list()
 		self.valid_rooms = list()
-		self.processed = list()
+		self.processed: list[Room] = list()
 		self.obstacles = list()
 		self.zone = list()
 		self.zones = list()
@@ -422,6 +445,8 @@ class Model():
 		self.text_nav = ""
 		self.cnd = list()
 		self.laid = "without"
+		self.area = 0.0
+		self.active_area = 0.0
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
@@ -696,13 +721,15 @@ class Model():
 			if (e.dxftype() == 'LINE'):
 				continue
 			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains elements not allowed: %s @\n" % e.dxftype()
+				wstr = "WARNING: layer contains elements not allowed: %s @\n"\
+				   % e.dxftype()
 				self.output.print(wstr)
 
 		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
 		query = self.msp.query(searchstr)
 		if (len(query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines @\n" % self.inputlayer
+			wstr = "WARNING: layer %s does not contain polylines @\n" \
+					% self.inputlayer
 			self.output.print(wstr)
 
 		n = 0
@@ -711,7 +738,8 @@ class Model():
 		for poly in query:
 			rm = Room(poly, self.output)
 			if rm.ignore:
-				wstr = "ABORT: Open polyline in layer %s @\n" % self.inputlayer
+				wstr = "ABORT: Open polyline in layer %s @\n" \
+						% self.inputlayer
 				self.output.print(wstr)
 				return False
 			tot += rm.area
@@ -1098,7 +1126,8 @@ class Model():
 			# orient room without vector
 			if (not room.frame.vector):
 				room.frame.orient_frame()	
-	
+
+
 		self.output.print("Detected rooms ........................... %3d\n" 
 			% len(self.processed))
 		self.output.print("Detected collectors ....................... %2d\n" 
@@ -1119,6 +1148,7 @@ class Model():
 				room.poly.dxf.layer = Config.layer_error
 				self.output.print(wstr)
 				return False
+
 
 		# Check if enough collectors
 		tot_area = feeds_eff = feeds_max = 0
