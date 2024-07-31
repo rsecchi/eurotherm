@@ -1,6 +1,5 @@
 import openpyxl
-import os, sys
-from copy import deepcopy
+from components import Components
 from settings import Config
 from model import Model
 from openpyxl.styles.borders import Border, Side
@@ -26,11 +25,12 @@ class XlsDocument:
 	thin_right_top = Border(right=Side(style='thin'),
 					top=Side(style='thin'))
 
-	def __init__(self, data):
-		self.data = data
+	def __init__(self, components: Components):
+		self.data = components.model.data
+		self.components = components
 
 
-	def save_in_xls(self, model: Model):
+	def save_in_xls(self):
 
 		xlsx_template = Config.xlsx_template_ita
 		if self.data["lang"] == "eng":
@@ -41,50 +41,55 @@ class XlsDocument:
 		ws2 = wb[Config.sheet_template_2]
 		ws3 = wb[Config.sheet_template_3]
 
-		self.xls_headers(ws1, model)
-		self.xls_headers(ws2, model)
-		self.xls_headers(ws3, model)
-
-		self.room_breakdown(ws1, model)
-		self.room_breakdown(ws2, model)
-		self.room_breakdown(ws3, model)
+		for ws in [ws1, ws2, ws3]:
+			self.xls_headers(ws)
+			self.room_breakdown(ws)
 
 		out = self.data['cfg_dir']+'/'+self.data["outfile"][:-4]+".xlsx"		
 		wb.save(out)
 
-	def xls_headers(self, ws, model: Model):
 
-
+	def xls_headers(self, ws):
+	
+		model = self.components.model
 		no_collectors = len(model.collectors)
 
-
 		# copy total area
-		ws['B14'] = str(model.area)
-		ws['B18'] = str(model.area)
+		ws['B14'] =	ws['B18'] = model.area
 
 		# copy total coverage
-		ws['A14'] = str(model.active_area)
-		ws['A18'] = str(model.active_area)
+		ws['A14'] =	ws['A18'] = model.active_area
+
+
+		record = self.components.panel_record
+		total_full_panels = (record["full_classic"] +
+							 record["full_hydro"] +
+							 record["lux_classic"] +
+						     record["lux_hydro"])
+							
+		total_split_panels = (record["split_classic"] +
+							  record["split_hydro"])
 
 		# copy total panels
-		ws['D14'] = ws['D18'] = "0"
-		ws['E14'] = ws['E18'] = "0"
+		ws['D14'] = ws['D18'] = total_full_panels
+		ws['E14'] = ws['E18'] = total_split_panels
 
 		# copy number of feeds
 		# ws1['F14'] = ws1['F18'] = self.feeds
 
 		# copy number of collectors 
 		ws['G14'] = ws['G18'] = str(no_collectors) 
+		
 
 
+	def room_breakdown(self, ws):
 
-	def room_breakdown(self, ws, model: Model):
+		model = self.components.model
 
 		sheet_breakdown = Config.sheet_breakdown_ita
 		if self.data["lang"] == "eng":
 			sheet_breakdown = Config.sheet_breakdown_eng
 
-		print(sheet_breakdown)
 		for sheet, warm_coef, cool_coef in sheet_breakdown:
 
 			ws['A22'] = str(sheet)
@@ -99,120 +104,7 @@ class XlsDocument:
 						vertical ='center',
 						horizontal ='center')
 
-			if self.data["lang"] == "ita":
-				ws['A23'] = "Zona"
-				ws['B23'] = "Collettore"
-				ws['C23'] = "Stanza"
-
-				ws['D23'] = "Attiva\n[m2]"
-				ws['E23'] = "Area\n[m2]"
-				ws['F23'] = "% cop."
-				ws['G23'] = "linee"
-
-				ws['H23'] = "Pannelli\n200x120"
-				ws['I23'] = "Pannelli\n200x60"
-				ws['J23'] = "Pannelli\n100x120"
-				ws['K23'] = "Pannelli\n100x60"
-					
-				#ws.column_dimensions['M'].width = 2
-
-				ws['L22'] = 'Riscaldamento'
-				ws['L23'] = "Q, resa\n[W]"
-				ws['M23'] = "Q, tot\n[W]"
-				ws['N23'] = "Portata\n[kg/h]"
-
-				#ws.column_dimensions['Q'].width = 2
-
-				ws['O22'] = 'Raffrescamento'
-				ws['O23'] = "Q, resa\n[W]"
-				ws['P23'] = "Q, tot\n[W]"
-				ws['Q23'] = "Portata\n[kg/h]"
-
-				ws['A23'] = "Zona"
-				ws['B23'] = "Collettore"
-				ws['C23'] = "Stanza"
-
-				ws['D23'] = "Attiva\n[m2]"
-				ws['E23'] = "Area\n[m2]"
-				ws['F23'] = "% cop."
-				ws['G23'] = "linee"
-
-				ws['H23'] = "Pannelli\n200x120"
-				ws['I23'] = "Pannelli\n200x60"
-				ws['J23'] = "Pannelli\n100x120"
-				ws['K23'] = "Pannelli\n100x60"
-					
-				#ws.column_dimensions['M'].width = 2
-
-				ws['L22'] = 'Riscaldamento'
-				ws['L23'] = "Q, resa\n[W]"
-				ws['M23'] = "Q, tot\n[W]"
-				ws['N23'] = "Portata\n[kg/h]"
-
-				#ws.column_dimensions['Q'].width = 2
-
-				ws['O22'] = 'Raffrescamento'
-				ws['O23'] = "Q, resa\n[W]"
-				ws['P23'] = "Q, tot\n[W]"
-				ws['Q23'] = "Portata\n[kg/h]"
-
-			if self.data["lang"] == "eng":
-				ws['A23'] = "Zone"
-				ws['B23'] = "Collector"
-				ws['C23'] = "Room"
-
-				ws['D23'] = "Active\n[m2]"
-				ws['E23'] = "Area\n[m2]"
-				ws['F23'] = "% cov."
-				ws['G23'] = "lines"
-
-				ws['H23'] = "Panels\n200x120"
-				ws['I23'] = "Panels\n200x60"
-				ws['J23'] = "Panels\n100x120"
-				ws['K23'] = "Panels\n100x60"
-					
-				#ws.column_dimensions['M'].width = 2
-
-				ws['L22'] = 'Heating'
-				ws['L23'] = "Q, yield\n[W]"
-				ws['M23'] = "Q, tot\n[W]"
-				ws['N23'] = "Flow\n[kg/h]"
-
-				#ws.column_dimensions['Q'].width = 2
-
-				ws['O22'] = 'Cooling'
-				ws['O23'] = "Q, yield\n[W]"
-				ws['P23'] = "Q, tot\n[W]"
-				ws['Q23'] = "Flow\n[kg/h]"
-
-				ws['A23'] = "Zone"
-				ws['B23'] = "Collector"
-				ws['C23'] = "Room"
-
-				ws['D23'] = "Active\n[m2]"
-				ws['E23'] = "Area\n[m2]"
-				ws['F23'] = "% cov."
-				ws['G23'] = "lines"
-
-				ws['H23'] = "Panels\n200x120"
-				ws['I23'] = "Panels\n200x60"
-				ws['J23'] = "Panels\n100x120"
-				ws['K23'] = "Panels\n100x60"
-					
-				#ws.column_dimensions['M'].width = 2
-
-				ws['L22'] = 'Heating'
-				ws['L23'] = "Q, yield\n[W]"
-				ws['M23'] = "Q, tot\n[W]"
-				ws['N23'] = "Flow\n[kg/h]"
-
-				#ws.column_dimensions['Q'].width = 2
-
-				ws['O22'] = 'Cooling'
-				ws['O23'] = "Q, yield\n[W]"
-				ws['P23'] = "Q, tot\n[W]"
-				ws['Q23'] = "Flow\n[kg/h]"
-
+			self.rooms_header(ws)
 
 			set_border(ws, '23', "ABCDEFGHIJKLMNOPQ")
 			ws['A23'].border = XlsDocument.thin_left_top
@@ -294,21 +186,33 @@ class XlsDocument:
 				pos = 'G' + str(index)
 				ws[pos] = room.total_lines
 
-				if (room.room_rep['panels_120x200']>0):
+				if (room.panel_record["full_classic"] +
+					room.panel_record["lux_classic"] +
+					room.panel_record["full_hydro"]   +
+					room.panel_record["lux_hydro"]	>0):
 					pos = 'H' + str(index)
-					ws[pos] = room.room_rep['panels_120x200']
+					ws[pos] = (room.panel_record["full_classic"] +
+					           room.panel_record["lux_classic"] +
+					           room.panel_record["full_hydro"]  +
+					           room.panel_record["lux_hydro"])
 
-				if (room.room_rep['panels_60x200']>0):
+				if (room.panel_record["split_classic"]+
+					room.panel_record["split_hydro"]>0):
 					pos = 'I' + str(index)
-					ws[pos] = room.room_rep['panels_60x200']
+					ws[pos] = (room.panel_record["split_classic"] + 
+					           room.panel_record["split_hydro"])
 
-				if (room.room_rep['panels_120x100']>0):
+				if (room.panel_record["half_classic"]+
+					room.panel_record["half_hydro"]>0):
 					pos = 'J' + str(index)
-					ws[pos] = room.room_rep['panels_120x100']
+					ws[pos] = (room.panel_record["half_classic"] + 
+					           room.panel_record["half_hydro"])
 
-				if (room.room_rep['panels_60x100']>0):
+				if (room.panel_record["quarter_classic"]+
+					room.panel_record["quarter_hydro"]>0):
 					pos = 'K' + str(index)
-					ws[pos] = room.room_rep['panels_60x100']
+					ws[pos] = (room.panel_record["half_classic"] + 
+					           room.panel_record["half_hydro"])
 
 
 				# heating 
@@ -321,7 +225,7 @@ class XlsDocument:
 				ws[pos].number_format = "0"
 
 				pos = 'N' + str(index)
-				ws[pos] = 3.6*output/(4.186*wsh['K14'].value)
+				ws[pos] = 3.6*output/(4.186*ws['K14'].value)
 				ws[pos].number_format = "0"
 
 				# cooling
@@ -334,7 +238,7 @@ class XlsDocument:
 				ws[pos].number_format = "0"
 
 				pos = 'Q' + str(index)
-				ws[pos] = 3.6*output/(4.186*wsh['K18'].value)
+				ws[pos] = 3.6*output/(4.186*ws['K18'].value)
 				ws[pos].number_format = "0"
 
 
@@ -343,3 +247,119 @@ class XlsDocument:
 
 			set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
 
+
+	def rooms_header(self, ws):
+
+		if self.data["lang"] == "ita":
+			ws['A23'] = "Zona"
+			ws['B23'] = "Collettore"
+			ws['C23'] = "Stanza"
+
+			ws['D23'] = "Attiva\n[m2]"
+			ws['E23'] = "Area\n[m2]"
+			ws['F23'] = "% cop."
+			ws['G23'] = "linee"
+
+			ws['H23'] = "Pannelli\n200x120"
+			ws['I23'] = "Pannelli\n200x60"
+			ws['J23'] = "Pannelli\n100x120"
+			ws['K23'] = "Pannelli\n100x60"
+				
+			#ws.column_dimensions['M'].width = 2
+
+			ws['L22'] = 'Riscaldamento'
+			ws['L23'] = "Q, resa\n[W]"
+			ws['M23'] = "Q, tot\n[W]"
+			ws['N23'] = "Portata\n[kg/h]"
+
+			#ws.column_dimensions['Q'].width = 2
+
+			ws['O22'] = 'Raffrescamento'
+			ws['O23'] = "Q, resa\n[W]"
+			ws['P23'] = "Q, tot\n[W]"
+			ws['Q23'] = "Portata\n[kg/h]"
+
+			ws['A23'] = "Zona"
+			ws['B23'] = "Collettore"
+			ws['C23'] = "Stanza"
+
+			ws['D23'] = "Attiva\n[m2]"
+			ws['E23'] = "Area\n[m2]"
+			ws['F23'] = "% cop."
+			ws['G23'] = "linee"
+
+			ws['H23'] = "Pannelli\n200x120"
+			ws['I23'] = "Pannelli\n200x60"
+			ws['J23'] = "Pannelli\n100x120"
+			ws['K23'] = "Pannelli\n100x60"
+				
+			#ws.column_dimensions['M'].width = 2
+
+			ws['L22'] = 'Riscaldamento'
+			ws['L23'] = "Q, resa\n[W]"
+			ws['M23'] = "Q, tot\n[W]"
+			ws['N23'] = "Portata\n[kg/h]"
+
+			#ws.column_dimensions['Q'].width = 2
+
+			ws['O22'] = 'Raffrescamento'
+			ws['O23'] = "Q, resa\n[W]"
+			ws['P23'] = "Q, tot\n[W]"
+			ws['Q23'] = "Portata\n[kg/h]"
+
+		if self.data["lang"] == "eng":
+			ws['A23'] = "Zone"
+			ws['B23'] = "Collector"
+			ws['C23'] = "Room"
+
+			ws['D23'] = "Active\n[m2]"
+			ws['E23'] = "Area\n[m2]"
+			ws['F23'] = "% cov."
+			ws['G23'] = "lines"
+
+			ws['H23'] = "Panels\n200x120"
+			ws['I23'] = "Panels\n200x60"
+			ws['J23'] = "Panels\n100x120"
+			ws['K23'] = "Panels\n100x60"
+				
+			#ws.column_dimensions['M'].width = 2
+
+			ws['L22'] = 'Heating'
+			ws['L23'] = "Q, yield\n[W]"
+			ws['M23'] = "Q, tot\n[W]"
+			ws['N23'] = "Flow\n[kg/h]"
+
+			#ws.column_dimensions['Q'].width = 2
+
+			ws['O22'] = 'Cooling'
+			ws['O23'] = "Q, yield\n[W]"
+			ws['P23'] = "Q, tot\n[W]"
+			ws['Q23'] = "Flow\n[kg/h]"
+
+			ws['A23'] = "Zone"
+			ws['B23'] = "Collector"
+			ws['C23'] = "Room"
+
+			ws['D23'] = "Active\n[m2]"
+			ws['E23'] = "Area\n[m2]"
+			ws['F23'] = "% cov."
+			ws['G23'] = "lines"
+
+			ws['H23'] = "Panels\n200x120"
+			ws['I23'] = "Panels\n200x60"
+			ws['J23'] = "Panels\n100x120"
+			ws['K23'] = "Panels\n100x60"
+				
+			#ws.column_dimensions['M'].width = 2
+
+			ws['L22'] = 'Heating'
+			ws['L23'] = "Q, yield\n[W]"
+			ws['M23'] = "Q, tot\n[W]"
+			ws['N23'] = "Flow\n[kg/h]"
+
+			#ws.column_dimensions['Q'].width = 2
+
+			ws['O22'] = 'Cooling'
+			ws['O23'] = "Q, yield\n[W]"
+			ws['P23'] = "Q, tot\n[W]"
+			ws['Q23'] = "Flow\n[kg/h]"

@@ -14,14 +14,14 @@ dxf_version = "AC1032"
 
 class DxfDrawing:
 
-	def __init__(self):
+	def __init__(self, model: Model):
 
 		self.doc = new(dxf_version)
 		self.doc.header["$LWDISPLAY"] = 1
 		self.msp = self.doc.modelspace()
-		self.outname = ""
 		self.create_layers()
 		self.typology = dict()
+		self.model = model
 
 		self.blocks = {}
 
@@ -41,17 +41,19 @@ class DxfDrawing:
 		self.doc.layers.new(name=layer_name, dxfattribs=attr)
 
 
-	def output_error(self, processed):
+	def output_error(self):
 		self.doc.layers.remove(Config.layer_panel)
 		self.doc.layers.remove(Config.layer_link)
 		if (debug):
 			self.doc.layers.remove(Config.layer_box)
 			self.doc.layers.remove(Config.layer_panelp)
 
-		for room in processed:
-			room.draw_label(self.msp)
+		for room in self.model.processed:
+			size = 2/room.frame.scale
+			self.write_text("Locale %d" % 
+				   room.pindex, room.pos, zoom=size)
 
-		self.doc.saveas(self.outname)
+		self.doc.saveas(self.model.outfile)
 
 
 	def create_layers(self):
@@ -83,7 +85,7 @@ class DxfDrawing:
 		text.dxf.color = col
 
 
-	def draw_coord_system(self, room):
+	def draw_coord_system(self, room: Room):
 		frame = room.frame
 		scale = frame.scale
 		orig = frame.rot_orig
@@ -99,10 +101,10 @@ class DxfDrawing:
 		self.msp.add_lwpolyline(yaxis)
 
 
-	def draw_collector(self, model: Model):
+	def draw_collector(self):
 
-		scale = model.scale
-		for collector in model.collectors:
+		scale = self.model.scale
+		for collector in self.model.collectors:
 			pos = collector.pos
 			size = Config.collector_size/scale
 			pos = (pos[0] - size/2, pos[1] - size/2) 
@@ -153,11 +155,11 @@ class DxfDrawing:
 
 
 
-	def draw_model(self, model):
-		for room in model.processed:
+	def draw_model(self):
+		for room in self.model.processed:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
-			self.draw_collector(model)
+			self.draw_collector()
 
 	def import_blocks(self, ptype):
 		self.source_dxf = readfile(Config.symbol_file)
@@ -180,5 +182,5 @@ class DxfDrawing:
 
 		importer.finalize()
 
-	def save(self, filename):
-		self.doc.saveas(filename)
+	def save(self):
+		self.doc.saveas(self.model.outfile)

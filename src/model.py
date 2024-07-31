@@ -5,6 +5,7 @@ from math import sqrt, ceil, log10, atan2, pi
 from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
 from ezdxf.filemanagement import readfile
+from typing import Optional
 
 
 # Parameter settings (values in cm)
@@ -241,10 +242,16 @@ class Room:
 		self.bounding_box()
 		self.area = self._area()
 		self.active_m2 = 0.0
+		self.ratio = 0.0
 		self.pos = self._barycentre()
 		self.perimeter = self._perimeter()
+
+		# collector related variables
 		self.collector = None
+		self.number = 0
+		self.zone_num = 0
 		self.inputs = 0 
+		self.name = ""
 
 		self.panel_record = dict()
 		for panel in panel_map:
@@ -259,7 +266,8 @@ class Room:
 		return abs(a/10000)
 
 	def area_m2(self):
-		return self._area()/self.frame.scale
+		scale = self.frame.scale
+		return self.area*scale*scale
 
 	def _centre(self):
 		(cx, cy) = (0, 0)
@@ -447,6 +455,7 @@ class Model():
 		self.laid = "without"
 		self.area = 0.0
 		self.active_area = 0.0
+		self.outfile = data['cfg_dir']+"/"+data['outfile'] 
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
@@ -534,12 +543,17 @@ class Model():
 		if (not root):
 			return None
 
+		leader = None
+
+		# if collector contained_in room already assigned
+		# the leader is the root of that zone
+		if (root.zone):
+			leader = root.zone
+
 		root.walk = 0
 		root.uplink = root
 		root.set_as_root(self.processed.copy(), collector)
 
-		# leader: reference zone for collector
-		leader = None 
 		if collector.user_zone and collector.user_zone.leader:
 			leader = collector.user_zone.leader
 
@@ -1151,7 +1165,7 @@ class Model():
 
 
 		# Check if enough collectors
-		tot_area = feeds_eff = feeds_max = 0
+		self.area = feeds_eff = feeds_max = 0
 		flow_eff = flow_max = 0
 		for room in self.processed:
 
@@ -1176,7 +1190,7 @@ class Model():
 			room.flow = room.flow_max
 			#self.output.print("Room%3d   lines:%2d  flow:%6.2lf l/h\n" % 
 			#	(room.pindex, room.feeds, room.flow_eff))
-			tot_area += area
+			self.area += area
 
 		available_feeds = feeds_per_collector * len(self.collectors)
 		available_flow  = flow_per_collector * len(self.collectors)

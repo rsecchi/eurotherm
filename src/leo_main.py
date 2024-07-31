@@ -3,7 +3,7 @@ import json
 import atexit
 
 from model import Model
-from components import ComponentManager
+from components import Components
 from drawing import DxfDrawing
 from excel import XlsDocument
 
@@ -36,32 +36,31 @@ class App:
 		self.data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 		self.model = Model(self.data)
-		self.manager = ComponentManager()
-		self.dxf = DxfDrawing()
-		self.xls = XlsDocument(self.data)
+		self.components = Components(self.model)
+		self.dxf = DxfDrawing(self.model)
+		self.xls = XlsDocument(self.components)
 
 		self.dxf.import_floorplan(self.model.input_file)
 		self.dxf.import_blocks(self.data["ptype"])
 
 
 		# Create output file for elaborate
-		self.outfile = self.data['cfg_dir']+"/"+self.data['outfile'] 
 		if not self.model.refit:
 			if not self.model.build_model():
-				self.dxf.output_error(self.model.processed)
+				self.dxf.output_error()
 				return
 
-			self.manager.get_components(self.model)
+			self.components.get_components()
 
 			if not self.model.refit:
-				self.dxf.draw_model(self.model)
+				self.dxf.draw_model()
 
-			self.dxf.save(self.outfile)
+			self.dxf.save()
 
 
 		if not self.model.refit:
-			self.manager.count_components(self.model, self.dxf.doc)
-			self.xls.save_in_xls(self.model)
+			self.components.count_components(self.dxf.doc)
+			self.xls.save_in_xls()
 
 
 App()

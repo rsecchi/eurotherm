@@ -1,36 +1,25 @@
 
-# defaults
-default_font_size = 10
 
-fitting_names = [
-	"Rac_20_10_20_blu",
-	"Rac_20_10_20_rosso",
-	"Rac_20_10_blu",
-	"Rac_20_10_rosso",
-	"Rac_20_10_10_20_blu",
-	"Rac_20_10_10_20_rosso",
-	"Rac_20_10_10_blu",
-	"Rac_20_10_10_rosso",
-	"Rac_20_10_20_10_blu",
-	"Rac_20_10_20_10_rosso",
-	"Rac_10_20_10_blu",
-	"Rac_10_20_10_rosso",
-	"Rac_10_20_10_10_blu",
-	"Rac_10_20_10_10_rosso",
-	"Rac_20_10_10_20_10_10_blu",
-	"Rac_20_10_10_20_10_10_rosso",
-	"Rac_10_10_20_10_10_blu",
-	"Rac_10_10_20_10_10_rosso",
-	"Rac_20_20_dritto",
-	"Rac_20_20_curva",
-	"Rac_20_20_20_blu",
-	"Rac_20_20_20_rosso",
-	"Rac_10_10_dritto",
+panel_map = ["full", "lux", "split", "half", "quarter"]
+panel_sizes = {
+	"full_classic": 2.4,
+	"full_hydro": 2.4,
+	"lux_classic": 2.4,
+	"lux_hydro": 2.4,
+	"split_classic": 1.2,
+	"split_hydro": 1.2,
+	"half_classic": 1.2,
+	"half_hydro": 1.2,
+	"quarter_classic": 0.6,
+	"quarter_hydro": 0.6
+}
+
+
+leo_icons = [
 	"sonda T",
 	"sonda T_U",
 ]
 
-panel_map = ["full", "lux", "split", "half", "quarter"]
 
 
 leo_types = {
@@ -103,7 +92,7 @@ debug = False
 class Config:
 	input_layer = 'AREE LEONARDO'
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
-	font_size = default_font_size
+	font_size = 10 
 
 	layer_text      = 'Eurotherm_text'
 	layer_box       = 'Eurotherm_box'
@@ -132,7 +121,6 @@ class Config:
 
 	max_room_area = 500
 	collector_size = 60
-	panel_blocks = dict() 
 	
 	xlsx_template_ita = 'leo_template.xlsx'
 	xlsx_template_eng = 'leo_template_eng.xlsx'
@@ -152,18 +140,20 @@ class Config:
 		('Room Breakdown 30p', 82.3, 80.9)
 	]
 
+	_handlers = dict() 
+
 	@classmethod
-	def available_panels(cls):
-		if cls.panel_blocks:
-			return cls.panel_blocks
+	def panel_handlers(cls):
+		if cls._handlers:
+			return cls._handlers
 
 		for typ in leo_types:
 
 			for key, name in leo_types[typ]["block_names_classic"].items():
-				cls.panel_blocks[name] = key + "_classic"
+				cls._handlers[name] = key + "_classic"
 
 			for key, name in leo_types[typ]["block_names_hydro"].items():
-				cls.panel_blocks[name] = key + "_hydro"
+				cls._handlers[name] = key + "_hydro"
 
-		return cls.panel_blocks
+		return cls._handlers
 		

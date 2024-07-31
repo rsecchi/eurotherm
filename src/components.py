@@ -1,21 +1,27 @@
 from engine.planner import RoomPlanner
 from ezdxf.document import Drawing
 from model import Model
-from settings import Config
+from settings import Config, panel_sizes, panel_map
 
 
-class ComponentManager:
+class Components:
 	
-	def __init__(self):
+	def __init__(self, model: Model):
 		self.num_panels = 0
 		self.panels = list()
-		self.panel_record = dict()
+		self.block_stats = dict()
 		self.panel_type = dict()
+		self.panel_record = dict()
 
-	def get_components(self, model):
+		for panel in panel_map:
+			self.panel_record[panel+"_classic"] = 0
+			self.panel_record[panel+"_hydro"] = 0
+		self.model = model
+
+	def get_components(self):
 
 		self.num_panels = 0
-		for room in model.processed:
+		for room in self.model.processed:
 
 			room_outline = room.frame.room_outline()
 
@@ -25,30 +31,44 @@ class ComponentManager:
 			self.num_panels += len(room.panels)
 
 
-	def count_panels(self, model: Model, doc: Drawing):
+	def count_panels(self, doc: Drawing):
 		msp = doc.modelspace() 
 		
 		self.inserts = msp.query(f'INSERT[layer=="%s"]'
 				% Config.layer_panel)
 
-		blocks = Config.available_panels()
+		blocks = Config.panel_handlers()
 		block_names = list(blocks.keys())
 
 		for insert in self.inserts:
 			name = insert.dxf.get("name")
-			if name in block_names:
-				if name in self.panel_record:
-					self.panel_record[name] += 1
-				else:
-					self.panel_record[name] = 1
+			if not name in block_names:
+				continue
 
-				block_pos = insert.dxf.get("insert")
-				block_pos = (block_pos[0], block_pos[1])
+			# update block statistics
+			if name in self.panel_record:
+				self.block_stats[name] += 1
+			else:
+				self.block_stats[name] = 1
 
-				for room in model.processed:
-					if room.is_point_inside(block_pos):
-						room.panel_record[blocks[name]] += 1
+			block_pos = insert.dxf.get("insert")
+			block_pos = (block_pos[0], block_pos[1])
+
+			# update room record
+			for room in self.model.processed:
+				if not room.is_point_inside(block_pos):
+					continue
+
+				handler = blocks[name]
+				room.panel_record[handler] += 1
+				room.active_m2 += panel_sizes[handler]
+				room.ratio = room.active_m2/room.area_m2()
+				self.panel_record[handler] += 1
+				break
+
+		for room in self.model.processed:
+			self.model.active_area += room.active_m2
 
 
-	def count_components(self, model:Model, doc:Drawing):
-		self.count_panels(model, doc)
+	def count_components(self, doc:Drawing):
+		self.count_panels(doc)
