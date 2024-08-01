@@ -31,7 +31,6 @@ collector_margin_factor = 1.5
 flow_per_m2 = 23.33
 flow_per_collector = 1700
 feeds_per_collector = 13
-target_eff = 0.7
 
 min_room_area = 1
 max_steps = 20
@@ -1169,6 +1168,7 @@ class Model():
 		# Check if enough collectors
 		self.area = feeds_eff = feeds_max = 0
 		flow_eff = flow_max = 0
+		target_eff = Config.target_eff
 		for room in self.processed:
 
 			if room.color == Config.color_disabled_room:

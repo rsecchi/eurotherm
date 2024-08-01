@@ -7,6 +7,7 @@ from model import Model
 from components import Components
 from drawing import DxfDrawing
 from excel import XlsDocument
+from report import Report
 
 class App:
 
@@ -14,13 +15,14 @@ class App:
 		self.json_file = open(filename, "r")
 		self.data = json.loads(self.json_file.read())
 		self.lock_name = self.data['lock_name']
+		self.outfile = conf.spool + self.data['outfile'][:-4]+".log"
+		self.text = str()
 
 
 	def remove_lock(self):
 		os.remove(self.lock_name)
-		out = conf.spool + self.data['outfile'][:-4]+".txt"
-		f = open(out, "w")
-		print("Exit with error", file = f)
+		f = open(self.outfile, "w")
+		print(self.text, file = f)
 
 
 	def acquire_lock(self):
@@ -38,29 +40,32 @@ class App:
 		self.components = Components(self.model)
 		self.dxf = DxfDrawing(self.model)
 		self.xls = XlsDocument(self.components)
+		self.report = Report(self.components)
 
 		self.dxf.import_floorplan(self.model.input_file)
 		self.dxf.import_blocks(self.data["ptype"])
 
 
 		# Create output file for elaborate
-		if not self.model.refit:
-			if not self.model.build_model():
-				self.dxf.output_error()
-				return
+		if not self.model.build_model():
+			self.dxf.output_error()
+			return
 
-			self.components.get_components()
+		print(self.model.text)
+		self.report.set_text(self.model.text)
 
-			if not self.model.refit:
-				self.dxf.draw_model()
-
-			self.dxf.save()
-
+		self.components.get_components()
 
 		if not self.model.refit:
-			self.components.count_components(self.dxf.doc)
-			self.xls.save_in_xls()
+			self.dxf.draw_model()
 
+		self.dxf.save()
+
+		self.components.count_components(self.dxf.doc)
+		self.xls.save_in_xls()
+
+		self.report.make_report()
+		self.report.save_report()
 
 App()
 

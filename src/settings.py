@@ -121,6 +121,7 @@ class Config:
 
 	max_room_area = 500
 	collector_size = 60
+	target_eff = 0.7
 	
 	xlsx_template_ita = 'leo_template.xlsx'
 	xlsx_template_eng = 'leo_template_eng.xlsx'
