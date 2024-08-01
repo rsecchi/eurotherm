@@ -14,3 +14,5 @@ done_page_ita    = local_dir + "/www/done.html"
 done_page_eng    = local_dir + "/www/done_eng.html"
 script       = "/usr/local/src/eurotherm/run_leo_main.sh"
 
+root     = "/usr/local/src/eurotherm/"
+spool    = "/var/spool/eurotherm/"

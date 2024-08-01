@@ -1,9 +1,10 @@
 import openpyxl
+import os
 from components import Components
 from settings import Config
-from model import Model
 from openpyxl.styles.borders import Border, Side
 from openpyxl.styles import Alignment, PatternFill
+import conf
 
 def set_border(ws, row, cols):
 
@@ -36,6 +37,7 @@ class XlsDocument:
 		if self.data["lang"] == "eng":
 			xlsx_template = Config.xlsx_template_eng
 
+		xlsx_template = "/usr/local/src/eurotherm/" + xlsx_template
 		wb = openpyxl.load_workbook(xlsx_template)
 		ws1 = wb[Config.sheet_template_1]
 		ws2 = wb[Config.sheet_template_2]
@@ -45,7 +47,7 @@ class XlsDocument:
 			self.xls_headers(ws)
 			self.room_breakdown(ws)
 
-		out = self.data['cfg_dir']+'/'+self.data["outfile"][:-4]+".xlsx"		
+		out = conf.spool+self.data["outfile"][:-4]+".xlsx"		
 		wb.save(out)
 
 

@@ -5,7 +5,8 @@ from math import sqrt, ceil, log10, atan2, pi
 from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
 from ezdxf.filemanagement import readfile
-from typing import Optional
+
+import conf
 
 
 # Parameter settings (values in cm)
@@ -455,12 +456,13 @@ class Model():
 		self.laid = "without"
 		self.area = 0.0
 		self.active_area = 0.0
-		self.outfile = data['cfg_dir']+"/"+data['outfile'] 
+		self.outfile = conf.spool + data['outfile'] 
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
 				self.type = ctype['full_name']
-		self.input_file = data['cfg_dir'] + "/" + data['infile']
+
+		self.input_file = conf.spool + data['infile']
 	
 		self.input_doc = readfile(self.input_file)	
 		self.msp = self.input_doc.modelspace()

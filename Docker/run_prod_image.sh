@@ -13,6 +13,7 @@ fi
 DOCKER_SPOOL=/var/spool/eurotherm
 DOCKER_SRC=/usr/local/src/eurotherm
 DOCKER_IMG=raffauser/leonardoplanner:ver2
+MODE="testing"
 
 container_name="ver2_prod"
 

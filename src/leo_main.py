@@ -1,6 +1,7 @@
 import os, sys
 import json
 import atexit
+import conf
 
 from model import Model
 from components import Components
@@ -17,7 +18,7 @@ class App:
 
 	def remove_lock(self):
 		os.remove(self.lock_name)
-		out = self.data['outfile'][:-4]+".txt"
+		out = conf.spool + self.data['outfile'][:-4]+".txt"
 		f = open(out, "w")
 		print("Exit with error", file = f)
 
@@ -32,8 +33,6 @@ class App:
 	def __init__(self):
 		self.read_configuration(sys.argv[1])
 		self.acquire_lock()
-
-		self.data['cfg_dir'] = os.path.dirname(sys.argv[1])
 
 		self.model = Model(self.data)
 		self.components = Components(self.model)
