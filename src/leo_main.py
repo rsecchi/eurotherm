@@ -51,7 +51,6 @@ class App:
 			self.dxf.output_error()
 			return
 
-		print(self.model.text)
 		self.report.set_text(self.model.text)
 
 		self.components.get_components()

@@ -4,14 +4,37 @@ from model import Room
 import conf
 
 
+
+def print_line(a: int) -> str:
+	if (a>0):
+		txt = " %3d   |" % a
+	else:
+		txt = "       |" 
+	return txt
+
+
+
 class Report:
 
 	def __init__(self, components: Components):
+
+		self.area = 0 
+		self.active_area = 0 
+
+		self.feeds = 0
+		self.normal_area = 0
+		self.normal_active_area = 0
+		self.normal_passive_area = 0
+		self.bathroom_area = 0
+		self.bathroom_active_area = 0
+		self.bathroom_passive_area = 0
+
 		self.components = components
 		self.model = components.model
 		data = self.model.data
 		self.outfile = conf.spool + data['outfile'][:-4]+".txt"
 		self.text = ""
+		self.perimeter = 0
 
 
 	def set_text(self, text):
@@ -23,7 +46,7 @@ class Report:
 		print(self.text, file = f)
 
 
-	def room_report(self, room: Room):
+	def room_summary(self, room: Room):
 
 		model = self.model
 		scale = model.scale
@@ -60,37 +83,10 @@ class Report:
 		# self.feeds += room.actual_feeds
 
 
-	def make_report(self):
+	def model_summary(self):
 
 		model = self.model
 		scale = model.scale
-
-		self.area = 0 
-		self.active_area = 0 
-
-		self.feeds = 0
-		self.normal_area = 0
-		self.normal_active_area = 0
-		self.normal_passive_area = 0
-		self.bathroom_area = 0
-		self.bathroom_active_area = 0
-		self.bathroom_passive_area = 0
-
-
-		txt = "\nRooms report\n"
-		txt += "Room no.|area[m2]| % act. |200x120| 200x60|"
-		txt += "   100x120  |    100x60\n"
-		txt += "========+========+========+=======+=======+"
-		txt += "============+==============\n"
-		for room in model.processed:
-			self.room_report(room)
-
-			
-		self.passive_area = self.area - self.active_area
-		self.perimeter = 0
-		for room in model.processed:
-			self.perimeter += room.perimeter
-			
 
 		# Summary of all areas
 		smtxt =  "\nTotal processed rooms .................... %3d\n" \
@@ -123,7 +119,11 @@ class Report:
 		smtxt += "Total perimeter ....................... %6.01f m\n" \
 			% (self.perimeter*scale/100)
 		smtxt += "Total lines .............................. $$$\n" 
-	
+
+		self.text += smtxt 
+
+
+	def panel_requirements(self):
 
 		# Calculating required panels 
 		panel_record = self.components.panel_record
@@ -138,7 +138,7 @@ class Report:
 		quarter_classic = panel_record["quarter_classic"]
 		quarter_hydro   = panel_record["quarter_hydro"]
 
-		smtxt += "\nPanel Count\n"
+		smtxt  = "\nPanel Count\n"
 		smtxt += "Type    |200x120|  lux  | 200x60| 100x120| 100x60 \n"
 		smtxt += "========+=======+=======+=======+========+========\n"	
 		smtxt += "Classic |  %2d   | %2d    |  %2d   |   %2d   |  %2d \n"\
@@ -155,5 +155,50 @@ class Report:
 				   quarter_hydro)
 
 		self.text += smtxt
+
+
+	def rooms_report(self):
+
+		model = self.model
+
+		txt = ""
+		txt += "\nRooms report\n"
+		txt += "Room no.|area[m2]| % act. |200x120|  lux  | 200x60|"
+		txt += "100x120| 100x60\n"
+		txt += "========+========+========+=======+=======+"
+		txt += "=======+=======+========\n"
+
+		for rm in model.processed:
+			rec = rm.panel_record
+			txt += "Room %3d|" % rm.pindex
+			txt += "%7.02f | %5.01f%% |" % (rm.active_m2, 100*rm.ratio)
+			txt += print_line(rec["full_hydro"]+rec["full_classic"])
+			txt += print_line(rec["lux_hydro"]+rec["lux_classic"])
+			txt += print_line(rec["split_hydro"]+rec["split_classic"])
+			txt += print_line(rec["half_hydro"]+rec["half_classic"])
+			txt += print_line(rec["quarter_hydro"]+rec["quarter_classic"])
+
+			if rm.ratio < Config.target_eff:
+				txt += " @" 
+			txt += "\n"
+
+		self.text += txt
+
+
+	def make_report(self):
+
+		model = self.model
+
+		for room in model.processed:
+			self.room_summary(room)
+			
+		self.passive_area = self.area - self.active_area
+		for room in model.processed:
+			self.perimeter += room.perimeter
+			
+		self.model_summary()
+		self.panel_requirements()
+		self.rooms_report()
+	
 
 
