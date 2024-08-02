@@ -96,7 +96,7 @@ leo_types = {
 
 		"panel_names_classic": {
 			"full"    : "LEONARDO CS 3,5 - 1200x2000x60mm",
-			"lux"     : "",
+			"lux"     : "LEONARDO CS LUX - 1200x2000x60mm",
 			"split"   : "LEONARDO CS 3,5 - 600x2000x60mm",
 			"half"    : "LEONARDO CS 3,5 - 1200x1000x60mm",
 			"quarter" : "LEONARDO CS 3,5 - 600x1000x60mm",
@@ -104,7 +104,7 @@ leo_types = {
 
 		"block_names_classic": {
 			"full"    : "Pannello 35-1200x2000",
-			"lux"     : "",
+			"lux"     : "Pannello Lux 1200x2000",
 			"split"   : "Pannello 35-600x2000",
 			"half"    : "Mezzo pannello 35-1200x1000",
 			"quarter" : "Mezzo pannello 35-600x1000",
@@ -112,7 +112,7 @@ leo_types = {
 
 		"code_names_classic": {
 			"full"    : "6113111304",
-			"lux"     : "",
+			"lux"     : "6113120401",
 			"split"   : "6113111303",
 			"half"    : "6113111302",
 			"quarter" : "6113111301",
@@ -121,7 +121,7 @@ leo_types = {
 
 		"panel_names_hydro": {
 			"full"    : "LEONARDO CS IDRO 3,5 - 1200x2000x60mm",
-			"lux"     : "",
+			"lux"     : "LEONARDO CS LUX IDRO - 1200x2000x60mm",
 			"split"   : "LEONARDO CS IDRO 3,5 - 600x2000x60mm",
 			"half"    : "LEONARDO CS IDRO 3,5 - 1200x1000x60mm",
 			"quarter" : "LEONARDO CS IDRO 3,5 - 600x1000x60mm",
@@ -129,7 +129,7 @@ leo_types = {
 
 		"block_names_hydro": {
 			"full"    : "Pannello Idro 35-1200x2000",
-			"lux"     : "",
+			"lux"     : "Pannello Lux Idro 1200x2000",
 			"split"   : "Pannello Idro 55-600x2000",
 			"half"    : "Mezzo pannello Idro 35-1200x1000",
 			"quarter" : "Mezzo pannello Idro 35-600x1000",
@@ -138,7 +138,7 @@ leo_types = {
 
 		"code_names_hydro": {
 			"full"    : "6114111304",
-			"lux"     : "",
+			"lux"     : "6114120401",
 			"split"   : "6114111303",
 			"half"    : "6114111302",
 			"quarter" : "6114111301",
@@ -156,7 +156,7 @@ leo_types = {
 
 		"panel_names_classic": {
 			"full"    : "LEONARDO CS 3,0 Plus - 1200x2000x60mm",
-			"lux"     : "",
+			"lux"     : "LEONARDO CS LUX - 1200x2000x60mm",
 			"split"   : "LEONARDO CS 3,0 Plus - 600x2000x60mm",
 			"half"    : "LEONARDO CS 3,0 Plus - 1200x1000x60mm",
 			"quarter" : "LEONARDO CS 3,5 - 600x1000x60mm",
@@ -164,7 +164,7 @@ leo_types = {
 
 		"block_names_classic": {
 			"full"    : "Pannello 3Plus-1200x2000",
-			"lux"     : "",
+			"lux"     : "Pannello Lux 1200x2000",
 			"split"   : "Pannello 3Plus-600x2000",
 			"half"    : "Mezzo pannello 3Plus-1200x1000",
 			"quarter" : "Mezzo pannello 35-600x1000",
@@ -172,7 +172,7 @@ leo_types = {
 
 		"code_names_classic": {
 			"full"    : "6113111004",
-			"lux"     : "",
+			"lux"     : "6113120401",
 			"split"   : "6113111003",
 			"half"    : "6113111002",
 			"quarter" : "6113111301",
@@ -180,7 +180,7 @@ leo_types = {
 
 		"panel_names_hydro": {
 			"full"    : "LEONARDO CS IDRO 3,5 - 1200x2000x60mm",
-			"lux"     : "",
+			"lux"     : "LEONARDO CS LUX - 1200x2000x60mm",
 			"split"   : "LEONARDO CS IDRO 3,5 - 600x2000x60mm",
 			"half"    : "LEONARDO CS IDRO 3,5 - 1200x1000x60mm",
 			"quarter" : "LEONARDO CS IDRO 3,5 - 600x1000x60mm",
@@ -188,7 +188,7 @@ leo_types = {
 
 		"block_names_hydro": {
 			"full"    : "Pannello Idro 35-1200x2000",
-			"lux"     : "",
+			"lux"     : "Pannello Lux Idro 1200x2000",
 			"split"   : "Pannello Idro 35-600x2000",
 			"half"    : "Mezzo pannello Idro 35-1200x1000",
 			"quarter" : "Mezzo pannello Idro 35-600x1000",
@@ -196,7 +196,7 @@ leo_types = {
 
 		"code_names_hydro": {
 			"full"    : "6114111304",
-			"lux"     : "",
+			"lux"     : "6114120401",
 			"split"   : "6114111303",
 			"half"    : "6114111302",
 			"quarter" : "6114111301",
