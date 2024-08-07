@@ -32,6 +32,7 @@ pnl_t* planner(room_t* room)
 		pnl->y = p->pos.y;
 		pnl->next = pnls;
 		pnl->iso_flgs = p->orient_flags;
+		pnl->dorsal_id = p->dorsal_id;
 
 		pnls = pnl;
 	}

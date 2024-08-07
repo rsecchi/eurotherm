@@ -1,3 +1,4 @@
+from engine.panels import Panel, Dorsal
 from reference_frame import ReferenceFrame
 from settings import Config
 from settings import panel_map
@@ -238,7 +239,8 @@ class Room:
 
 		self.color = poly.dxf.color
 		# self.arrangement = PanelArrangement(self)
-		self.panels = list()
+		self.panels: list[Panel] = list()
+		self.dorsals: list[Dorsal] = list()
 		self.bounding_box()
 		self.area = self._area()
 		self.active_m2 = 0.0
@@ -386,7 +388,7 @@ class Room:
 					return True
 
 		return False
-		
+	
 
 	def add_gates(self, room):
 		p1 = self.points

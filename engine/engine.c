@@ -34,7 +34,7 @@ int count_panels(panel_t* head)
 panel_t* copy_panels(allocation_t* alloc)
 {
 panel_t* head = NULL, *np;
-int num_dorsals=0;
+uint32_t dorsal_id = 0;
 
 	for(dorsal_t* d=alloc->dorsals; d!=NULL; d=d->next)  {
 		for(int k=0; k<d->num_panels; k++) {
@@ -43,8 +43,9 @@ int num_dorsals=0;
 			np->next = head;
 			head = np;
 			np->orient_flags = 0;
+			np->dorsal_id = dorsal_id;
 		}
-		num_dorsals++;
+		dorsal_id++;
 	}
 
 	return head;

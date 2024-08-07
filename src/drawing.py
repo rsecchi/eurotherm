@@ -139,8 +139,9 @@ class DxfDrawing:
 			name = panel_map[panel.type]
 			block_name = block_names[name]
 
-			orig = room.frame.real_from_local(panel.pos)
-			panel_rotation = panel.block_rotation(room)
+			frame = room.frame
+			orig = frame.real_from_local(panel.pos)
+			panel_rotation = frame.block_rotation(panel.rot)
 			block = self.msp.add_blockref(
 						block_name,
 						orig,
@@ -152,7 +153,6 @@ class DxfDrawing:
 			)
 
 			block.dxf.layer = Config.layer_panel
-
 
 
 	def draw_model(self):

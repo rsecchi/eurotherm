@@ -2,6 +2,7 @@
 export PYTHONPATH=/usr/local/src/eurotherm/src/
 export PYTHONPATH=$PYTHONPATH:/usr/local/src/eurotherm/
 export PYTHONPATH=$PYTHONPATH:/usr/local/src/eurotherm/www/cgi-bin
+export PYTHONPATH=$PYTHONPATH:/usr/local/src/eurotherm/engine
 
 
 

@@ -1,4 +1,4 @@
-from engine.planner import RoomPlanner
+from engine.planner import Planner
 from ezdxf.document import Drawing
 from model import Model
 from settings import Config, panel_sizes, panel_map
@@ -25,8 +25,10 @@ class Components:
 
 			room_outline = room.frame.room_outline()
 
-			planner = RoomPlanner(room_outline)
+			planner = Planner(room_outline)
 			room.panels = planner.get_panels()
+			room.dorsals = planner.get_dorsals()
+
 			self.panels += room.panels
 			self.num_panels += len(room.panels)
 

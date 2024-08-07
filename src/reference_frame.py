@@ -26,8 +26,12 @@ class ReferenceFrame:
 		self.outline = Outline() 
 
 
-	def room_rotation(self):
-		print("Here goes nothing")
+	def block_rotation(self, rot: int):
+		x = self.vector[0]
+		y = self.vector[1]
+		rot_angle = atan2(y,x)*180/pi
+		rotation = rot * 90  + rot_angle
+		return rotation
 
 
 	def real_from_local(self, point):

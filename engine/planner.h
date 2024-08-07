@@ -19,6 +19,7 @@ typedef struct _pnl
 	ptype type;
 	double x, y;
 	uint32_t iso_flgs;
+	uint32_t dorsal_id;
 	struct _pnl* next;
 } pnl_t;
 
