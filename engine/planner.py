@@ -2,7 +2,7 @@ import os
 from ctypes import POINTER, CDLL, pointer
 
 from panels import EngineRoom, EnginePolygon, EnginePoint, EnginePanel
-from panels import Panel, Dorsal
+from panels import Panel
 from ctypes import pointer
 
 # Load the shared library
@@ -24,7 +24,6 @@ mylib.free_list.restype = None
 class Planner:
 	def __init__(self, room_outline):
 
-		self.dorsals: list[Dorsal] = []
 		self.panels: list[Panel] = []
 		self.room = EngineRoom()
 
@@ -50,13 +49,6 @@ class Planner:
 
 		return self.panels 
 
-
-	def get_dorsals(self):
-		print()
-		for panel in self.panels:
-			print(panel.dorsal_id)
-
-		return self.dorsals
 
 
 ######### TESTING #########################

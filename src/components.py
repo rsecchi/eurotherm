@@ -1,7 +1,10 @@
+from engine.panels import panel_map
 from engine.planner import Planner
+
+from lines import Dorsal
 from ezdxf.document import Drawing
-from model import Model
-from settings import Config, panel_sizes, panel_map
+from model import Model, Room
+from settings import Config, panel_sizes
 
 
 class Components:
@@ -18,6 +21,7 @@ class Components:
 			self.panel_record[panel+"_hydro"] = 0
 		self.model = model
 
+
 	def get_components(self):
 
 		self.num_panels = 0
@@ -27,7 +31,7 @@ class Components:
 
 			planner = Planner(room_outline)
 			room.panels = planner.get_panels()
-			room.dorsals = planner.get_dorsals()
+			room.lines.get_dorsals(room.panels)
 
 			self.panels += room.panels
 			self.num_panels += len(room.panels)

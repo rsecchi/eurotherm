@@ -1,7 +1,8 @@
-from engine.panels import Panel, Dorsal
+from engine.panels import panel_map
+from lines import Panel, Lines
+
 from reference_frame import ReferenceFrame
 from settings import Config
-from settings import panel_map
 from math import sqrt, ceil, log10, atan2, pi
 from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
@@ -178,7 +179,7 @@ class Room:
 		self.contained_in = None
 		self.obstacles = list()
 		self.gates = list()
-		self.lines = list()
+		self.links = list()
 		self.bridges = list()
 		self.joined_lines = list()
 		self.total_lines = 0
@@ -240,7 +241,7 @@ class Room:
 		self.color = poly.dxf.color
 		# self.arrangement = PanelArrangement(self)
 		self.panels: list[Panel] = list()
-		self.dorsals: list[Dorsal] = list()
+		self.lines = Lines()
 		self.bounding_box()
 		self.area = self._area()
 		self.active_m2 = 0.0
@@ -430,6 +431,7 @@ class Room:
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
+		
 
 
 
@@ -522,9 +524,6 @@ class Model():
 		self.text += text
 		#print(text, end='')
 
-	def insert(self, text):
-		print(text, end='')
-
 
 	def find_gates(self):
 		
@@ -532,6 +531,8 @@ class Model():
 			for room2 in self.processed:
 				if (room1 != room2):
 					room1.add_gates(room2)
+
+
 
 
 	def merge_rooms(self, collector):

@@ -137,3 +137,18 @@ class ReferenceFrame:
 			self.rot_angle = -atan2(max_uv[1], -max_uv[0])*180/pi
 
 
+	def small_square(self, local_point):
+
+		size = 10
+		p = local_point
+
+		poly = [
+			(p[0] + size, p[1] + size),
+			(p[0] - size, p[1] + size),
+			(p[0] - size, p[1] - size),
+			(p[0] + size, p[1] - size),
+			(p[0] + size, p[1] + size),
+		]
+
+		return self.real_coord(poly)
+

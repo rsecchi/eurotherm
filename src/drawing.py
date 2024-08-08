@@ -1,12 +1,13 @@
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from engine.panels import panel_names
+
 from model import Model, Room
 
 from settings import Config
 from settings import debug
 from settings import leo_types 
-from settings import panel_map
 
 
 dxf_version = "AC1032"
@@ -123,12 +124,8 @@ class DxfDrawing:
 				   collector.pos, zoom=0.6/scale)
 
 
-	def draw_room(self, room: Room):
+	def draw_panels(self, room: Room):
 
-		size = 2/room.frame.scale
-		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
-
-	 
 		if (room.color==Config.color_valid_room):
 			block_names = self.blocks["classic"]
 		else:
@@ -136,7 +133,8 @@ class DxfDrawing:
 
 		for panel in room.panels:
 			panel.draw_panel(self.msp, room.frame)
-			name = panel_map[panel.type]
+
+			name = panel_names[panel.type]
 			block_name = block_names[name]
 
 			frame = room.frame
@@ -154,12 +152,38 @@ class DxfDrawing:
 
 			block.dxf.layer = Config.layer_panel
 
+			poly = frame.small_square(panel.front_corner)
+			self.msp.add_lwpolyline(poly)
+
+			poly = frame.small_square(panel.rear_corner)
+			self.msp.add_lwpolyline(poly)
+
+
+	def draw_dorsals(self, room: Room):
+		
+		frame = room.frame
+		for dorsal in room.lines.dorsals:
+			line = [dorsal.front, dorsal.back]
+			polyline = frame.real_coord(line)
+			pline = self.msp.add_lwpolyline(polyline)
+			pline.dxf.color = Config.color_collector
+
+
+	def draw_room(self, room: Room):
+
+		size = 2/room.frame.scale
+		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
+
+		self.draw_panels(room)
+		self.draw_dorsals(room)
+
 
 	def draw_model(self):
 		for room in self.model.processed:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
 			self.draw_collector()
+
 
 	def import_blocks(self, ptype):
 		self.source_dxf = readfile(Config.symbol_file)
@@ -181,6 +205,7 @@ class DxfDrawing:
 		importer.import_block(Config.block_collector)
 
 		importer.finalize()
+
 
 	def save(self):
 		self.doc.saveas(self.model.outfile)

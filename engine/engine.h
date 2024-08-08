@@ -91,7 +91,7 @@ typedef struct __panel {
 	box_t pbox;
 	uint32_t score;
 	uint32_t orient_flags;
-	uint32_t dorsal_id;
+	uint32_t dorsal_row;
 	struct __panel* next;
 } panel_t;
 

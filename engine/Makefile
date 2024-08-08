@@ -8,17 +8,14 @@ CFLAGS= -g -Wall -fPIC
 
 
 test_engine: ${OBJS} test_engine.o
-	ctags -R .
 	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
 
 
 libplanner.so: ${OBJS} planner.o
-	ctags -R .
 	${CC} -g -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
 
 
 test: ${SOBJS} test.o planner.o libplanner.so
-	ctags -R .
 	${CC} -g $^ ${LIBS} -o $@ 
 
 

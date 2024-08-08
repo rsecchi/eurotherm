@@ -1,6 +1,5 @@
 
 
-panel_map = ["full", "lux", "split", "half", "quarter"]
 panel_sizes = {
 	"full_classic": 2.4,
 	"full_hydro": 2.4,
@@ -212,6 +211,7 @@ class Config:
 	input_layer = 'AREE LEONARDO'
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
 	font_size = 10 
+	line_coverage_m2 = 12.001 
 
 	layer_text      = 'Eurotherm_text'
 	layer_box       = 'Eurotherm_box'
