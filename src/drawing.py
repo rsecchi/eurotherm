@@ -188,6 +188,7 @@ class DxfDrawing:
 				name = Config.block_fitting_linear
 				rot = rot_panel
 				self.draw_block(room, name, pos, rot, layer)
+				self.draw_point(room, pos)
 				break
 
 			rot = rot_panel

@@ -4,6 +4,14 @@ from math import pi, atan2, sqrt
 MAX_DIST  = 1e20
 MAX_DIST2 = 1e20
 
+
+rot_matrix = [
+	[[ 1., 0.],[ 0., 1]],   #  rot=0
+	[[ 0., 1.],[-1., 0]],   #  rot=1
+	[[-1., 0.],[ 0.,-1]],   #  rot=2
+	[[ 0.,-1.],[ 1., 0]],   #  rot=3
+]
+
 def dist(point1, point2):
 	dx = point1[0] - point2[0]
 	dy = point1[1] - point2[1]
@@ -24,15 +32,14 @@ class ReferenceFrame:
 		self.rot_angle = int()
 		self.scale = 1.
 		self.outline = Outline() 
-		self.horizontal_flip = False
-		self.vertical_flip = False
+		self.rotation = 0
 
 
 	def block_rotation(self, rot: int):
 		x = self.vector[0]
 		y = self.vector[1]
 		rot_angle = atan2(y,x)*180/pi
-		rotation = rot * 90  + rot_angle
+		rotation = ((rot - self.rotation)%4) * 90  + rot_angle
 		return rotation
 
 
@@ -42,8 +49,14 @@ class ReferenceFrame:
 		(vx, vy) = (-uy, ux)
 		scale = self.scale
 
-		bx = (ux*point[0] + vx*point[1])/scale
-		by = (uy*point[0] + vy*point[1])/scale
+		R = rot_matrix[self.rotation]
+		ux1 = R[0][0] * ux + R[0][1] * uy
+		uy1 = R[1][0] * ux + R[1][1] * uy
+		vx1 = R[0][0] * vx + R[0][1] * vy
+		vy1 = R[1][0] * vx + R[1][1] * vy
+
+		bx = (ux1*point[0] + vx1*point[1])/scale
+		by = (uy1*point[0] + vy1*point[1])/scale
 
 		return (bx+orig[0], by+orig[1])
 	
@@ -54,9 +67,15 @@ class ReferenceFrame:
 		(vx, vy) = (-uy, ux)
 		scale = self.scale
 
+		R = rot_matrix[self.rotation]
+		ux1 = R[0][0] * ux + R[0][1] * uy
+		uy1 = R[1][0] * ux + R[1][1] * uy
+		vx1 = R[0][0] * vx + R[0][1] * vy
+		vy1 = R[1][0] * vx + R[1][1] * vy
+
 		(ax, ay) = (point[0]-orig[0], point[1]-orig[1]) 
-		bx = (ux*ax + uy*ay)*scale
-		by = (vx*ax + vy*ay)*scale
+		bx = (ux1*ax + uy1*ay)*scale
+		by = (vx1*ax + vy1*ay)*scale
 		return (bx, by)
 
 
@@ -95,15 +114,15 @@ class ReferenceFrame:
 		return outline
 
 
-	def flip_frame(self, pos):
-		deltax = self.room.pos[0] - pos[0]
-		deltay = self.room.pos[1] - pos[1]
-		if deltax < 0:
-			self.horizontal_flip = True
+	def rotate_frame(self, pos):
 
-		if deltay < 0:
-			self.vertical_flip = True
+		deltax = pos[0] - self.room.pos[0]
+		deltay = pos[1] - self.room.pos[1]
 
+		if deltax>0 and deltay>0: self.rotation = 1
+		if deltax<0 and deltay>0: self.rotation = 0
+		if deltax>0 and deltay<0: self.rotation = 2
+		if deltax<0 and deltay<0: self.rotation = 3
 
 	def orient_frame(self):
 

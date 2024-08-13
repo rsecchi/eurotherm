@@ -1259,7 +1259,7 @@ class Model():
 
 		# flipping rooms based on collector position
 		for room in self.processed:
-			room.frame.flip_frame(room.collector.pos)
+			room.frame.rotate_frame(room.collector.pos)
 
 		return True
 
