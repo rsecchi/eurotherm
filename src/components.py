@@ -22,19 +22,28 @@ class Components:
 		self.model = model
 
 
-	def get_components(self):
+	def get_panels(self):
 
-		self.num_panels = 0
 		for room in self.model.processed:
 
 			room_outline = room.frame.room_outline()
 
 			planner = Planner(room_outline)
 			room.panels = planner.get_panels()
-			room.lines.get_dorsals(room.panels)
 
 			self.panels += room.panels
 			self.num_panels += len(room.panels)
+
+
+	def get_lines(self):
+		for room in self.model.processed:
+			room.lines.get_dorsals(room.panels)
+			room.lines.get_lines()
+
+
+	def get_components(self):
+		self.get_panels()
+		self.get_lines()
 
 
 	def count_panels(self, doc: Drawing):

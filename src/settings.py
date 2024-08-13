@@ -1,4 +1,6 @@
+from math import sqrt
 
+MAX_DIST  = 1e20
 
 panel_sizes = {
 	"full_classic": 2.4,
@@ -204,6 +206,11 @@ leo_types = {
 }
 
 
+def dist(point1, point2):
+	dx = point1[0] - point2[0]
+	dy = point1[1] - point2[1]
+	return sqrt(dx*dx+dy*dy)
+
 
 debug = False
 
@@ -235,8 +242,11 @@ class Config:
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
 
-	block_collector     = "collettore"
-	block_collector_W   = "collettore_W"
+	block_collector      = "collettore"
+	block_collector_W    = "collettore_W"
+	block_fitting_corner = "Gomito 20-CS"
+	block_fitting_linear = "Manicotto CS-CS"
+	block_fitting_tshape = "T 20-CS-20" 
 
 	max_room_area = 500
 	collector_size = 60

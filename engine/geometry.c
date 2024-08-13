@@ -1,8 +1,16 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #include "geometry.h"
+
+rot_matrix_t rot_matrix[] =
+{
+	{ 1., 0., 1., 0.},
+	{ 0.,-1., 1., 0.},
+	{-1., 0.,-1., 0.},
+	{ 0., 1.,-1., 0.},
+};
 
 
 canvas_t _canvas;
@@ -353,12 +361,12 @@ int x_cm, x_step_cm = grid->x_step;
 			if (y==p[k].y)
 				x = p[k].x;
 			else 
-			if (xmin == xmax)
-				x = xmin;
-			else {
-				x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x;
-				x /= p[k+1].y - p[k].y;
-			}
+				if (xmin == xmax)
+					x = xmin;
+				else {
+					x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x;
+					x /= p[k+1].y - p[k].y;
+				}
 
 			j1 = (x-orig.x)/x_step;
 
@@ -366,11 +374,10 @@ int x_cm, x_step_cm = grid->x_step;
 				bounds[i][0] = MIN(j1, bounds[i][0]);
 				bounds[i][1] = MAX(j1, bounds[i][1]);
 			}
-			
 
 			for(int j=0; j<=MIN(j1,cols-1); j++)
 				gh[i][j]++;
-			
+
 			if (do_gaps) {
 				x_cm = x - orig.x;
 				for(int j=0; j<cols; j++) {
@@ -396,19 +403,19 @@ next:
 			if (x==p[k].x)
 				y = p[k].y;
 			else 
-			if (ymin == ymax)
-				y = ymin;
-			else {
-				/* x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x; */
-				y = (x-p[k].x)*p[k+1].y - (x-p[k+1].x)*p[k].y;
-				y /= p[k+1].x - p[k].x;
-			}
+				if (ymin == ymax)
+					y = ymin;
+				else {
+					/* x = (y-p[k].y)*p[k+1].x - (y-p[k+1].y)*p[k].x; */
+					y = (x-p[k].x)*p[k+1].y - (x-p[k+1].x)*p[k].y;
+					y /= p[k+1].x - p[k].x;
+				}
 
 			i1 = (y-orig.y)/y_step;
 
 			for(int i=0; i<=MIN(i1,rows-1); i++)
 				gv[i][j]++;
-			
+
 		}
 	}
 
@@ -426,6 +433,17 @@ void free_grid(grid_t* grid)
 	free(grid->bounds);
 	free(grid->gaps);
 	free(grid->flags);
+}
+
+point_t rotate(point_t point, uint32_t rot)
+{
+	point_t result;
+	rot_matrix_t* r = &rot_matrix[rot];
+
+	result.x = r->r00 * point.x + r->r01 * point.x;
+	result.y = r->r10 * point.y + r->r11 * point.y;
+
+	return result;
 }
 
 

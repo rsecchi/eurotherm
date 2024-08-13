@@ -57,6 +57,30 @@ class DxfDrawing:
 		self.doc.saveas(self.model.outfile)
 
 
+	def draw_block(self, room, block_name, position, rotation, layer):
+
+		frame = room.frame
+		position = frame.real_from_local(position)
+		rotation = frame.block_rotation(rotation)
+
+		block = self.msp.add_blockref(
+					block_name,
+					position,
+					dxfattribs={
+						'xscale': 0.1/room.frame.scale,
+						'yscale': 0.1/room.frame.scale,
+						'rotation': rotation
+					}
+		)
+		block.dxf.layer = layer
+
+
+	def draw_point(self, room, pos):
+		frame = room.frame
+		poly = frame.small_square(pos)
+		self.msp.add_lwpolyline(poly)
+
+
 	def create_layers(self):
 		self.new_layer(Config.layer_panel, 0)
 		if (debug):
@@ -93,13 +117,14 @@ class DxfDrawing:
 		
 		(ux, uy) = frame.vector
 		(vx, vy) = (-uy, ux)
-		p0 = (orig[0] + ux*scale, orig[1] + uy*scale)
-		p1 = (orig[0] + vx*scale, orig[1] + vy*scale)
+		p0 = (orig[0] + 100*ux/scale, orig[1] + 100*uy/scale)
+		p1 = (orig[0] + 100*vx/scale, orig[1] + 100*vy/scale)
 		xaxis = [orig, p0]
 		yaxis = [orig, p1]
 		pline = self.msp.add_lwpolyline(xaxis)
-		pline.dxf.color = Config.color_collector
-		self.msp.add_lwpolyline(yaxis)
+		pline.dxf.layer = Config.layer_error
+		poly = self.msp.add_lwpolyline(yaxis)
+		poly.dxf.layer = Config.layer_error
 
 
 	def draw_collector(self):
@@ -131,32 +156,15 @@ class DxfDrawing:
 		else:
 			block_names = self.blocks["hydro"]
 
+
 		for panel in room.panels:
-			panel.draw_panel(self.msp, room.frame)
+			# panel.draw_panel(self.msp, room.frame)
 
-			name = panel_names[panel.type]
-			block_name = block_names[name]
-
-			frame = room.frame
-			orig = frame.real_from_local(panel.pos)
-			panel_rotation = frame.block_rotation(panel.rot)
-			block = self.msp.add_blockref(
-						block_name,
-						orig,
-						dxfattribs={
-							'xscale': 0.1/room.frame.scale,
-							'yscale': 0.1/room.frame.scale,
-							'rotation': panel_rotation
-						}
-			)
-
-			block.dxf.layer = Config.layer_panel
-
-			poly = frame.small_square(panel.front_corner)
-			self.msp.add_lwpolyline(poly)
-
-			poly = frame.small_square(panel.rear_corner)
-			self.msp.add_lwpolyline(poly)
+			name = block_names[panel_names[panel.type]]
+			pos = panel.pos
+			rot = panel.rot
+			layer = Config.layer_panel
+			self.draw_block(room, name, pos, rot, layer)
 
 
 	def draw_dorsals(self, room: Room):
@@ -169,13 +177,39 @@ class DxfDrawing:
 			pline.dxf.color = Config.color_collector
 
 
+	def draw_lines(self, room: Room):
+		for line in room.lines:
+
+			pos = line.dorsals[-1].front
+			rot_panel = line.dorsals[-1].panels[0].rot
+			layer = Config.layer_link
+
+			if len(line.dorsals) == 1:
+				name = Config.block_fitting_linear
+				rot = rot_panel
+				self.draw_block(room, name, pos, rot, layer)
+				break
+
+			rot = rot_panel
+			name = Config.block_fitting_corner
+			self.draw_block(room, name, pos, rot, layer)
+			self.draw_point(room, pos)	
+
+			for dorsal in line.dorsals[:-1]:
+				name = Config.block_fitting_tshape
+				pos = dorsal.front
+				self.draw_block(room, name, pos, rot, layer)
+				self.draw_point(room, pos)	
+
+
 	def draw_room(self, room: Room):
 
 		size = 2/room.frame.scale
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
 
 		self.draw_panels(room)
-		self.draw_dorsals(room)
+		# self.draw_dorsals(room)
+		self.draw_lines(room)
 
 
 	def draw_model(self):
@@ -203,6 +237,9 @@ class DxfDrawing:
 		# 		importer.import_block(fitting_name)
 
 		importer.import_block(Config.block_collector)
+		importer.import_block(Config.block_fitting_corner)
+		importer.import_block(Config.block_fitting_linear)
+		importer.import_block(Config.block_fitting_tshape)
 
 		importer.finalize()
 

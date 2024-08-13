@@ -2,7 +2,6 @@
 #define GEOM_H
 
 #include <cairo/cairo.h>
-#include <math.h>
 #include <stdint.h>
 
 #define EPS 1e-6
@@ -14,6 +13,12 @@
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 
 enum mode {INSIDE, OUTSIDE, INTERSECT};
+
+typedef struct {
+	double r00, r01, r10, r11;
+} rot_matrix_t;
+
+extern rot_matrix_t rot_matrix[];
 
 typedef struct {
 	double x, y;
@@ -106,6 +111,8 @@ void print_text(canvas_t* ct, char* text, int line);
 void save_png(canvas_t* ct, char* filename);
 void copy_polygon(polygon_t*, polygon_t*);
 void free_polygon(polygon_t*);
+
+point_t rotate(point_t point, uint32_t rot);
 
 
 #endif

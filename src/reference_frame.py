@@ -24,6 +24,8 @@ class ReferenceFrame:
 		self.rot_angle = int()
 		self.scale = 1.
 		self.outline = Outline() 
+		self.horizontal_flip = False
+		self.vertical_flip = False
 
 
 	def block_rotation(self, rot: int):
@@ -91,6 +93,16 @@ class ReferenceFrame:
 			obstacles.append(out_obs)
 
 		return outline
+
+
+	def flip_frame(self, pos):
+		deltax = self.room.pos[0] - pos[0]
+		deltay = self.room.pos[1] - pos[1]
+		if deltax < 0:
+			self.horizontal_flip = True
+
+		if deltay < 0:
+			self.vertical_flip = True
 
 
 	def orient_frame(self):

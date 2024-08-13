@@ -34,7 +34,7 @@ int count_panels(panel_t* head)
 panel_t* copy_panels(allocation_t* alloc)
 {
 panel_t* head = NULL, *np;
-uint32_t dorsal_id = 0;
+uint32_t dorsal_row = 0;
 
 	for(dorsal_t* d=alloc->dorsals; d!=NULL; d=d->next)  {
 		for(int k=0; k<d->num_panels; k++) {
@@ -43,9 +43,9 @@ uint32_t dorsal_id = 0;
 			np->next = head;
 			head = np;
 			np->orient_flags = 0;
-			np->dorsal_id = dorsal_id;
+			np->dorsal_row = dorsal_row;
 		}
-		dorsal_id++;
+		dorsal_row++;
 	}
 
 	return head;
@@ -575,9 +575,7 @@ room_t trial_room;
 panel_t *panels_upright, *panels_flat, *pn;
 panel_t *pnls_sel;
 uint32_t upright_score=0, flat_score=0;
-
-uint32_t flags;
-
+point_t point;
 
 	/* calculate panel flats */
 	panels_flat = panel_room(room, &flat_score);
@@ -587,19 +585,19 @@ uint32_t flags;
 	/* calculate panels upright*/
 	copy_room(room, &trial_room);
 
-	// rotate 90 degrees
+	// mirror with respect to y=-x
 	for(int i=0; i<room->walls.len; i++) {
 		t = room->walls.poly[i].x;
 		trial_room.walls.poly[i].x = -trial_room.walls.poly[i].y;
-		trial_room.walls.poly[i].y = t;
+		trial_room.walls.poly[i].y = -t;
 	}
 
 	for(int i=0; i<room->obs_num; i++) {
 		for(int k=0; k<room->obstacles[i].len; k++) {
 			t = room->obstacles[i].poly[k].x;
-			trial_room.obstacles[i].poly[k].x = 
+			trial_room.obstacles[i].poly[k].x =
 				-trial_room.obstacles[i].poly[k].y;
-			trial_room.obstacles[i].poly[k].y = t;
+			trial_room.obstacles[i].poly[k].y = -t;
 		}
 	}
 
@@ -607,12 +605,16 @@ uint32_t flags;
 	set_orient_flags(panels_upright);
 	
 	// back rotate panels 
-	for(pn=panels_upright; pn!=NULL; pn=pn->next){ 
-		flags = pn->orient_flags;
-		pn->orient_flags = (flags + 3) % 4;
-		t = pn->pos.x;
-		pn->pos.x = pn->pos.y;
-		pn->pos.y = -t;
+	for(pn=panels_upright; pn!=NULL; pn=pn->next){
+
+		point = (point_t){-panel_desc[pn->type].width, 0.};
+		point = rotate( point, pn->orient_flags);
+		point = (point_t){point.x+pn->pos.x, point.y + pn->pos.y};
+
+		pn->pos.x = -point.y;
+		pn->pos.y = -point.x;
+		pn->orient_flags = pn->orient_flags ^ 0x00000001;
+
 	}
 	
 	free_room(&trial_room);

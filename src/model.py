@@ -2,7 +2,7 @@ from engine.panels import panel_map
 from lines import Panel, Lines
 
 from reference_frame import ReferenceFrame
-from settings import Config
+from settings import Config, dist
 from math import sqrt, ceil, log10, atan2, pi
 from ezdxf.math import Vec2, intersection_line_line_2d
 from copy import copy
@@ -98,10 +98,6 @@ panel_types = [
     }
 ]
 
-def dist(point1, point2):
-	dx = point1[0] - point2[0]
-	dy = point1[1] - point2[1]
-	return sqrt(dx*dx+dy*dy)
 
 def is_gate(line, target):
 	
@@ -1259,6 +1255,11 @@ class Model():
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms @\n")
 			return False
+
+
+		# flipping rooms based on collector position
+		for room in self.processed:
+			room.frame.flip_frame(room.collector.pos)
 
 		return True
 

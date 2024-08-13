@@ -13,17 +13,17 @@ pnl_t* planner(room_t* room)
 	config.enable_quarters = 1;
 
 	/* debug */
-	transform_t trsf;
-	trsf.origin = (point_t){320, 240};
-	trsf.scale =(point_t){0.3, -0.3};
-	canvas_t* cp = init_canvas(trsf);
-	__debug_canvas = cp;
-	draw_room(cp, room);
+	/* transform_t trsf; */
+	/* trsf.origin = (point_t){320, 240}; */
+	/* trsf.scale =(point_t){0.3, -0.3}; */
+	/* canvas_t* cp = init_canvas(trsf); */
+	/* __debug_canvas = cp; */
+	/* draw_room(cp, room); */
 	/* ******* */
 
 	__max_row_debug = 10000;
 	panels = build_room(room);
-	draw_panels(cp, panels);
+	/* draw_panels(cp, panels); */
 
 	for(p=panels; p!=NULL; p=p->next) {
 		pnl = malloc(sizeof(pnl_t));
@@ -37,7 +37,7 @@ pnl_t* planner(room_t* room)
 		pnls = pnl;
 	}
 
-	save_png(cp, "debug_output.png");
+	/* save_png(cp, "debug_output.png"); */
 	return  pnls;
 }
 
