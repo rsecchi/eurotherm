@@ -6,9 +6,9 @@
 
 rot_matrix_t rot_matrix[] =
 {
-	{ 1., 0., 1., 0.},
+	{ 1., 0., 0., 1.},
 	{ 0.,-1., 1., 0.},
-	{-1., 0.,-1., 0.},
+	{-1., 0., 0.,-1.},
 	{ 0., 1.,-1., 0.},
 };
 
@@ -438,8 +438,8 @@ point_t rotate(point_t point, uint32_t rot)
 	point_t result;
 	rot_matrix_t* r = &rot_matrix[rot];
 
-	result.x = r->r00 * point.x + r->r01 * point.x;
-	result.y = r->r10 * point.y + r->r11 * point.y;
+	result.x = r->r00 * point.x + r->r01 * point.y;
+	result.y = r->r10 * point.x + r->r11 * point.y;
 
 	return result;
 }

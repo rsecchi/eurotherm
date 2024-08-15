@@ -22,7 +22,7 @@ config_t config;
 
 void check_config() {
 	/* set default */
-	config.debug = 1;
+	config.debug = 0;
 	config.enable_quarters = 1;
 	config.max_row_debug = 10000;
 	config.debug_animation = 0;
@@ -430,7 +430,7 @@ int rows;
 			if (eval > dors_down[k].score) {
 				dors_down[k] = trial;
 				dors_down[k].score = eval;
-				dors_down[k].next = score[ke[width]].dorsal;	
+				dors_down[k].next = score[ke[width]].dorsal;
 			}
 		}
 
@@ -466,6 +466,8 @@ double gap = 0;
 	rows = alloc->wall_grid.rows;
 	alloc->panels = NULL;
 	offset = (point_t){box->xmin, box->ymin};
+
+
 	for(int k=0; k<NUM_OFFSETS; k++) {
 		alloc->offset = offset;
 		alloc->gap = 0;
@@ -566,10 +568,13 @@ ptype pt;
 panel_t* pn;
 	
 	for(pn=head; pn!=NULL; pn=pn->next){ 
+		
 		pt = pn->type;
-		pn->orient_flags |= INVERT;
-		pn->pos.x -= panel_desc[pt].width;
-		pn->pos.y -= panel_desc[pt].height;
+		if (pn->heading == DOWN) {
+			pn->orient_flags |= INVERT;
+			pn->pos.x -= panel_desc[pt].width;
+			pn->pos.y -= panel_desc[pt].height;
+		}
 	}
 
 }

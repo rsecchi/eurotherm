@@ -1,5 +1,7 @@
 #include <string.h>
+#include <stdio.h>
 #include "engine.h"
+#include "geometry.h"
 #include "cairo_drawing.h"
 
 canvas_t _canvas;
@@ -33,66 +35,57 @@ polygon_t pgon;
 
 void draw_panel(panel_t* p) 
 {
-point_t centre;
-box_t box;
-double t;
+double lux_xmin, lux_xmax, lux_ymin, lux_ymax;
 point_t poly[9];
 point_t lux[5];
 polygon_t pgon, plux;
+double width, height;
 	
 	pgon.len = 9;
 	pgon.poly = (point_t*)poly;
-	poly[0] = (point_t){p->pbox.xmin, p->pbox.ymin};
-	poly[1] = (point_t){p->pbox.xmin, p->pbox.ymax-EDGE};
-	poly[2] = (point_t){p->pbox.xmin+EDGE, p->pbox.ymax-EDGE};
-	poly[3] = (point_t){p->pbox.xmin+EDGE, p->pbox.ymax};
-	poly[4] = (point_t){p->pbox.xmax-EDGE, p->pbox.ymax};
-	poly[5] = (point_t){p->pbox.xmax-EDGE, p->pbox.ymax-EDGE};
-	poly[6] = (point_t){p->pbox.xmax, p->pbox.ymax-EDGE};
-	poly[7] = (point_t){p->pbox.xmax, p->pbox.ymin};
+	width  = panel_desc[p->type].width;
+	height = panel_desc[p->type].height;
+
+	poly[0] = (point_t){-width, -height};
+	poly[1] = (point_t){-width, -EDGE};
+	poly[2] = (point_t){-width+EDGE, -EDGE};
+	poly[3] = (point_t){-width+EDGE, 0.};
+	poly[4] = (point_t){-EDGE, 0.};
+	poly[5] = (point_t){-EDGE, -EDGE};
+	poly[6] = (point_t){0., -EDGE};
+	poly[7] = (point_t){0., -height};
 	poly[8] = poly[0];
 
-	if (p->heading == DOWN)
-		for(int i=0; i<9; i++) 
-			poly[i].y = p->pbox.ymax + p->pbox.ymin - poly[i].y;
-
-	if (p->orient_flags & ROTATE) {
-		for(int i=0; i<9; i++) {
-			t = poly[i].x;
-			poly[i].x = poly[i].y;
-			poly[i].y = -t;
-		}
+	for(int i=0; i<9; i++) { 
+		poly[i] = rotate(poly[i], p->orient_flags);
+		poly[i].x += p->pos.x;
+		poly[i].y += p->pos.y;
 	}
 
 	draw_polygon(&pgon, GREEN);
 
 	if (p->type == LUX) {
-		centre = (point_t){
-			(p->pbox.xmin+p->pbox.xmax)/2,
-			(p->pbox.ymin+p->pbox.ymax)/2
-		};
 
-		box.xmin = centre.x - LUX_WIDTH/2;
-		box.xmax = centre.x + LUX_WIDTH/2;
-		box.ymin = centre.y - LUX_HEIGHT/2;
-		box.ymax = centre.y + LUX_HEIGHT/2;
-		lux[0] = (point_t){box.xmin, box.ymin};
-		lux[1] = (point_t){box.xmin, box.ymax};
-		lux[2] = (point_t){box.xmax, box.ymax};
-		lux[3] = (point_t){box.xmax, box.ymin};
-		lux[4] = (point_t){box.xmin, box.ymin};
+		lux_xmin = -width/2 - LUX_WIDTH/2;
+		lux_xmax = -width/2 + LUX_WIDTH/2;
+		lux_ymin = -height/2 - LUX_HEIGHT/2;
+		lux_ymax = -height/2 + LUX_HEIGHT/2;
+
+		lux[0] = (point_t){lux_xmin, lux_ymin};
+		lux[1] = (point_t){lux_xmin, lux_ymax};
+		lux[2] = (point_t){lux_xmax, lux_ymax};
+		lux[3] = (point_t){lux_xmax, lux_ymin};
+		lux[4] = (point_t){lux_xmin, lux_ymin};
 		plux.poly = lux;
 		plux.len = 5;
-		if (p->orient_flags & ROTATE) {
-			for(int i=0; i<5; i++) {
-				t = lux[i].x;
-				lux[i].x = lux[i].y;
-				lux[i].y = -t;
-			}
+
+		for(int i=0; i<5; i++) {
+			lux[i] = rotate(lux[i], p->orient_flags);
+			lux[i].x += p->pos.x;
+			lux[i].y += p->pos.y;
 		}
 
 		draw_polygon(&plux, GREEN);
-		
 	}
 }
 

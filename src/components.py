@@ -25,7 +25,7 @@ class Components:
 	def get_panels(self):
 
 		for room in self.model.processed:
-			
+
 			room_outline = room.frame.room_outline()
 
 			planner = Planner(room_outline)
