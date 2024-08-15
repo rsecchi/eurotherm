@@ -127,6 +127,15 @@ class DxfDrawing:
 		poly.dxf.layer = Config.layer_error
 
 
+	def draw_airlines(self, room: Room):
+
+		poly = [room.collector.pos, room.pos]
+
+		pline = self.msp.add_lwpolyline(poly)
+		pline.dxf.layer = Config.layer_link
+
+
+
 	def draw_collector(self):
 
 		scale = self.model.scale
@@ -212,6 +221,7 @@ class DxfDrawing:
 		self.draw_panels(room)
 		# self.draw_dorsals(room)
 		self.draw_lines(room)
+		self.draw_airlines(room)
 
 
 	def draw_model(self):

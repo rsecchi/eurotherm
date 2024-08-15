@@ -392,7 +392,6 @@ int rows;
 			trial.heading = UP;
 			trial.parity = dors_up[kp[width]].parity ^ 1;
 			dorsal_score = make_dorsal(alloc, &trial);
-
 			eval = dorsal_score + dors_up[kp[width]].score;
 			if (eval > dors_up[k].score) {
 				dors_up[k] = trial;
@@ -437,17 +436,18 @@ int rows;
 		score[k].dorsal = score[k-1].dorsal;
 		score[k].score = score[k-1].score;
 
+		if (dors_up[k].score > score[k].score || 
+			(dors_up[k].score == score[k].score && k<rows/2)) {
+			score[k].dorsal = &dors_up[k];
+			score[k].score = dors_up[k].score;
+		}	
+
 		if (dors_down[k].score > score[k].score || 
 			(dors_down[k].score == score[k].score && k<rows/2)) {
 			score[k].dorsal = &dors_down[k];
 			score[k].score = dors_down[k].score;
 		}
 
-		if (dors_up[k].score > score[k].score || 
-			(dors_up[k].score == score[k].score && k<rows/2)) {
-			score[k].dorsal = &dors_up[k];
-			score[k].score = dors_up[k].score;
-		}	
 		k++;
 	}
 	alloc->dorsals = score[k-1].dorsal;
@@ -616,6 +616,11 @@ point_t point;
 	panels_upright = panel_room(&trial_room, &upright_score);
 	set_orient_flags(panels_upright);
 
+	if (config.debug) {
+		draw_room(&trial_room);
+		draw_panels(panels_upright);
+	}
+
 	// back rotate panels 
 	for(pn=panels_upright; pn!=NULL; pn=pn->next){
 
@@ -627,10 +632,6 @@ point_t point;
 		pn->pos.y = -point.x;
 		pn->orient_flags = pn->orient_flags ^ 0x00000001;
 
-	}
-	if (config.debug) {
-		draw_room(room);
-		draw_panels(panels_upright);
 	}
 
 	free_room(&trial_room);

@@ -1,9 +1,8 @@
 from engine.panels import panel_map
 from engine.planner import Planner
 
-from lines import Dorsal
 from ezdxf.document import Drawing
-from model import Model, Room
+from model import Model
 from settings import Config, panel_sizes
 
 
