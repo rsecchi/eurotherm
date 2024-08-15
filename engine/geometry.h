@@ -1,7 +1,6 @@
 #ifndef GEOM_H
 #define GEOM_H
 
-#include <cairo/cairo.h>
 #include <stdint.h>
 
 #define EPS 1e-6
@@ -52,37 +51,6 @@ typedef struct {
 	grid_t* grid;
 } grid_pos_t;
 
-typedef struct {
-	point_t origin;
-	point_t scale;
-} transform_t;
-
-typedef struct {
-	double red, green, blue;
-} colour_t;
-
-typedef struct {
-	cairo_t* cr;
-	transform_t trans;
-} canvas_t;
-
-
-extern canvas_t _canvas;
-
-// Drawing
-#define WIDTH  640
-#define HEIGHT 480
-
-#define TEXT_OFFS_X    10
-#define TEXT_OFFS_Y    20
-#define LINE_HEIGHT    10
-
-#define RED    (colour_t){1., 0., 0.}
-#define GREEN  (colour_t){0., 1., 0.}
-#define BLUE   (colour_t){0., 0., 1.}
-#define YELLOW (colour_t){1., 1., 0.}
-#define ORANGE (colour_t){1., .5, 0.}
-#define BLACK  (colour_t){0., 0., 0.}
 
 int point_inside_polygon(point_t*q, polygon_t* pgon);
 int point_inside_box(point_t* point, box_t* box);
@@ -103,12 +71,6 @@ void init_grid(grid_t* grid);
 void update_grid(grid_t* grid, int);
 void free_grid(grid_t* grid);
 
-canvas_t* init_canvas(transform_t trfs);
-void draw_polygon(canvas_t* ct, polygon_t* poly, colour_t col);
-void draw_box(canvas_t* ct, box_t* box, colour_t col);
-void draw_point(canvas_t* ct, point_t point);
-void print_text(canvas_t* ct, char* text, int line);
-void save_png(canvas_t* ct, char* filename);
 void copy_polygon(polygon_t*, polygon_t*);
 void free_polygon(polygon_t*);
 

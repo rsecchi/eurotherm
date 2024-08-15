@@ -1,11 +1,10 @@
-#include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "engine.h"
+#include "cairo_drawing.h"
 
-canvas_t * __debug_canvas;
-int __max_row_debug;
 uint32_t __score;
 
 panel_desc_t panel_desc[] =
@@ -19,8 +18,16 @@ panel_desc_t panel_desc[] =
 
 #define ALL_FAIL  0xFFC0
 
-
 config_t config;
+
+void check_config() {
+	/* set default */
+	config.debug = 1;
+	config.enable_quarters = 1;
+	config.max_row_debug = 10000;
+	config.debug_animation = 0;
+	
+}
 
 int count_panels(panel_t* head)
 {
@@ -603,12 +610,12 @@ point_t point;
 
 	panels_upright = panel_room(&trial_room, &upright_score);
 	set_orient_flags(panels_upright);
-	
+
 	// back rotate panels 
 	for(pn=panels_upright; pn!=NULL; pn=pn->next){
 
 		point = (point_t){-panel_desc[pn->type].width, 0.};
-		point = rotate( point, pn->orient_flags);
+		point = rotate(point, pn->orient_flags);
 		point = (point_t){point.x+pn->pos.x, point.y + pn->pos.y};
 
 		pn->pos.x = -point.y;
@@ -616,120 +623,20 @@ point_t point;
 		pn->orient_flags = pn->orient_flags ^ 0x00000001;
 
 	}
-	
+	if (config.debug) {
+		draw_room(room);
+		draw_panels(panels_upright);
+	}
+
 	free_room(&trial_room);
 
 	pnls_sel = (upright_score > flat_score) ?
 		panels_upright:panels_flat;
 
-
 	return pnls_sel; 
 }
 
 
-/* libcairo drawing support */
-
-void draw_room(canvas_t* ct, room_t *rp) {
-int i;
-	
-	draw_polygon(ct, &rp->walls, BLUE);
-	for(i=0; i<rp->obs_num; i++)
-		draw_polygon(ct, &rp->obstacles[i], YELLOW);
-
-}
-
-void draw_rect(canvas_t* ct, box_t* box, colour_t col)
-{
-point_t poly[5];
-polygon_t pgon;
-	
-	pgon.len = 5;
-	pgon.poly = (point_t*)poly;
-	poly[0] = (point_t){box->xmin, box->ymin};
-	poly[1] = (point_t){box->xmin, box->ymax};
-	poly[2] = (point_t){box->xmax, box->ymax};
-	poly[3] = (point_t){box->xmax, box->ymin};
-	poly[4] = poly[0];
-
-	draw_polygon(ct, &pgon, col);
-}
-
-void draw_panel(canvas_t* ct, panel_t* p) 
-{
-point_t centre;
-box_t box;
-double t;
-point_t poly[9];
-point_t lux[5];
-polygon_t pgon, plux;
-	
-	pgon.len = 9;
-	pgon.poly = (point_t*)poly;
-	poly[0] = (point_t){p->pbox.xmin, p->pbox.ymin};
-	poly[1] = (point_t){p->pbox.xmin, p->pbox.ymax-EDGE};
-	poly[2] = (point_t){p->pbox.xmin+EDGE, p->pbox.ymax-EDGE};
-	poly[3] = (point_t){p->pbox.xmin+EDGE, p->pbox.ymax};
-	poly[4] = (point_t){p->pbox.xmax-EDGE, p->pbox.ymax};
-	poly[5] = (point_t){p->pbox.xmax-EDGE, p->pbox.ymax-EDGE};
-	poly[6] = (point_t){p->pbox.xmax, p->pbox.ymax-EDGE};
-	poly[7] = (point_t){p->pbox.xmax, p->pbox.ymin};
-	poly[8] = poly[0];
-
-	if (p->heading == DOWN)
-		for(int i=0; i<9; i++) 
-			poly[i].y = p->pbox.ymax + p->pbox.ymin - poly[i].y;
-
-	if (p->orient_flags & ROTATE) {
-		for(int i=0; i<9; i++) {
-			t = poly[i].x;
-			poly[i].x = poly[i].y;
-			poly[i].y = -t;
-		}
-	}
-
-	draw_polygon(ct, &pgon, GREEN);
-
-	if (p->type == LUX) {
-		centre = (point_t){
-			(p->pbox.xmin+p->pbox.xmax)/2,
-			(p->pbox.ymin+p->pbox.ymax)/2
-		};
-
-		box.xmin = centre.x - LUX_WIDTH/2;
-		box.xmax = centre.x + LUX_WIDTH/2;
-		box.ymin = centre.y - LUX_HEIGHT/2;
-		box.ymax = centre.y + LUX_HEIGHT/2;
-		lux[0] = (point_t){box.xmin, box.ymin};
-		lux[1] = (point_t){box.xmin, box.ymax};
-		lux[2] = (point_t){box.xmax, box.ymax};
-		lux[3] = (point_t){box.xmax, box.ymin};
-		lux[4] = (point_t){box.xmin, box.ymin};
-		plux.poly = lux;
-		plux.len = 5;
-		if (p->orient_flags & ROTATE) {
-			for(int i=0; i<5; i++) {
-				t = lux[i].x;
-				lux[i].x = lux[i].y;
-				lux[i].y = -t;
-			}
-		}
-
-		draw_polygon(__debug_canvas, &plux, GREEN);
-		
-	}
-}
-void draw_dorsal(canvas_t*cp, dorsal_t* dorsal)
-{
-	for(int i=0; i<dorsal->num_panels; i++)
-		draw_panel(cp, &dorsal->panels[i]);
-
-}
-
-void draw_panels(canvas_t*cp, panel_t* panels)
-{
-	for(panel_t* p=panels; p!=NULL; p=p->next) 
-		draw_panel(cp, p);
-}
 
 
 

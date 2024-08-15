@@ -36,13 +36,13 @@
 #define MIRROR     0x00000004
 
 
-
-extern canvas_t* __debug_canvas;
-extern int __max_row_debug;
 extern uint32_t __score;
 
 typedef struct {
 	int enable_quarters;
+	int debug;
+	int max_row_debug;
+	int debug_animation;
 } config_t;
 
 extern config_t config;
@@ -127,6 +127,7 @@ typedef struct {
 } allocation_t;
 
 
+void check_config();
 
 double active_area(panel_t*);
 int fit(panel_t*, room_t*, uint16_t*);
@@ -142,10 +143,5 @@ panel_t* build_room(room_t*);
 
 panel_t* copy_panels(allocation_t*);
 void free_panels(panel_t*);
-
-void draw_room(canvas_t*, room_t*);
-void draw_panel(canvas_t*, panel_t*);
-void draw_dorsal(canvas_t*, dorsal_t*);
-void draw_panels(canvas_t*, panel_t*);
 
 #endif

@@ -13,8 +13,6 @@ rot_matrix_t rot_matrix[] =
 };
 
 
-canvas_t _canvas;
-
 /* check if a point is inside the box */
 int point_inside_box(point_t* point, box_t* box)
 {
@@ -447,93 +445,3 @@ point_t rotate(point_t point, uint32_t rot)
 }
 
 
-/* Drawing primitives */
-cairo_t* init_cairo() {
-
-    cairo_surface_t *surface;
-    cairo_t *cr;
-   
-    surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, WIDTH, HEIGHT);
-    cr = cairo_create(surface);
-
-    // Set background color
-    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0); // White
-    cairo_paint(cr);
-
-    // Set drawing color
-    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); // Black
-
-    return cr;
-}
-
-
-void draw_polygon(canvas_t *ct, polygon_t* p, colour_t col) 
-{
-
-	cairo_t* cr = ct->cr;
-	transform_t trsf = ct->trans;
-	int i;
-
-	cairo_set_source_rgb(cr, col.red, col.green, col.blue);
-    cairo_move_to(cr, 
-			p->poly[0].x*trsf.scale.x + trsf.origin.x, 
-			p->poly[0].y*trsf.scale.y + trsf.origin.y);
-
-    for (i = 1; i < p->len; i++) 
-        cairo_line_to(cr, 
-			p->poly[i].x*trsf.scale.x + trsf.origin.x, 
-			p->poly[i].y*trsf.scale.y + trsf.origin.y); 
-
-    //cairo_close_path(cr);
-    cairo_stroke(cr);
-}
-
-
-void draw_box(canvas_t* ct, box_t* box, colour_t col)
-{
-polygon_t pgon;
-point_t points[5];
-
-	points[0] = (point_t){box->xmin, box->ymin};
-	points[1] = (point_t){box->xmin, box->ymax};
-	points[2] = (point_t){box->xmax, box->ymax};
-	points[3] = (point_t){box->xmax, box->ymin};
-	points[4] = points[0];
-
-	pgon.len = 5;
-	pgon.poly = (point_t*)points;
-
-	draw_polygon(ct, &pgon, col);
-}
-
-void draw_point(canvas_t* ct, point_t point)
-{
-box_t box = box_point(point, 10);
-
-	draw_box(ct, &box, RED);	
-}
-
-void save_png(canvas_t* ct, char* filename)
-{
-	cairo_t* cr = ct->cr;
-	cairo_surface_t* surface = cairo_get_target(cr);
-    cairo_surface_write_to_png(surface, filename);
-}
-
-canvas_t* init_canvas(transform_t trans)
-{
-	_canvas.cr = init_cairo();
-	_canvas.trans = trans;
-	return &_canvas;
-}
-
-void print_text(canvas_t* ct, char* text, int line)
-{
-	cairo_t* cr = ct->cr;
-    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); // Black
-	cairo_move_to(cr, 
-			TEXT_OFFS_X, 
-			TEXT_OFFS_Y + line*LINE_HEIGHT);
-	cairo_show_text(cr, text);
-	cairo_stroke(cr);
-}

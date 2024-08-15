@@ -5,9 +5,8 @@
 #include <string.h>
 
 #include "engine.h"
+#include "cairo_drawing.h"
 
-
-int _debug_animation = 1;
 double min_range, max_range;
 
 /* 15 m2 */
@@ -213,7 +212,7 @@ uint16_t flags;
 		do {
 			panel(&test_panel, i, pos, h); 
 		} while(!fit(&test_panel, room, &flags));
-		draw_panel(cp, &test_panel);
+		draw_panel(&test_panel);
 		//draw_point(cp, pos); 
 	}
 }
@@ -239,11 +238,9 @@ box_t box;
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.5, -0.5};
-	canvas_t* cp = init_canvas(trsf);
+	init_canvas(trsf);
 
-	__debug_canvas = cp;
-
-	draw_room(cp, &rand_room);
+	draw_room(&rand_room);
 	bounding_box(&rand_room.walls, &box);
 
 	//generate_random_panels(cp, &rand_room, DOWN);
@@ -255,9 +252,9 @@ box_t box;
 	dorsal.heading = rand() % 2;
 	
 	make_dorsal(&alloc, &dorsal);
-	draw_dorsal(cp, &dorsal);
+	draw_dorsal(&dorsal);
 
-	save_png(cp, "polygon.png");
+	save_png("polygon.png");
 
 	free_random_room(&rand_room);
 }
@@ -272,11 +269,9 @@ box_t box;
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.5, -0.5};
-	canvas_t* cp = init_canvas(trsf);
+	init_canvas(trsf);
 
-	__debug_canvas = cp;
-
-	draw_room(cp, &rand_room);
+	draw_room(&rand_room);
 	bounding_box(&rand_room.walls, &box);
 
 	alloc.gap = 0;
@@ -284,33 +279,33 @@ box_t box;
 	alloc.room = &rand_room;
 	scanline(&alloc);	
 
-	save_png(cp, "polygon.png");
+	save_png("polygon.png");
 
 	free_random_room(&rand_room);
 }
 
-void print_summary(canvas_t* cp, room_t* room, panel_t* panels)
+void print_summary(room_t* room, panel_t* panels)
 {
 	char buffer[256];
 	double area, act_area, eff;
 
 	sprintf(buffer, "#panels = %d", count_panels(panels));
-	print_text(cp, buffer, 4);
+	print_text(buffer, 4);
 
 	area = area_polygon(&room->walls)/10000;
 	sprintf(buffer, "area = %6.2lf", area);
 	printf("%7.2lf ", area);
-	print_text(cp, buffer, 5);
+	print_text(buffer, 5);
 
 	act_area = active_area(panels);
 	sprintf(buffer, "active_ area = %.2lf", act_area); 
 	printf("%8.2lf ", act_area); 
-	print_text(cp, buffer, 6);
+	print_text(buffer, 6);
 
 	eff = 100*act_area/area;
 	sprintf(buffer, "perc. active = %.2lf%%", eff);
 	printf("%8.2lf ", eff);
-	print_text(cp, buffer, 7);
+	print_text(buffer, 7);
 }
 
 void test_search_offset(int argc, char* argv[])
@@ -326,30 +321,28 @@ long int clock_time;
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.5, -0.5};
-	canvas_t* cp = init_canvas(trsf);
+	init_canvas(trsf);
 
-	__debug_canvas = cp;
-
-	draw_room(cp, &rand_room);
+	draw_room(&rand_room);
 
 	alloc.room = &rand_room;
 	clock_time = clock();
 	search_offset(&alloc);
 	clock_time = clock() - clock_time;
-	draw_panels(cp, alloc.panels);
+	draw_panels(alloc.panels);
 
 	sprintf(num_str, "%04d", random_seed);
 	printf("%d ", random_seed);
 	strcat(filename, num_str); 
 	strcat(filename, ".png"); 
-	print_text(cp, num_str, 0);
+	print_text(num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
 	printf("%ld", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
-	print_text(cp, num_str, 1);
-	print_summary(cp, &rand_room, alloc.panels);
-	save_png(cp, filename);
+	print_text(num_str, 1);
+	print_summary(&rand_room, alloc.panels);
+	save_png(filename);
 	printf("\n");
 	free_random_room(&rand_room);
 }
@@ -373,16 +366,14 @@ int panel_stats[NUM_PANEL_T];
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.3, -0.3};
-	canvas_t* cp = init_canvas(trsf);
+	init_canvas(trsf);
 
-	__debug_canvas = cp;
-
-	draw_room(cp, rand_room);
+	draw_room(rand_room);
 
 	clock_time = clock();
 	panels = build_room(rand_room);
 	clock_time = clock() - clock_time;
-	draw_panels(cp, panels);
+	draw_panels(panels);
 
 
 	memset(panel_stats, 0, NUM_PANEL_T*sizeof(int));
@@ -391,42 +382,42 @@ int panel_stats[NUM_PANEL_T];
 		k++;
 		panel_stats[p->type]++;
 	}
-	if (_debug_animation)
-		sprintf(num_str, "%04d-%04d", random_seed, __max_row_debug);
+	if (config.debug_animation)
+		sprintf(num_str, "%04d-%04d", random_seed, config.max_row_debug);
 	else 
 		sprintf(num_str, "%04d", random_seed);
-	sprintf(rows_str, "-%04d", __max_row_debug);
+	sprintf(rows_str, "-%04d", config.max_row_debug);
 	sprintf(score_str, "score=%d", __score);
 
 	printf("%3d ", random_seed);
 	strcat(filename, num_str); 
 	strcat(filename, rows_str); 
 	strcat(filename, ".png"); 
-	print_text(cp, num_str, 0);
+	print_text(num_str, 0);
 
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
 	printf("%5ld  ", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
-	print_text(cp, num_str, 1);
-	print_text(cp, rows_str, 2);
-	print_text(cp, score_str, 3);
-	print_summary(cp, rand_room, panels);
+	print_text(num_str, 1);
+	print_text(rows_str, 2);
+	print_text(score_str, 3);
+	print_summary(rand_room, panels);
 
 	printf("%3d ", k);
 	for(k=0; k<NUM_PANEL_T; k++)
 		printf("%3d ", panel_stats[k]);
 
-	int h = 2*__max_row_debug;
+	int h = 2*config.max_row_debug;
 	bounding_box(&rand_room->walls, &box);
 	line.poly[0] = (point_t){box.xmin, box.ymin + h};
 	line.poly[1] = (point_t){box.xmax, box.ymin + h};
 
 	if (random_seed<100) {
-		save_png(cp, filename);
+		save_png(filename);
 	}
-	if (_debug_animation) {
-		draw_polygon(cp, &line, ORANGE);
-		save_png(cp, filename);
+	if (config.debug_animation) {
+		draw_polygon(&line, ORANGE);
+		save_png(filename);
 	}
 
 	printf("\n");
@@ -448,11 +439,9 @@ grid_t grid;
 	transform_t trsf;
 	trsf.origin = (point_t){320, 240};
 	trsf.scale =(point_t){0.5, -0.5};
-	canvas_t* cp = init_canvas(trsf);
+	init_canvas(trsf);
 
-	__debug_canvas = cp;
-
-	draw_polygon(cp, &rand_room.walls, GREEN);
+	draw_polygon(&rand_room.walls, GREEN);
 
 	grid.poly = &rand_room.walls;
 	grid.x_step = INTER_LINE_GAP;
@@ -475,7 +464,7 @@ grid_t grid;
 				pp.y = y;
 
 				//printf("%.2lf %.2lf\n", x, y);
-				draw_point(cp, pp);
+				draw_point(pp);
 			}
 		}
 		//printf("\n");
@@ -486,9 +475,9 @@ grid_t grid;
 	sprintf(num_str, "time=%ld ms", clock_time/1000);
 	printf("(%ld ms)", clock_time/1000);
 	//printf("filename=%s time=%ld ms\n", filename, clock_time/1000);
-	print_text(cp, num_str, 1);
+	print_text(num_str, 1);
 	printf("\n");
-	save_png(cp, "grid.png");
+	save_png("grid.png");
 	free_grid(&grid);
 	free_random_room(&rand_room);
 }
@@ -518,12 +507,13 @@ int rows;
 	// test_scanline(argc, argv);
 	// test_search_offset(argc, argv);
 
-	if (_debug_animation) {
+	if (config.debug_animation) {
 		rows = MIN(400, (box.xmax-box.xmin)/2);
-		for(__max_row_debug=31; __max_row_debug<rows; __max_row_debug++) 
+		for(config.max_row_debug=31; 
+			 config.max_row_debug<rows; 
+			 config.max_row_debug++) 
 			test_panel_room(argc, argv, &rand_room);
 	} else {
-		__max_row_debug = 1000;
 		test_panel_room(argc, argv, &rand_room);
 	}
 

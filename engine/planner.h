@@ -27,5 +27,4 @@ typedef struct _pnl
 pnl_t* planner(room_t*);
 void free_list(pnl_t*);
 
-
 #endif

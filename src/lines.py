@@ -48,6 +48,8 @@ class Lines(list):
 	def get_dorsals(self, panels: list[Panel]):
 
 		self.panels = panels
+		if panels == []:
+			return
 
 		dorsal_row = 0
 		dorsal = Dorsal()
@@ -132,6 +134,9 @@ class Lines(list):
 	
 
 	def get_lines(self):
+
+		if self.dorsals==[]:
+			return
 
 		self.num_lines = len(self.dorsals) + 1 
 		self.pipe_length = MAX_DIST

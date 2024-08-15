@@ -178,6 +178,7 @@ class DxfDrawing:
 
 
 	def draw_lines(self, room: Room):
+
 		for line in room.lines:
 
 			pos = line.dorsals[-1].front

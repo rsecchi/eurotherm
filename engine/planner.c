@@ -1,29 +1,28 @@
-#include "planner.h"
-#include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "planner.h"
+#include "engine.h"
+#include "cairo_drawing.h"
 
 
 pnl_t* planner(room_t* room)
 {
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
+	transform_t trsf;
 
-	config.enable_quarters = 1;
+	check_config();
 
-	/* debug */
-	/* transform_t trsf; */
-	/* trsf.origin = (point_t){320, 240}; */
-	/* trsf.scale =(point_t){0.3, -0.3}; */
-	/* canvas_t* cp = init_canvas(trsf); */
-	/* __debug_canvas = cp; */
-	/* draw_room(cp, room); */
-	/* ******* */
+	if (config.debug) {
+		trsf.origin = (point_t){320, 240};
+		trsf.scale =(point_t){0.3, -0.3};
+		init_canvas(trsf);
+		/* draw_room(room); */
+	}
 
-	__max_row_debug = 10000;
 	panels = build_room(room);
-	/* draw_panels(cp, panels); */
 
 	for(p=panels; p!=NULL; p=p->next) {
 		pnl = malloc(sizeof(pnl_t));
@@ -37,7 +36,10 @@ pnl_t* planner(room_t* room)
 		pnls = pnl;
 	}
 
-	/* save_png(cp, "debug_output.png"); */
+	if (config.debug) {
+		/* draw_panels(panels); */
+		save_png("debug_output.png");
+	}
 	return  pnls;
 }
 

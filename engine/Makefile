@@ -1,5 +1,5 @@
 
-SRC= engine.o geometry.o
+SRC= engine.o geometry.o cairo_drawing.o
 OBJS= $(SRC: %.c=%.o) 
 
 
@@ -7,16 +7,14 @@ LIBS= -lcairo -lm -lc
 CFLAGS= -g -Wall -fPIC
 
 
+all: libplanner.so test_engine 
+
 test_engine: ${OBJS} test_engine.o
 	${CC} ${CFLAGS} $^ ${LIBS} -o $@ 
 
 
 libplanner.so: ${OBJS} planner.o
 	${CC} -g -shared -fPIC ${CFLAGS} $^ ${LIBS} -o $@ 
-
-
-test: ${SOBJS} test.o planner.o libplanner.so
-	${CC} -g $^ ${LIBS} -o $@ 
 
 
 clean:
