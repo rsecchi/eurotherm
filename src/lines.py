@@ -1,3 +1,4 @@
+from typing import Tuple
 from planner import Panel
 from settings import Config, dist, MAX_DIST
 
@@ -9,6 +10,7 @@ class Dorsal:
 		self.area_m2 = 0.
 		self.dorsal_row = 0
 		self.front_dorsal = True
+		self.flipped = False
 
 
 	def insert(self, panel: Panel):
@@ -19,22 +21,46 @@ class Dorsal:
 		if not self.panels:
 			self.back = panel.rear_corner
 		self.front = panel.front_corner
+		self.side = panel.front_side
 
 		self.panels = [panel] + self.panels
+		if panel.rot == 1 or panel.rot == 3:
+			self.flipped = True
 
 
 class Line:
 
 	def __init__(self, dorsals: list[Dorsal]):
 		self.dorsals = dorsals
+		self.flipped = False
+		if dorsals != []:
+			self.dorsals[0].panels
+
 		self.area_m2 = 0.
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
-	
-	def front_line_len(self):
-		for dorsal in self.dorsals:
-			print(dorsal.front)
 
+	def __str__(self) -> str:
+		_string = ""
+		for dorsal in self.dorsals:
+			_string += "[" + str(dorsal.area_m2) + "]"
+
+		return _string
+
+
+	def front_line(self) -> list[Tuple]:
+
+		_line = []
+		for dorsal in self.dorsals:
+			_line.append(dorsal.front)
+			_line.append(dorsal.side)
+
+		# if self.flipped:
+		# 	_line.sort(key=lambda x: x[0])
+		# else:
+		# 	_line.sort(key=lambda x: x[1])
+
+		return _line	
 
 class Lines(list):
 
@@ -72,6 +98,7 @@ class Lines(list):
 
 	def print_partition(self, partition):
 
+		print(end="P")
 		for lines in partition:
 			print(end="[")
 			for dorsal in lines:
@@ -88,18 +115,16 @@ class Lines(list):
 
 	def partitions(self, l: list[Dorsal], level: int):
 
-		yield [l]
-
-		if level == self.num_lines:
+		if level > self.num_lines:
 			return
 
 		n = len(l) - 1
-		for i in range(2**n-2, -1, -1):
+		for i in range(2**n-1, -1, -1):
 
 			first = [l[0]]
 			others = []
 
-			area_m2 = 0
+			area_m2 = l[0].area_m2
 			for j in range(n):
 				if (i&(2**j)>0):
 					first.append(l[j+1])
@@ -110,10 +135,14 @@ class Lines(list):
 			if area_m2 > Config.line_coverage_m2:
 				continue
 
+			if others == []:
+				yield [l]
+				continue
 
 			for group in self.partitions(others, level+1):
 				yield [first, *group]
 		
+
 
 
 	def eval(self, lines) -> float:
@@ -144,7 +173,6 @@ class Lines(list):
 		self.best_partition = []
 
 		for partition in self.partitions(self.dorsals, 1):
-			# self.print_partition(partition)
 			partition_length = len(partition)
 
 			if partition_length > self.num_lines:
@@ -158,11 +186,10 @@ class Lines(list):
 				self.best_partition = partition	
 				continue
 
-
 			if pipe_length < self.pipe_length:
 				self.num_lines = partition_length
 				self.pipe_length = pipe_length
-				self.best_partition = partition	
+				self.best_partition = partition
 
 		self.make_lines()
 

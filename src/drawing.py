@@ -57,19 +57,19 @@ class DxfDrawing:
 		self.doc.saveas(self.model.outfile)
 
 
-	def draw_block(self, room, block_name, position, rotation, layer):
+	def draw_block(self, room, block_name, pos, rot, flipped, layer):
 
 		frame = room.frame
-		position = frame.real_from_local(position)
-		rotation = frame.block_rotation(rotation)
+		pos = frame.real_from_local(pos)
+		rot = frame.block_rotation(rot)
 
 		block = self.msp.add_blockref(
 					block_name,
-					position,
+					pos,
 					dxfattribs={
-						'xscale': 0.1/room.frame.scale,
+						'xscale': (1-flipped*2)*0.1/room.frame.scale,
 						'yscale': 0.1/room.frame.scale,
-						'rotation': rotation
+						'rotation': rot
 					}
 		)
 		block.dxf.layer = layer
@@ -173,7 +173,7 @@ class DxfDrawing:
 			pos = panel.pos
 			rot = panel.rot
 			layer = Config.layer_panel
-			self.draw_block(room, name, pos, rot, layer)
+			self.draw_block(room, name, pos, rot, False, layer)
 
 
 	def draw_dorsals(self, room: Room):
@@ -188,28 +188,42 @@ class DxfDrawing:
 
 	def draw_lines(self, room: Room):
 
+		print("Room", room.pindex, "room.lines", len(room.lines))
 		for line in room.lines:
+			
+			frontline = line.front_line()
+			frontline = room.frame.real_coord(frontline)
+			self.msp.add_lwpolyline(frontline)
 
 			pos = line.dorsals[-1].front
 			rot_panel = line.dorsals[-1].panels[0].rot
 			layer = Config.layer_link
 
+			# Linear fittings
 			if len(line.dorsals) == 1:
 				name = Config.block_fitting_linear
 				rot = rot_panel
-				self.draw_block(room, name, pos, rot, layer)
+				self.draw_block(room, name, pos, rot, False, layer)
 				self.draw_point(room, pos)
 				break
 
-			rot = rot_panel
+			# Corner fittings
+			rot = (rot_panel + 2) % 4
 			name = Config.block_fitting_corner
-			self.draw_block(room, name, pos, rot, layer)
+			flip = (rot_panel==0 or rot_panel==2)
+			self.draw_block(room, name, pos, rot, flip, layer)
 			self.draw_point(room, pos)	
 
+			# T-shape fittings
 			for dorsal in line.dorsals[:-1]:
 				name = Config.block_fitting_tshape
 				pos = dorsal.front
-				self.draw_block(room, name, pos, rot, layer)
+				if rot_panel==0 or rot_panel==2:
+					rot = (rot_panel - 1) % 4
+				else:
+					rot = (rot_panel + 1) % 4 
+
+				self.draw_block(room, name, pos, rot, False, layer)
 				self.draw_point(room, pos)	
 
 

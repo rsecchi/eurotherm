@@ -246,7 +246,7 @@ class Room:
 		self.perimeter = self._perimeter()
 
 		# collector related variables
-		self.collector = None
+		self.collector: Room
 		self.number = 0
 		self.zone_num = 0
 		self.inputs = 0 

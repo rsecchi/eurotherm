@@ -104,9 +104,11 @@ class Panel:
 		if self.rot == 0 or self.rot == 3:
 			self.rear_corner = self.pos
 			self.front_corner = self.panel_to_local((-self.width, 0))
+			self.front_side = self.panel_to_local((-self.width, -self.height))
 		else:
 			self.rear_corner = self.panel_to_local((-self.width, 0))
 			self.front_corner = self.pos
+			self.front_side = self.panel_to_local((0, -self.height))
 
 
 	def panel_to_local(self, point):
