@@ -7,10 +7,38 @@ class Dorsal:
 		self.panels: list[Panel] = []
 		self.front = (0., 0.)
 		self.back = (0., 0.)
+		self.back_side = (0., 0.)
 		self.area_m2 = 0.
 		self.dorsal_row = 0
 		self.front_dorsal = True
 		self.flipped = False
+		self.terminal = False 
+		self.detached = False
+		self.reversed = False
+
+		self.x_axis = (0., 0.)
+		self.y_axis = (0., 0.)
+		self.rot = 0
+
+
+	@staticmethod
+	def local_rotation(rot):
+		if rot==1 or rot==2:
+			return (rot + 2) % 4
+		return rot 
+
+
+	def dorsal_to_local(self, point: Tuple, orig: Tuple):
+
+		x0, y0 = point
+		ux, uy = self.x_axis
+		vx, vy = self.y_axis
+
+		rx = ux * x0 + vx * y0
+		ry = uy * x0 + vy * y0
+
+		return (rx + orig[0], ry + orig[1])
+
 
 
 	def insert(self, panel: Panel):
@@ -18,10 +46,26 @@ class Dorsal:
 		self.dorsal_row = panel.dorsal_row
 		self.area_m2 += panel.area_m2
 
-		if not self.panels:
-			self.back = panel.rear_corner
 		self.front = panel.front_corner
 		self.side = panel.front_side
+
+		if not self.panels:
+			self.rot = Dorsal.local_rotation(panel.rot)
+			self.back = panel.rear_corner
+			self.back_side = panel.rear_side
+			dx = dist(self.front, self.back)
+			dy = dist(self.back_side, self.back)
+			dx_x = self.front[0] - self.back[0]
+			dx_y = self.front[1] - self.back[1]
+			dy_x = self.back_side[0] - self.back[0]
+			dy_y = self.back_side[1] - self.back[1]
+			self.x_axis = (dx_x/dx, dx_y/dx)
+			self.y_axis = (dy_x/dy, dy_y/dy)
+			ux, uy = self.x_axis
+			vx, vy = self.y_axis
+			if ux*vy < vx*uy:
+				self.reversed = True
+
 
 		self.panels = [panel] + self.panels
 		if panel.rot == 1 or panel.rot == 3:
@@ -33,12 +77,16 @@ class Line:
 	def __init__(self, dorsals: list[Dorsal]):
 		self.dorsals = dorsals
 		self.flipped = False
-		if dorsals != []:
-			self.dorsals[0].panels
-
 		self.area_m2 = 0.
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
+
+		if len(dorsals)>0:
+			self.dorsals[0].terminal = True
+
+		if len(dorsals)==1:
+			self.dorsals[0].detached = True
+
 
 	def __str__(self) -> str:
 		_string = ""
@@ -108,9 +156,11 @@ class Lines(list):
 
 
 	def make_lines(self):
+
 		for dorsals in self.best_partition:
 			line = Line(dorsals)
 			self.append(line)
+
 
 
 	def partitions(self, l: list[Dorsal], level: int):

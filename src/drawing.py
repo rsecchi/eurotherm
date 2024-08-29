@@ -3,14 +3,18 @@ from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
 from engine.panels import panel_names
 
+from lines import Dorsal
 from model import Model, Room
+from planner import Panel
 
 from settings import Config
 from settings import debug
 from settings import leo_types 
-
+from settings import leo_icons
 
 dxf_version = "AC1032"
+
+
 
 
 class DxfDrawing:
@@ -56,25 +60,7 @@ class DxfDrawing:
 
 		self.doc.saveas(self.model.outfile)
 
-
-	def draw_block(self, room, block_name, pos, rot, flipped, layer):
-
-		frame = room.frame
-		pos = frame.real_from_local(pos)
-		rot = frame.block_rotation(rot)
-
-		block = self.msp.add_blockref(
-					block_name,
-					pos,
-					dxfattribs={
-						'xscale': (1-flipped*2)*0.1/room.frame.scale,
-						'yscale': 0.1/room.frame.scale,
-						'rotation': rot
-					}
-		)
-		block.dxf.layer = layer
-
-
+	
 	def draw_point(self, room, pos):
 		frame = room.frame
 		poly = frame.small_square(pos)
@@ -158,73 +144,102 @@ class DxfDrawing:
 				   collector.pos, zoom=0.6/scale)
 
 
-	def draw_panels(self, room: Room):
+	def draw_panel(self, room: Room, panel: Panel):
 
 		if (room.color==Config.color_valid_room):
 			block_names = self.blocks["classic"]
 		else:
 			block_names = self.blocks["hydro"]
 
-
-		for panel in room.panels:
-			# panel.draw_panel(self.msp, room.frame)
-
-			name = block_names[panel_names[panel.type]]
-			pos = panel.pos
-			rot = panel.rot
-			layer = Config.layer_panel
-			self.draw_block(room, name, pos, rot, False, layer)
-
-
-	def draw_dorsals(self, room: Room):
-		
+		name = block_names[panel_names[panel.type]]
 		frame = room.frame
-		for dorsal in room.lines.dorsals:
-			line = [dorsal.front, dorsal.back]
-			polyline = frame.real_coord(line)
-			pline = self.msp.add_lwpolyline(polyline)
-			pline.dxf.color = Config.color_collector
+		pos = frame.real_from_local(panel.pos)
+		rot = frame.block_rotation(panel.rot)
+
+		block = self.msp.add_blockref(
+					name,
+					pos,
+					dxfattribs={
+						'xscale': 0.1/room.frame.scale,
+						'yscale': 0.1/room.frame.scale,
+						'rotation': rot
+					}
+		)
+		block.dxf.layer = Config.layer_panel
+
+
+
+	def draw_dorsal(self, room: Room, dorsal: Dorsal):
+	
+		if not dorsal.panels:
+			return
+
+		# Draw end caps
+		name = leo_icons["cap"]
+		frame = room.frame
+
+		if dorsal.reversed:
+			ofs_red  = (Config.indent_max, Config.offset_red)
+			ofs_blue = (Config.indent_min, Config.offset_blue)
+		else:
+			ofs_red  = (Config.indent_min, Config.offset_red)
+			ofs_blue = (Config.indent_max, Config.offset_blue)
+		local_red = dorsal.dorsal_to_local(ofs_red, dorsal.back)
+		local_blue = dorsal.dorsal_to_local(ofs_blue, dorsal.back)
+
+		rot = dorsal.rot
+		rot = frame.block_rotation(rot)
+		attribs={
+			'xscale': 0.1/room.frame.scale,
+			'yscale': 0.1/room.frame.scale,
+			'rotation': rot
+		}
+
+		pos = frame.real_from_local(local_red)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_panel
+
+		pos = frame.real_from_local(local_blue)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_panel
+
+
+		# Draw panel links
+
+		# Draw dorsal heading fitting
+
 
 
 	def draw_lines(self, room: Room):
 
-		print("Room", room.pindex, "room.lines", len(room.lines))
 		for line in room.lines:
 			
 			frontline = line.front_line()
 			frontline = room.frame.real_coord(frontline)
 			self.msp.add_lwpolyline(frontline)
 
-			pos = line.dorsals[-1].front
-			rot_panel = line.dorsals[-1].panels[0].rot
-			layer = Config.layer_link
+			for dorsal in line.dorsals:
+				self.draw_dorsal(room, dorsal)
 
-			# Linear fittings
-			if len(line.dorsals) == 1:
-				name = Config.block_fitting_linear
-				rot = rot_panel
-				self.draw_block(room, name, pos, rot, False, layer)
-				self.draw_point(room, pos)
-				break
 
-			# Corner fittings
-			rot = (rot_panel + 2) % 4
-			name = Config.block_fitting_corner
-			flip = (rot_panel==0 or rot_panel==2)
-			self.draw_block(room, name, pos, rot, flip, layer)
-			self.draw_point(room, pos)	
+			# # Corner fittings
+			# rot = (rot_panel + 2) % 4
+			# name = Config.block_fitting_corner
+			# flip = (rot_panel==0 or rot_panel==2)
+			# self.draw_block(room, name, pos, rot, flip, layer)
+			# self.draw_point(room, pos)	
 
-			# T-shape fittings
-			for dorsal in line.dorsals[:-1]:
-				name = Config.block_fitting_tshape
-				pos = dorsal.front
-				if rot_panel==0 or rot_panel==2:
-					rot = (rot_panel - 1) % 4
-				else:
-					rot = (rot_panel + 1) % 4 
+			# # T-shape fittings
+			# for dorsal in line.dorsals[:-1]:
+			# 	name = Config.block_fitting_tshape
+			# 	pos = dorsal.front
+			# 	if rot_panel==0 or rot_panel==2:
+			# 		rot = (rot_panel - 1) % 4
+			# 	else:
+			# 		rot = (rot_panel + 1) % 4 
 
-				self.draw_block(room, name, pos, rot, False, layer)
-				self.draw_point(room, pos)	
+			# 	self.draw_block(room, name, pos, rot, False, layer)
+			# 	self.draw_point(room, pos)	
 
 
 	def draw_room(self, room: Room):
@@ -232,17 +247,21 @@ class DxfDrawing:
 		size = 2/room.frame.scale
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
 
-		self.draw_panels(room)
+		for panel in room.panels:
+			self.draw_panel(room, panel)
+
 		# self.draw_dorsals(room)
 		self.draw_lines(room)
 		self.draw_airlines(room)
 
 
 	def draw_model(self):
+
 		for room in self.model.processed:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
-			self.draw_collector()
+
+		self.draw_collector()
 
 
 	def import_blocks(self, ptype):
@@ -266,6 +285,9 @@ class DxfDrawing:
 		importer.import_block(Config.block_fitting_corner)
 		importer.import_block(Config.block_fitting_linear)
 		importer.import_block(Config.block_fitting_tshape)
+
+		for _, block in leo_icons.items():
+			importer.import_block(block)
 
 		importer.finalize()
 

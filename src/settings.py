@@ -16,10 +16,11 @@ panel_sizes = {
 }
 
 
-leo_icons = [
-	"sonda T",
-	"sonda T_U",
-]
+leo_icons = {
+	"probe_T": "sonda T",
+	"probe_TH": "sonda T_U",
+	"cap": "Tappo CS",
+}
 
 
 
@@ -269,6 +270,12 @@ class Config:
 		('Room Breakdown L35', 84.2, 64.8),
 		('Room Breakdown 30p', 82.3, 80.9)
 	]
+
+
+	offset_red = 4.2
+	offset_blue = 16.1
+	indent_min = -1
+	indent_max = 2.9
 
 	_handlers = dict() 
 
