@@ -1,3 +1,4 @@
+from os import CLD_CONTINUED
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
@@ -11,10 +12,9 @@ from settings import Config
 from settings import debug
 from settings import leo_types 
 from settings import leo_icons
+from reference_frame import dist
 
 dxf_version = "AC1032"
-
-
 
 
 class DxfDrawing:
@@ -197,14 +197,31 @@ class DxfDrawing:
 
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_panel
+		block.dxf.layer = Config.layer_link
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_panel
+		block.dxf.layer = Config.layer_link
 
 
 		# Draw panel links
+		name = leo_icons["link"]
+		for i, _ in enumerate(dorsal.panels[1:]):
+			a = dorsal.panels[i+1].front_corner
+			b = dorsal.panels[i].rear_corner
+			if dist(a,b) > 1:
+				continue
+
+			pos = dorsal.dorsal_to_local(ofs_red, a)
+			pos = frame.real_from_local(pos)
+			block = self.msp.add_blockref(name, pos, attribs)
+			block.dxf.layer = Config.layer_link
+
+			pos = dorsal.dorsal_to_local(ofs_blue, a)
+			pos = frame.real_from_local(pos)
+			block = self.msp.add_blockref(name, pos, attribs)
+			block.dxf.layer = Config.layer_link
+
 
 		# Draw dorsal heading fitting
 
@@ -283,7 +300,6 @@ class DxfDrawing:
 
 		importer.import_block(Config.block_collector)
 		importer.import_block(Config.block_fitting_corner)
-		importer.import_block(Config.block_fitting_linear)
 		importer.import_block(Config.block_fitting_tshape)
 
 		for _, block in leo_icons.items():

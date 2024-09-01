@@ -20,6 +20,7 @@ leo_icons = {
 	"probe_T": "sonda T",
 	"probe_TH": "sonda T_U",
 	"cap": "Tappo CS",
+	"link": "Manicotto CS-CS"
 }
 
 
@@ -246,7 +247,6 @@ class Config:
 	block_collector      = "collettore"
 	block_collector_W    = "collettore_W"
 	block_fitting_corner = "Gomito 20-CS"
-	block_fitting_linear = "Manicotto CS-CS"
 	block_fitting_tshape = "T 20-CS-20" 
 
 	max_room_area = 500
