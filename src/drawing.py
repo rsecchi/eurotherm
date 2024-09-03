@@ -219,7 +219,6 @@ class DxfDrawing:
 			if dist(a,b) > 1:
 				continue
 
-
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
@@ -238,13 +237,15 @@ class DxfDrawing:
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_link
-		self.draw_point(room, dorsal.front)
 
 		pos = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_link
 
+		# Draw dorsal heading fitting
+		if dorsal.terminal:
+			self.draw_point(room, dorsal.front)
 
 
 	def draw_lines(self, room: Room):
