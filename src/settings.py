@@ -17,10 +17,15 @@ panel_sizes = {
 
 
 leo_icons = {
+	"collector": "collettore",
+	"collector_W": "collettore_W",
 	"probe_T": "sonda T",
 	"probe_TH": "sonda T_U",
 	"cap": "Tappo CS",
-	"link": "Manicotto CS-CS"
+	"bend": "Gomito 20-CS",
+	"nipple": "Nipples 20-CS",
+	"link": "Manicotto CS-CS",
+	"tlink": "T 20-CS-20" 
 }
 
 
@@ -244,11 +249,6 @@ class Config:
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
 
-	block_collector      = "collettore"
-	block_collector_W    = "collettore_W"
-	block_fitting_corner = "Gomito 20-CS"
-	block_fitting_tshape = "T 20-CS-20" 
-
 	max_room_area = 500
 	collector_size = 60
 	target_eff = 0.7
@@ -272,10 +272,15 @@ class Config:
 	]
 
 
-	offset_red = 4.2
-	offset_blue = 16.1
-	indent_min = -1
-	indent_max = 2.9
+	offset_red = 4.15
+	offset_blue = 16.12567
+	indent_red = -2.0409
+	indent_blue = 1.95951
+	
+	indent_cap_red_right = 0.95951
+	indent_cap_blue_right = 4.95951
+	indent_cap_red_left = 5.04049
+	indent_cap_blue_left = 1.04049
 
 	_handlers = dict() 
 

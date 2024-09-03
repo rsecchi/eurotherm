@@ -1,4 +1,3 @@
-from os import CLD_CONTINUED
 from ezdxf.addons.importer import Importer 
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
@@ -130,7 +129,7 @@ class DxfDrawing:
 			size = Config.collector_size/scale
 			pos = (pos[0] - size/2, pos[1] - size/2) 
 			block = self.msp.add_blockref(
-				Config.block_collector,
+				leo_icons["collector"],
 				pos,
 				dxfattribs={
 					'xscale': 0.1/scale,
@@ -179,15 +178,15 @@ class DxfDrawing:
 		frame = room.frame
 
 		if dorsal.reversed:
-			ofs_red  = (Config.indent_max, Config.offset_red)
-			ofs_blue = (Config.indent_min, Config.offset_blue)
+			ofs_red  = (Config.indent_cap_red_left, Config.offset_red)
+			ofs_blue = (Config.indent_cap_blue_left, Config.offset_blue)
 		else:
-			ofs_red  = (Config.indent_min, Config.offset_red)
-			ofs_blue = (Config.indent_max, Config.offset_blue)
+			ofs_red  = (Config.indent_cap_red_right, Config.offset_red)
+			ofs_blue = (Config.indent_cap_blue_right, Config.offset_blue)
 		local_red = dorsal.dorsal_to_local(ofs_red, dorsal.back)
 		local_blue = dorsal.dorsal_to_local(ofs_blue, dorsal.back)
 
-		rot = dorsal.rot
+		rot = (dorsal.rot + 2) % 4
 		rot = frame.block_rotation(rot)
 		attribs={
 			'xscale': 0.1/room.frame.scale,
@@ -205,12 +204,21 @@ class DxfDrawing:
 
 
 		# Draw panel links
+		if dorsal.reversed:
+			ofs_red  = (-Config.indent_red, Config.offset_red)
+			ofs_blue = (-Config.indent_blue, Config.offset_blue)
+		else:
+			ofs_red  = (Config.indent_red, Config.offset_red)
+			ofs_blue = (Config.indent_blue, Config.offset_blue)
+		local_red = dorsal.dorsal_to_local(ofs_red, dorsal.back)
+		local_blue = dorsal.dorsal_to_local(ofs_blue, dorsal.back)
 		name = leo_icons["link"]
 		for i, _ in enumerate(dorsal.panels[1:]):
 			a = dorsal.panels[i+1].front_corner
 			b = dorsal.panels[i].rear_corner
 			if dist(a,b) > 1:
 				continue
+
 
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
@@ -224,6 +232,18 @@ class DxfDrawing:
 
 
 		# Draw dorsal heading fitting
+		print(room.pindex, dorsal.detached)
+		name = leo_icons["link"]
+		pos = dorsal.dorsal_to_local(ofs_red, dorsal.front)
+		pos = frame.real_from_local(pos)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_link
+		self.draw_point(room, dorsal.front)
+
+		pos = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
+		pos = frame.real_from_local(pos)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_link
 
 
 
@@ -294,13 +314,6 @@ class DxfDrawing:
 
 		for block in self.blocks["hydro"].values():
 			importer.import_block(block)
-
-		# 	for fitting_name in fitting_names:
-		# 		importer.import_block(fitting_name)
-
-		importer.import_block(Config.block_collector)
-		importer.import_block(Config.block_fitting_corner)
-		importer.import_block(Config.block_fitting_tshape)
 
 		for _, block in leo_icons.items():
 			importer.import_block(block)
