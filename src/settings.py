@@ -282,6 +282,18 @@ class Config:
 	indent_cap_red_left = 5.04049
 	indent_cap_blue_left = 1.04049
 
+	indent_bend_red_left = 7.48974
+	indent_bend_blue_left = 3.48974
+	indent_bend_red_right = 3.40875
+	indent_bend_blue_right = 7.40875
+
+	supply_red = 9.18099
+	supply_blue = 5.18099
+	color_supply_red = 11 
+	color_supply_blue = 171
+	supply_thick = 20
+	
+
 	_handlers = dict() 
 
 	@classmethod

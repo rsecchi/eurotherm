@@ -231,7 +231,6 @@ class DxfDrawing:
 
 
 		# Draw dorsal heading fitting
-		print(room.pindex, dorsal.detached)
 		name = leo_icons["link"]
 		pos = dorsal.dorsal_to_local(ofs_red, dorsal.front)
 		pos = frame.real_from_local(pos)
@@ -243,8 +242,40 @@ class DxfDrawing:
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_link
 
-		# Draw dorsal heading fitting
-		if dorsal.terminal:
+		# Draw dorsal bend fitting
+		if not dorsal.detached:
+			print("Room", room.pindex, dorsal.dorsal_row)
+			if dorsal.terminal:
+				name = leo_icons["bend"]
+			else:
+				name = leo_icons["tlink"]
+			if dorsal.reversed:
+				ofs_red  = (Config.indent_bend_red_left, Config.offset_red)
+				ofs_blue = (Config.indent_bend_blue_left, Config.offset_blue)
+			else:
+				ofs_red  = (Config.indent_bend_red_right, Config.offset_red)
+				ofs_blue = (Config.indent_bend_blue_right, Config.offset_blue)
+
+			local_red = dorsal.dorsal_to_local(ofs_red, dorsal.front)
+			local_blue = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
+
+			rot = dorsal.rot
+			rot = frame.block_rotation(rot)
+			sign = 1
+			if dorsal.rot==0 or dorsal.rot==3:
+				sign = -1
+			attribs={
+				'xscale': 0.1/room.frame.scale,
+				'yscale': sign*0.1/room.frame.scale,
+				'rotation': rot
+			}
+			pos = frame.real_from_local(local_red)
+			block = self.msp.add_blockref(name, pos, attribs)
+			block.dxf.layer = Config.layer_link
+
+			pos = frame.real_from_local(local_blue)
+			block = self.msp.add_blockref(name, pos, attribs)
+			block.dxf.layer = Config.layer_link
 			self.draw_point(room, dorsal.front)
 
 
@@ -252,9 +283,19 @@ class DxfDrawing:
 
 		for line in room.lines:
 			
-			frontline = line.front_line()
+			frontline = line.front_line(Config.supply_red)
 			frontline = room.frame.real_coord(frontline)
-			self.msp.add_lwpolyline(frontline)
+			pline = self.msp.add_lwpolyline(frontline)
+			pline.dxf.layer = Config.layer_link
+			pline.dxf.color = Config.color_supply_red
+			pline.dxf.lineweight = Config.supply_thick
+
+			frontline = line.front_line(Config.supply_blue)
+			frontline = room.frame.real_coord(frontline)
+			pline = self.msp.add_lwpolyline(frontline)
+			pline.dxf.layer = Config.layer_link
+			pline.dxf.color = Config.color_supply_blue
+			pline.dxf.lineweight = Config.supply_thick
 
 			for dorsal in line.dorsals:
 				self.draw_dorsal(room, dorsal)

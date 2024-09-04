@@ -82,7 +82,7 @@ class Line:
 			self.area_m2 += dorsal.area_m2
 
 		if len(dorsals)>0:
-			self.dorsals[0].terminal = True
+			self.dorsals[-1].terminal = True
 
 		if len(dorsals)==1:
 			self.dorsals[0].detached = True
@@ -96,17 +96,15 @@ class Line:
 		return _string
 
 
-	def front_line(self) -> list[Tuple]:
+	def front_line(self, offset) -> list[Tuple]:
 
 		_line = []
 		for dorsal in self.dorsals:
-			_line.append(dorsal.front)
-			_line.append(dorsal.side)
-
-		# if self.flipped:
-		# 	_line.sort(key=lambda x: x[0])
-		# else:
-		# 	_line.sort(key=lambda x: x[1])
+			ofs_red  = (offset, .0)
+			front = dorsal.dorsal_to_local(ofs_red, dorsal.front)
+			side = dorsal.dorsal_to_local(ofs_red, dorsal.side)
+			_line.append(front)
+			_line.append(side)
 
 		return _line	
 
@@ -150,7 +148,7 @@ class Lines(list):
 		for lines in partition:
 			print(end="[")
 			for dorsal in lines:
-				print(end=" (%.2f) " % dorsal.area_m2)
+				print(end=" (%d->%.2f) " % (dorsal.dorsal_row, dorsal.area_m2))
 			print(end="]  ")
 		print()
 
@@ -241,6 +239,8 @@ class Lines(list):
 				self.pipe_length = pipe_length
 				self.best_partition = partition
 
+		self.print_partition(self.best_partition)
+		print()
 		self.make_lines()
 
 
