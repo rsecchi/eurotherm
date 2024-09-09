@@ -45,7 +45,6 @@ class App:
 		self.dxf.import_floorplan(self.model.input_file)
 		self.dxf.import_blocks(self.data["ptype"])
 
-
 		# Create output file for elaborate
 		if not self.model.build_model():
 			self.dxf.output_error()

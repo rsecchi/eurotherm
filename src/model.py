@@ -31,7 +31,7 @@ default_add_dist = 4
 collector_margin_factor = 1.5
 
 flow_per_m2 = 23.33
-flow_per_collector = 1700
+flow_per_collector = 2200
 feeds_per_collector = 13
 
 min_room_area = 1
@@ -246,7 +246,7 @@ class Room:
 		self.perimeter = self._perimeter()
 
 		# collector related variables
-		self.collector: Room
+		self.collector: Room = None
 		self.number = 0
 		self.zone_num = 0
 		self.inputs = 0 
@@ -874,7 +874,7 @@ class Model():
 				collector.freeflow += room.flow
 
 	def build_model(self):
- 
+
 		global tot_iterations, max_iterations
 
 		if self.refit:
@@ -1038,6 +1038,7 @@ class Model():
 			collector.box = collector_box
 			collector.contained_in.obstacles.append(collector_box)
 
+
 		# assign rooms to user zones
 		for room in self.processed:
 			room.user_zone = None
@@ -1161,8 +1162,8 @@ class Model():
 					" to visualize errors @\n")
 				room.poly.dxf.layer = Config.layer_error
 				self.output.print(wstr)
-				return False
 
+				return False
 
 		# Check if enough collectors
 		self.area = feeds_eff = feeds_max = 0
@@ -1207,7 +1208,6 @@ class Model():
 				% (100*target_eff, flow_eff))
 		self.output.print("Estimated flow for 100%% cover .......... %5d l/h\n" 
 				% flow_max)
-
 
 		################################################################
 		if not self.create_zones():
