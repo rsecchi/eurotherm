@@ -1,3 +1,4 @@
+from typing import Optional
 from engine.panels import panel_map
 from lines import Panel, Lines
 
@@ -246,7 +247,7 @@ class Room:
 		self.perimeter = self._perimeter()
 
 		# collector related variables
-		self.collector: Room = None
+		self.collector: Optional[Room] = None
 		self.number = 0
 		self.zone_num = 0
 		self.inputs = 0 
