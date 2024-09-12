@@ -14,6 +14,7 @@ from settings import leo_icons
 from reference_frame import dist
 
 dxf_version = "AC1032"
+import geometry
 
 
 class DxfDrawing:
@@ -26,6 +27,7 @@ class DxfDrawing:
 		self.create_layers()
 		self.typology = dict()
 		self.model = model
+		self.picture = geometry.Picture()
 
 		self.blocks = {}
 
@@ -113,6 +115,9 @@ class DxfDrawing:
 
 
 	def draw_airlines(self, room: Room):
+
+		if not isinstance(room.collector, Room):
+			return
 
 		poly = [room.collector.pos, room.pos]
 
@@ -339,6 +344,10 @@ class DxfDrawing:
 		for room in self.model.processed:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
+			self.picture.add(room.points)
+
+		self.picture.set_frame()
+		self.picture.draw(self.model.outfile[:-4]+".png")
 
 		self.draw_collector()
 

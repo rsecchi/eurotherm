@@ -3,6 +3,8 @@ from math import sqrt
 
 MAX_DIST = 1e20
 
+point_t = tuple[float, float]
+poly_t = list[point_t]
 
 def dist(point1, point2):
 	dx = point1[0] - point2[0]
@@ -260,11 +262,60 @@ def trim_poly_by_vector(poly, vector):
 	return opoly
 
 
+def trim(polyline: poly_t, line: poly_t, from_tail:bool=False) -> poly_t:
+	""" Given a polyline and a line defined by two points, trim all the
+		points that are on the opposite side of the first point w.r.t the line
+		scanning the line up to first line crossing. 
+
+		If from_tail is True, the polyline is reversed
+		and the last point is considered for trimming
+	""" 
+
+	orig = line[0]
+	ux, uy = (line[1][0]-orig[0], line[1][1]-orig[1])
+	mod = sqrt(ux*ux+uy*uy)
+	ux, uy = (ux/mod, uy/mod)
+	vx, vy = (-uy, ux)
+
+	opoly: poly_t = []
+	if from_tail:
+		poly = reversed(polyline)
+		refx, refy = polyline[-1]
+		point = polyline[-1]
+	else:
+		poly = iter(polyline)
+		refx, refy = polyline[0]
+		point = polyline[0]
+
+	if refx*vx + refy*vy < 0:
+		vx, vy = -vx, -vy
+
+	xp = ux*(point[0]-orig[0]) + uy*(point[1]-orig[1])
+	yp = vx*(point[0]-orig[0]) + vy*(point[1]-orig[1])
+
+	for point in poly:
+		xc = ux*(point[0]-orig[0]) + uy*(point[1]-orig[1])
+		yc = vx*(point[0]-orig[0]) + vy*(point[1]-orig[1])
+		if yc<=0:
+			if yc==yp:
+				opoly.append(point)
+				break
+			
+			t = (xc*yp-xp*yc)/(yp-yc)
+			opoly.append((t*ux+orig[0], t*uy+orig[1]))
+			break
+
+		opoly.append(point)
+		xp, yp = xc, yc
+
+	return opoly
+
+
 class Picture:
 
 	width_px = 600
 	height_px = 400
-	margin = 20
+	margin = 10
 	radius = 5
 
 	def __init__(self):
@@ -281,7 +332,12 @@ class Picture:
 
 
 	def add(self, poly, color="black"):
+		if not poly:
+			return
 		
+		if isinstance(poly, tuple):
+			poly = [poly]
+
 		self.polylines.append(poly)
 		self.colors.append(color)
 		
@@ -325,9 +381,7 @@ class Picture:
 		self.xscale = self.yscale = min(self.xscale, self.yscale)
 
 		self.xorig = (Picture.width_px-self.xscale*(xmin+xmax))/2
-		self.xorig -= Picture.margin/2
-		self.yorig = (Picture.height_px-self.xscale*(xmin+xmax))/2
-		self.yorig -= Picture.margin/2
+		self.yorig = (Picture.height_px-self.xscale*(ymin+ymax))/2
 
 
 	def draw(self, filename: str):
@@ -342,36 +396,4 @@ class Picture:
 				continue
 			self.drawing.line(dpoly, fill=color, width=1)
 		self.image.save(filename)
-
-
-
-picture = Picture()
-
-poly = [(50., 300), (100, 100), (250, 350), (350, 50)]
-
-vector = [(0,0), (60,20)]
-
-mypoint = extend_to_poly(poly, vector)
-
-tp = trim_poly_by_vector(poly, vector)
-
-picture.add(poly, "green")
-picture.add(tp, "orange")
-picture.add(vector, "purple")
-
-
-poly = offset(poly, 20)
-
-picture.add(poly)
-
-
-vector2 = [(100,140), (100,150)]
-picture.add(vector2, "cyan")
-
-trimmed = trim_poly_by_vector(poly, vector2)
-
-picture.add(trimmed, "lightblue")
-
-picture.set_frame()
-picture.draw("polyline.png")
 
