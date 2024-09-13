@@ -912,7 +912,6 @@ class Model():
 				% self.inputlayer
 			self.output.print(wstr)
 
-
 		pindex = 1
 		# Create list of rooms, obstacles and collectors
 		for poly in self.query:

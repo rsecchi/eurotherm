@@ -47,6 +47,8 @@ class App:
 
 		# Create output file for elaborate
 		if not self.model.build_model():
+			self.report.text += self.model.text
+			self.report.save_report()
 			self.dxf.output_error()
 			return
 
