@@ -5686,12 +5686,12 @@ class Model():
 		ws3['E14'] = ws3['E18'] = self.panels_60x200 + self.panels_h_60x200
 
 		# copy number of feeds
-		ws1['F14'] = ws1['F18'] = self.feeds
-		ws1['F14'] = ws1['F18'] = self.feeds
-		ws2['F14'] = ws2['F18'] = self.feeds
-		ws2['F14'] = ws2['F18'] = self.feeds
-		ws3['F14'] = ws3['F18'] = self.feeds
-		ws3['F14'] = ws3['F18'] = self.feeds
+		ws1['F14'] = ws1['F18'] = self.total_lines
+		ws1['F14'] = ws1['F18'] = self.total_lines
+		ws2['F14'] = ws2['F18'] = self.total_lines
+		ws2['F14'] = ws2['F18'] = self.total_lines
+		ws3['F14'] = ws3['F18'] = self.total_lines
+		ws3['F14'] = ws3['F18'] = self.total_lines
 
 		# copy number of collectors 
 		ws1['G14'] = ws1['G18'] = no_collectors 
