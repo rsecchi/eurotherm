@@ -287,11 +287,11 @@ class Config:
 	indent_bend_red_right = 3.40875
 	indent_bend_blue_right = 7.40875
 
-	supply_red = 9.18099
-	supply_blue = 5.18099
+	supply_out = 9.18099
+	supply_in  = 5.18099
 	color_supply_red = 11 
 	color_supply_blue = 171
-	supply_thick = 20
+	supply_thick = 200
 	
 
 	_handlers = dict() 

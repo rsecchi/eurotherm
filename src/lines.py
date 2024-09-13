@@ -239,8 +239,6 @@ class Lines(list):
 				self.pipe_length = pipe_length
 				self.best_partition = partition
 
-		self.print_partition(self.best_partition)
-		print()
 		self.make_lines()
 
 
