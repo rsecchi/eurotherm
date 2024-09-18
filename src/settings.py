@@ -282,10 +282,17 @@ class Config:
 	indent_cap_red_left = 5.04049
 	indent_cap_blue_left = 1.04049
 
+	# deprecated
 	indent_bend_red_left = 7.48974
 	indent_bend_blue_left = 3.48974
 	indent_bend_red_right = 3.40875
 	indent_bend_blue_right = 7.40875
+
+	attach_red_left = 7.48974
+	attach_blue_left = 3.48974
+	attach_red_right = 3.40875
+	attach_blue_right = 7.40875
+
 
 	supply_out = 9.18099
 	supply_in  = 5.18099

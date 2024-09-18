@@ -37,8 +37,8 @@ class Components:
 	def get_lines(self):
 		for room in self.model.processed:
 
-			room.lines.get_dorsals(room.panels)
-			room.lines.get_lines()
+			room.lines_manager.get_dorsals(room.panels)
+			room.lines_manager.get_lines()
 
 
 	def get_components(self):

@@ -1,31 +1,36 @@
 from typing import Tuple
 from planner import Panel
 from settings import Config, dist, MAX_DIST
+from geometry import trim, poly_t
 
 class Dorsal:
 	def __init__(self):
 		self.panels: list[Panel] = []
 		self.front = (0., 0.)
+		self.side = (0., 0.)
 		self.back = (0., 0.)
 		self.back_side = (0., 0.)
 		self.area_m2 = 0.
 		self.dorsal_row = 0
 		self.front_dorsal = True
-		self.flipped = False
+		self.upright = False
 		self.terminal = False 
 		self.detached = False
 		self.reversed = False
+		self.water_from_left = False
+		self.indented = False
+		self.indent_front = (0., 0.)
+		self.indent_side = (0., 0.)
+
+		self.red_attach = (0., 0.)
+		self.blue_attach = (0., 0.)
+		self.top = 0.
+		self.bottom = 0.
+		self.level = 0.
 
 		self.x_axis = (0., 0.)
 		self.y_axis = (0., 0.)
 		self.rot = 0
-
-
-	@staticmethod
-	def local_rotation(rot):
-		if rot==1 or rot==2:
-			return (rot + 2) % 4
-		return rot 
 
 
 	def dorsal_to_local(self, point: Tuple, orig: Tuple):
@@ -40,6 +45,18 @@ class Dorsal:
 		return (rx + orig[0], ry + orig[1])
 
 
+	def local_attachments(self):
+
+		if self.reversed:
+			offs_red = (Config.attach_red_left, Config.offset_red)
+			offs_blue = (Config.attach_blue_left, Config.offset_blue)
+		else:
+			offs_red = (Config.attach_red_right, Config.offset_red)
+			offs_blue = (Config.attach_blue_right, Config.offset_blue)
+
+		self.red_attach = self.dorsal_to_local(offs_red, self.front)
+		self.blue_attach = self.dorsal_to_local(offs_blue, self.front)
+
 
 	def insert(self, panel: Panel):
 
@@ -50,9 +67,12 @@ class Dorsal:
 		self.side = panel.front_side
 
 		if not self.panels:
-			self.rot = Dorsal.local_rotation(panel.rot)
+			self.rot = panel.rot
+			self.water_from_left = (self.rot==0 or self.rot==3)
+			self.upright = (panel.rot == 1 or panel.rot == 3)
 			self.back = panel.rear_corner
 			self.back_side = panel.rear_side
+
 			dx = dist(self.front, self.back)
 			dy = dist(self.back_side, self.back)
 			dx_x = self.front[0] - self.back[0]
@@ -66,10 +86,18 @@ class Dorsal:
 			if ux*vy < vx*uy:
 				self.reversed = True
 
+		if self.upright:
+			self.top = min(self.front[0], self.side[0])
+			self.bottom = max(self.front[0], self.side[0])
+			self.level = self.front[1]
+		else:
+			self.top = max(self.front[1], self.side[1])
+			self.bottom = min(self.front[1], self.side[1])
+			self.level = self.front[0]
 
+		self.local_attachments()
 		self.panels = [panel] + self.panels
-		if panel.rot == 1 or panel.rot == 3:
-			self.flipped = True
+
 
 
 class Line:
@@ -78,6 +106,9 @@ class Line:
 		self.dorsals = dorsals
 		self.flipped = False
 		self.area_m2 = 0.
+		self.red_frontline: poly_t = []
+		self.blue_frontline: poly_t = []
+
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
 
@@ -100,21 +131,31 @@ class Line:
 
 		_line = []
 		for dorsal in self.dorsals:
-			ofs_red  = (offset, .0)
-			front = dorsal.dorsal_to_local(ofs_red, dorsal.front)
-			side = dorsal.dorsal_to_local(ofs_red, dorsal.side)
+			ofs = (offset, .0)
+			if dorsal.indented:
+				front = dorsal.dorsal_to_local(ofs, dorsal.indent_front)
+				side = dorsal.dorsal_to_local(ofs, dorsal.indent_side)
+			else:
+				front = dorsal.dorsal_to_local(ofs, dorsal.front)
+				side = dorsal.dorsal_to_local(ofs, dorsal.side)
 			_line.append(front)
 			_line.append(side)
 
 		return _line	
 
-class Lines(list):
+
+class LinesManager():
 
 	def __init__(self):
 		self.dorsals: list[Dorsal] = []
 		self.panels: list[Panel] = []
 		self.num_lines = 0
 		self.pipe_length = 0.
+		self.lines: list[Line] = []
+
+
+	def append(self, line: Line):
+		self.lines.append(line)
 
 
 	def get_dorsals(self, panels: list[Panel]):
@@ -142,13 +183,61 @@ class Lines(list):
 			dorsal.insert(panel)
 
 
+	def make_frontline(self, line: Line):
+
+		if len(line.dorsals) <= 1:
+			return
+
+		dorsal = line.dorsals[-1]
+
+		if dorsal.reversed:
+			line.red_frontline = line.front_line(Config.supply_out)
+			line.blue_frontline = line.front_line(Config.supply_in)
+		else:
+			line.red_frontline = line.front_line(Config.supply_in)
+			line.blue_frontline = line.front_line(Config.supply_out)
+
+
+		# trim back of frontlines
+		red  = [(0., Config.offset_red), (-100., Config.offset_red)]
+		blue = [(0., Config.offset_blue), (-100., Config.offset_blue)]
+
+		r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
+					   dorsal.dorsal_to_local(red[1], dorsal.front)]
+
+		b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
+					   dorsal.dorsal_to_local(blue[1], dorsal.front)]
+
+		r_line = trim(line.red_frontline, r_trim, from_tail=False)
+		b_line = trim(line.blue_frontline, b_trim, from_tail=False)
+
+		# Project indented fronts
+		if dorsal.indented:
+			r_line.append(dorsal.red_attach)
+			b_line.append(dorsal.blue_attach)
+
+
+		# trim head of frontlines
+		dorsal = line.dorsals[0]
+		r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
+					   dorsal.dorsal_to_local(red[1], dorsal.front)]
+
+		b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
+					   dorsal.dorsal_to_local(blue[1], dorsal.front)]
+
+		line.red_frontline = trim(r_line, r_trim, from_tail=True)
+		line.blue_frontline = trim(b_line, b_trim, from_tail=True)
+
+
+
 	def print_partition(self, partition):
 
 		print(end="P")
 		for lines in partition:
 			print(end="[")
 			for dorsal in lines:
-				print(end=" (%d->%.2f) " % (dorsal.dorsal_row, dorsal.area_m2))
+				print(end=" (%d->%.2f) " % 
+					(dorsal.dorsal_row, dorsal.area_m2))
 			print(end="]  ")
 		print()
 
@@ -159,6 +248,10 @@ class Lines(list):
 			line = Line(dorsals)
 			self.append(line)
 
+		self.mark_linear_dorsals()
+
+		for line in self.lines:
+			self.make_frontline(line)
 
 
 	def partitions(self, l: list[Dorsal], level: int):
@@ -209,6 +302,26 @@ class Lines(list):
 		return total_length
 
 	
+	def mark_linear_dorsals(self):
+
+		dors = self.dorsals
+		for i, dorsal in enumerate(dors):
+			if not (dorsal.terminal and dorsal.dorsal_row>0):
+				continue
+
+			level = dors[i].level
+			prev_level = dors[i-1].level
+			curr_top = dors[i].top
+			prev_btm = dors[i-1].bottom
+			if abs(prev_btm-curr_top)<1 and (level>prev_level):
+				dorsal.indented = True
+				if not dorsal.upright:
+					dorsal.indent_front = (prev_level, dorsal.front[1])
+					dorsal.indent_side = (prev_level, dorsal.side[1])
+				else:
+					dorsal.indent_front = (dorsal.front[1], prev_level)
+					dorsal.indent_side = (dorsal.side[1], prev_level)
+					
 
 	def get_lines(self):
 

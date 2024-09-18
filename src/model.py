@@ -1,6 +1,6 @@
 from typing import Optional
 from engine.panels import panel_map
-from lines import Panel, Lines
+from lines import Panel, LinesManager
 
 from reference_frame import ReferenceFrame
 from settings import Config, dist
@@ -238,7 +238,7 @@ class Room:
 		self.color = poly.dxf.color
 		# self.arrangement = PanelArrangement(self)
 		self.panels: list[Panel] = list()
-		self.lines = Lines()
+		self.lines_manager = LinesManager()
 		self.bounding_box()
 		self.area = self._area()
 		self.active_m2 = 0.0
