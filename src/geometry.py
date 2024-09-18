@@ -280,18 +280,19 @@ def trim(polyline: poly_t, line: poly_t, from_tail:bool=False) -> poly_t:
 	opoly: poly_t = []
 	if from_tail:
 		poly = reversed(polyline)
-		refx, refy = polyline[-1]
-		point = polyline[-1]
+		start_point = polyline[-1]
 	else:
 		poly = iter(polyline)
-		refx, refy = polyline[0]
-		point = polyline[0]
+		start_point = polyline[0]
 
-	if refx*vx + refy*vy < 0:
+	refx = start_point[0] - orig[0]
+	refy = start_point[1] - orig[1]
+
+	xp = ux*refx + uy*refy
+	yp = vx*refx + vy*refy
+
+	if yp < 0:
 		vx, vy = -vx, -vy
-
-	xp = ux*(point[0]-orig[0]) + uy*(point[1]-orig[1])
-	yp = vx*(point[0]-orig[0]) + vy*(point[1]-orig[1])
 
 	for point in poly:
 		xc = ux*(point[0]-orig[0]) + uy*(point[1]-orig[1])

@@ -381,15 +381,13 @@ class DxfDrawing:
 		pline = self.msp.add_lwpolyline(frontline)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_red
-		# pline.dxf.lineweight = Config.supply_thick
-		pline.dxf.const_width = 20
+		pline.dxf.const_width = Config.supply_thick
 
 		frontline = room.frame.real_coord(line.blue_frontline)
 		pline = self.msp.add_lwpolyline(frontline)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
-		# pline.dxf.lineweight = Config.supply_thick
-		pline.dxf.const_width = 20
+		pline.dxf.const_width = Config.supply_thick
 
 
 	def draw_lines(self, room: Room):
@@ -409,7 +407,6 @@ class DxfDrawing:
 		for panel in room.panels:
 			self.draw_panel(room, panel)
 
-		# self.draw_dorsals(room)
 		self.draw_lines(room)
 		self.draw_airlines(room)
 

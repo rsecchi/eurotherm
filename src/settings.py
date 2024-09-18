@@ -298,7 +298,7 @@ class Config:
 	supply_in  = 5.18099
 	color_supply_red = 11 
 	color_supply_blue = 171
-	supply_thick = 200
+	supply_thick = 20
 	
 
 	_handlers = dict() 

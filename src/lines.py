@@ -197,7 +197,6 @@ class LinesManager():
 			line.red_frontline = line.front_line(Config.supply_in)
 			line.blue_frontline = line.front_line(Config.supply_out)
 
-
 		# trim back of frontlines
 		red  = [(0., Config.offset_red), (-100., Config.offset_red)]
 		blue = [(0., Config.offset_blue), (-100., Config.offset_blue)]
