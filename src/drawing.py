@@ -14,7 +14,7 @@ from settings import leo_icons
 from reference_frame import dist
 
 dxf_version = "AC1032"
-import geometry
+from geometry import Picture, extend_pipes
 
 
 class DxfDrawing:
@@ -27,7 +27,7 @@ class DxfDrawing:
 		self.create_layers()
 		self.typology = dict()
 		self.model = model
-		self.picture = geometry.Picture()
+		self.picture = Picture()
 
 		self.blocks = {}
 
@@ -377,14 +377,20 @@ class DxfDrawing:
 		if len(line.dorsals)<=1:
 			return
 
-		frontline = room.frame.real_coord(line.red_frontline)
-		pline = self.msp.add_lwpolyline(frontline)
+		redfront = room.frame.real_coord(line.red_frontline)
+		bluefront = room.frame.real_coord(line.blue_frontline)
+
+		if room.collector:
+			redfront = list(reversed(redfront))
+			bluefront = list(reversed(bluefront))
+			extend_pipes(redfront, bluefront, room.collector.pos)
+
+		pline = self.msp.add_lwpolyline(redfront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_red
 		pline.dxf.const_width = Config.supply_thick
 
-		frontline = room.frame.real_coord(line.blue_frontline)
-		pline = self.msp.add_lwpolyline(frontline)
+		pline = self.msp.add_lwpolyline(bluefront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
 		pline.dxf.const_width = Config.supply_thick

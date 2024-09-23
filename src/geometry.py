@@ -6,6 +6,15 @@ MAX_DIST = 1e20
 point_t = tuple[float, float]
 poly_t = list[point_t]
 
+
+
+def norm(vector: point_t) -> point_t:
+	n = sqrt(vector[0]*vector[0] + vector[1]*vector[1])
+	if n>0:
+		return (vector[0]/n, vector[1]/n)
+	return (0., 0.)
+
+
 def dist(point1, point2):
 	dx = point1[0] - point2[0]
 	dy = point1[1] - point2[1]
@@ -16,6 +25,7 @@ def central_symm(centre, point):
 	x = 2*centre[0] - point[0]
 	y = 2*centre[1] - point[1]
 	return (x,y)
+
 
 def line_cross(line0, line1):
 
@@ -39,6 +49,30 @@ def line_cross(line0, line1):
 
 	if not (0<=s and s<=1 and 0<=t and t<=1):
 		return None
+
+	return (b0x + s*(b1x-b0x), b0y + s*(b1y-b0y))
+
+
+
+def meeting_point(line0, line1):
+
+	a0x = line0[0][0]
+	a0y = line0[0][1]
+	a1x = line0[1][0]
+	a1y = line0[1][1]
+	b0x = line1[0][0]
+	b0y = line1[0][1]
+	b1x = line1[1][0]
+	b1y = line1[1][1]
+
+	delta  = -(a1x-a0x)*(b1y-b0y)+(b1x-b0x)*(a1y-a0y)
+	if delta==0:
+		return None
+
+	# deltat = -(b0x-a0x)*(b1y-b0y)+(b1x-b0x)*(b0y-a0y)
+	deltas =  (a1x-a0x)*(b0y-a0y)-(a1y-a0y)*(b0x-a0x)
+	# t = deltat/delta
+	s = deltas/delta
 
 	return (b0x + s*(b1x-b0x), b0y + s*(b1y-b0y))
 
@@ -119,10 +153,10 @@ def miter(poly, offs):
 	return opoly
 
 
-def offset(poly, off: float):
+def offset(poly, off: float) -> poly_t:
 
 	if len(poly)<2:
-		return
+		return []
 
 	opoly = list()
 
@@ -398,3 +432,42 @@ class Picture:
 			self.drawing.line(dpoly, fill=color, width=1)
 		self.image.save(filename)
 
+
+def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t):
+
+	end1 = pipe1[-1]
+	end2 = pipe2[-1]
+
+	side = (pipe1[-2][0]-end1[0], pipe1[-2][1]-end1[1])
+	w = dist(end1, end2)/2
+
+	vx, vy = norm((end2[0]-end1[0], end2[1]-end1[1]))
+	ux, uy = vy, -vx
+
+	if side[0]*ux + side[1]*uy > 0:
+		ux, uy = -ux, -uy
+
+	mid = (w*(vx+ux) + end1[0], w*(vy+uy) + end1[1])
+	sx, sy = norm((target[0] - mid[0], target[1] - mid[1]))
+	qx, qy = -sy, sx
+
+	ext1 = [(mid[0]+w*qx, mid[1]+w*qy), (target[0]+w*qx, target[1]+w*qy)]
+	ext2 = [(mid[0]-w*qx, mid[1]-w*qy), (target[0]-w*qx, target[1]-w*qy)]
+
+	dir1 = [end1, (end1[0]+ux, end1[1]+uy)]
+	dir2 = [end2, (end2[0]+ux, end2[1]+uy)]
+	
+	if sx*ux+sy*uy > 0:
+		dir1, dir2 = dir2, dir1
+		pipe1, pipe2 = pipe2, pipe1
+
+	point1 = meeting_point(ext1, dir1)
+	point2 = meeting_point(ext2, dir2)
+
+	if point1:
+		pipe1.append(point1)
+		pipe1.append(ext1[1])
+
+	if point2:
+		pipe2.append(point2)
+		pipe2.append(ext2[1])

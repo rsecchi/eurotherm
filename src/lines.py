@@ -185,8 +185,8 @@ class LinesManager():
 
 	def make_frontline(self, line: Line):
 
-		if len(line.dorsals) <= 1:
-			return
+		# if len(line.dorsals) <= 1:
+		# 	return
 
 		dorsal = line.dorsals[-1]
 
@@ -215,17 +215,20 @@ class LinesManager():
 			r_line.append(dorsal.red_attach)
 			b_line.append(dorsal.blue_attach)
 
+		line.red_frontline = r_line
+		line.blue_frontline = b_line
+
 
 		# trim head of frontlines
-		dorsal = line.dorsals[0]
-		r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
-					   dorsal.dorsal_to_local(red[1], dorsal.front)]
+		# dorsal = line.dorsals[0]
+		# r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
+		# 			   dorsal.dorsal_to_local(red[1], dorsal.front)]
 
-		b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
-					   dorsal.dorsal_to_local(blue[1], dorsal.front)]
+		# b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
+		# 			   dorsal.dorsal_to_local(blue[1], dorsal.front)]
 
-		line.red_frontline = trim(r_line, r_trim, from_tail=True)
-		line.blue_frontline = trim(b_line, b_trim, from_tail=True)
+		# line.red_frontline = trim(r_line, r_trim, from_tail=True)
+		# line.blue_frontline = trim(b_line, b_trim, from_tail=True)
 
 
 
