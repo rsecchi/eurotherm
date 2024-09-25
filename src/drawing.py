@@ -385,6 +385,7 @@ class DxfDrawing:
 			bluefront = list(reversed(bluefront))
 			extend_pipes(redfront, bluefront, room.collector.pos)
 
+
 		pline = self.msp.add_lwpolyline(redfront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_red
@@ -414,7 +415,7 @@ class DxfDrawing:
 			self.draw_panel(room, panel)
 
 		self.draw_lines(room)
-		self.draw_airlines(room)
+		# self.draw_airlines(room)
 
 
 	def draw_model(self):

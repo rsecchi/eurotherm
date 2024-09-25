@@ -138,9 +138,14 @@ class Line:
 			else:
 				front = dorsal.dorsal_to_local(ofs, dorsal.front)
 				side = dorsal.dorsal_to_local(ofs, dorsal.side)
+
+			if dorsal.rot == 2 or dorsal.rot == 3:				
+				front, side = side, front
+
 			_line.append(front)
 			_line.append(side)
 
+			
 		return _line	
 
 

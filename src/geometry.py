@@ -451,16 +451,14 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t):
 	sx, sy = norm((target[0] - mid[0], target[1] - mid[1]))
 	qx, qy = -sy, sx
 
-	ext1 = [(mid[0]+w*qx, mid[1]+w*qy), (target[0]+w*qx, target[1]+w*qy)]
-	ext2 = [(mid[0]-w*qx, mid[1]-w*qy), (target[0]-w*qx, target[1]-w*qy)]
+	if vx*qx + vy*qy<0:
+		qx, qy = -qx, -qy
 
+	ext1 = [(mid[0]-w*qx, mid[1]-w*qy), (target[0]-w*qx, target[1]-w*qy)]
+	ext2 = [(mid[0]+w*qx, mid[1]+w*qy), (target[0]+w*qx, target[1]+w*qy)]
 	dir1 = [end1, (end1[0]+ux, end1[1]+uy)]
 	dir2 = [end2, (end2[0]+ux, end2[1]+uy)]
 	
-	if sx*ux+sy*uy > 0:
-		dir1, dir2 = dir2, dir1
-		pipe1, pipe2 = pipe2, pipe1
-
 	point1 = meeting_point(ext1, dir1)
 	point2 = meeting_point(ext2, dir2)
 

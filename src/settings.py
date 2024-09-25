@@ -138,7 +138,7 @@ leo_types = {
 		"block_names_hydro": {
 			"full"    : "Pannello Idro 35-1200x2000",
 			"lux"     : "Pannello Lux Idro 1200x2000",
-			"split"   : "Pannello Idro 55-600x2000",
+			"split"   : "Pannello Idro 35-600x2000",
 			"half"    : "Mezzo pannello Idro 35-1200x1000",
 			"quarter" : "Mezzo pannello Idro 35-600x1000",
 		},
