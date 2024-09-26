@@ -86,14 +86,16 @@ class DxfDrawing:
 
 
 	def write_text(self, message, position, 
-		align=const.MTEXT_MIDDLE_CENTER, zoom=1., col=Config.color_text):
+		align=const.MTEXT_MIDDLE_CENTER, 
+		zoom=1., col=Config.color_text,
+		layer=Config.layer_text):
 		
 		text = self.msp.add_mtext(message, 
 			dxfattribs={"style": "Arial"})
 		text.dxf.insert = position
 		text.dxf.attachment_point = align
 		text.dxf.char_height = (Config.font_size)*zoom
-		text.dxf.layer = Config.layer_text
+		text.dxf.layer = layer
 		text.dxf.color = col
 
 
@@ -143,9 +145,10 @@ class DxfDrawing:
 				}
 			)
 
-			block.dxf.layer = Config.layer_panel
+			block.dxf.layer = Config.layer_collector
 			self.write_text("%s" % collector.name, 
-				   collector.pos, zoom=0.6/scale)
+				   collector.pos, zoom=0.6/scale, 
+				   layer=Config.layer_collector)
 
 
 	def draw_panel(self, room: Room, panel: Panel):
@@ -401,12 +404,12 @@ class DxfDrawing:
 		pline = self.msp.add_lwpolyline(redfront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_red
-		pline.dxf.const_width = Config.supply_thick
+		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
 
 		pline = self.msp.add_lwpolyline(bluefront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
-		pline.dxf.const_width = Config.supply_thick
+		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
 
 
 	def draw_lines(self, room: Room):

@@ -1,10 +1,12 @@
+from ezdxf.entities import lwpolyline
+from ezdxf.entities.mtext import MText
 from engine.panels import panel_map
 from engine.planner import Planner
 
 from ezdxf.document import Drawing
 from model import Model
 from settings import Config, panel_sizes
-
+from geometry import dist
 
 class Components:
 	
@@ -49,13 +51,13 @@ class Components:
 	def count_panels(self, doc: Drawing):
 		msp = doc.modelspace() 
 		
-		self.inserts = msp.query(f'INSERT[layer=="%s"]'
+		inserts = msp.query(f'INSERT[layer=="%s"]'
 				% Config.layer_panel)
 
 		blocks = Config.panel_handlers()
 		block_names = list(blocks.keys())
 
-		for insert in self.inserts:
+		for insert in inserts:
 			name = insert.dxf.get("name")
 			if not name in block_names:
 				continue
@@ -85,5 +87,34 @@ class Components:
 			self.model.active_area += room.active_m2
 
 
+	def size_collectors(self, doc:Drawing):
+
+		msp = doc.modelspace() 		
+		coll_tags = msp.query(f'MTEXT[layer=="%s"]'
+				% Config.layer_collector)
+
+		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
+
+		margin = Config.leeway/self.model.scale + 1
+		for tags in coll_tags:
+			assert isinstance(tags, MText)
+			x, y, _ = tags.dxf.insert
+			pos = x,y
+
+			count = 0
+			for poly in polylines:
+				assert isinstance(poly, lwpolyline.LWPolyline) 
+				head = dist(poly[0], pos)
+				tail = dist(poly[-1], pos)
+				if head<margin or tail<margin:
+					count += 1
+
+			tags.text += " (%d+%d)" % (count//2, count//2)
+
+
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
+		self.size_collectors(doc)
+
+
+

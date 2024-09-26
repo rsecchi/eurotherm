@@ -298,7 +298,7 @@ class Config:
 	supply_in  = 5.18099
 	color_supply_red = 11 
 	color_supply_blue = 171
-	supply_thick = 20
+	supply_thick_mm = 2
 	
 	cos_beam_angle = 0.7071 
 	leeway = 28

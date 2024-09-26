@@ -54,14 +54,15 @@ class App:
 
 		self.report.set_text(self.model.text)
 
-		self.components.get_components()
-
 		if not self.model.refit:
+			self.components.get_components()
 			self.dxf.draw_model()
+			self.dxf.save()
 
+		# count components and save
+		self.components.count_components(self.dxf.doc)
 		self.dxf.save()
 
-		self.components.count_components(self.dxf.doc)
 		self.xls.save_in_xls()
 
 		self.report.make_report()
