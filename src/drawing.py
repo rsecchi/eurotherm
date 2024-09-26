@@ -14,7 +14,7 @@ from settings import leo_icons
 from reference_frame import dist
 
 dxf_version = "AC1032"
-from geometry import Picture, extend_pipes
+from geometry import Picture, extend_pipes, norm, xprod
 
 
 class DxfDrawing:
@@ -362,7 +362,17 @@ class DxfDrawing:
 		self.draw_panel_links(room, dorsal)
 
 		if dorsal.terminal:
-			if dorsal.indented:
+
+			u = [dorsal.back, dorsal.front]
+			u = norm(room.frame.real_coord(u))
+
+			s = (0., 0.)
+			if isinstance(room.collector, Room):
+				front = room.frame.real_from_local(dorsal.front)
+				s = norm([front, room.collector.pos]) 
+
+			if dorsal.indented or (dorsal.detached and 
+				xprod(u,s)>Config.cos_beam_angle):
 				self.draw_nipples(room, dorsal)
 			else:
 				self.draw_bend(room, dorsal)
@@ -374,7 +384,7 @@ class DxfDrawing:
 
 	def draw_frontline(self, room: Room, line: Line):
 
-		if len(line.dorsals)<=1:
+		if len(line.dorsals)<1:
 			return
 
 		redfront = room.frame.real_coord(line.red_frontline)
@@ -383,7 +393,9 @@ class DxfDrawing:
 		if room.collector:
 			redfront = list(reversed(redfront))
 			bluefront = list(reversed(bluefront))
-			extend_pipes(redfront, bluefront, room.collector.pos)
+			pos = room.collector.pos
+			lw = Config.leeway/room.frame.scale
+			extend_pipes(redfront, bluefront, pos, leeway=lw)
 
 
 		pline = self.msp.add_lwpolyline(redfront)

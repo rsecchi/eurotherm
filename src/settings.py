@@ -300,6 +300,8 @@ class Config:
 	color_supply_blue = 171
 	supply_thick = 20
 	
+	cos_beam_angle = 0.7071 
+	leeway = 28
 
 	_handlers = dict() 
 

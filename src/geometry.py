@@ -7,8 +7,15 @@ point_t = tuple[float, float]
 poly_t = list[point_t]
 
 
+def xprod(a: point_t, b: point_t):
+	return a[0]*b[0]+a[1]*b[1]
 
-def norm(vector: point_t) -> point_t:
+
+def norm(vector) -> point_t:
+
+	if isinstance(vector, list):
+		vector = (vector[1][0]-vector[0][0],vector[1][1]-vector[0][1])
+
 	n = sqrt(vector[0]*vector[0] + vector[1]*vector[1])
 	if n>0:
 		return (vector[0]/n, vector[1]/n)
@@ -433,7 +440,7 @@ class Picture:
 		self.image.save(filename)
 
 
-def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t):
+def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t, leeway:float):
 
 	end1 = pipe1[-1]
 	end2 = pipe2[-1]
@@ -454,8 +461,9 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t):
 	if vx*qx + vy*qy<0:
 		qx, qy = -qx, -qy
 
-	ext1 = [(mid[0]-w*qx, mid[1]-w*qy), (target[0]-w*qx, target[1]-w*qy)]
-	ext2 = [(mid[0]+w*qx, mid[1]+w*qy), (target[0]+w*qx, target[1]+w*qy)]
+	trg = (target[0] - leeway*sx, target[1] - leeway*sy)
+	ext1 = [(mid[0]-w*qx, mid[1]-w*qy), (trg[0]-w*qx, trg[1]-w*qy)]
+	ext2 = [(mid[0]+w*qx, mid[1]+w*qy), (trg[0]+w*qx, trg[1]+w*qy)]
 	dir1 = [end1, (end1[0]+ux, end1[1]+uy)]
 	dir2 = [end2, (end2[0]+ux, end2[1]+uy)]
 	
