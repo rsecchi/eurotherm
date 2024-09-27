@@ -5,6 +5,7 @@ import conf
 
 from model import Model
 from components import Components
+from bill import Bill
 from drawing import DxfDrawing
 from excel import XlsDocument
 from report import Report
@@ -38,6 +39,7 @@ class App:
 
 		self.model = Model(self.data)
 		self.components = Components(self.model)
+		self.bill = Bill(self.components)
 		self.dxf = DxfDrawing(self.model)
 		self.xls = XlsDocument(self.components)
 		self.report = Report(self.components)
