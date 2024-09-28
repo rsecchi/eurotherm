@@ -65,7 +65,9 @@ class App:
 		self.components.count_components(self.dxf.doc)
 		self.dxf.save()
 
+		self.bill.make_bill()
 		self.xls.save_in_xls()
+		self.bill.save()
 
 		self.report.make_report()
 		self.report.save_report()

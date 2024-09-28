@@ -17,15 +17,42 @@ panel_sizes = {
 
 
 leo_icons = {
-	"collector": "collettore",
-	"collector_W": "collettore_W",
-	"probe_T": "sonda T",
-	"probe_TH": "sonda T_U",
-	"cap": "Tappo CS",
-	"bend": "Gomito 20-CS",
-	"nipple": "Nipples 20-CS",
-	"link": "Manicotto CS-CS",
-	"tlink": "T 20-CS-20" 
+	"collector": {
+		"name": "collettore",
+		"code": "???"
+	},
+	"collector_W": {
+		"name": "collettore_W",
+		"code": "???"
+	},
+	"probe_T": {
+		"name": "sonda T",
+		"code": "???"
+	},
+	"probe_TH": {
+		"name": "sonda T_U",
+		"code": "???"
+	},
+	"cap": {
+		"name": "Tappo CS",
+		"code": "6910022300"
+	},
+	"bend": {
+		"name": "Gomito 20-CS",
+		"code": "6910022306"
+	},
+	"nipple": {
+		"name": "Nipples 20-CS",
+		"code": "6910022304"
+	},
+	"link": {
+		"name": "Manicotto CS-CS",
+		"code": "6910022302"
+	},
+	"tlink": {
+		"name": "T 20-CS-20",
+		"code": "6910022305"
+	}
 }
 
 
@@ -238,6 +265,7 @@ class Config:
 	layer_joints    = 'Eurotherm_joints'
 	layer_struct    = 'Eurotherm_structure'
 	layer_collector = 'Collettori'
+	layer_fittings  = 'Raccorderia'
 
 	color_text = 7
 	color_collector = 1         ;# red
@@ -319,4 +347,33 @@ class Config:
 				cls._handlers[name] = key + "_hydro"
 
 		return cls._handlers
-		
+
+
+	@classmethod
+	def panel_blocks_catalog(cls):
+
+		catalog = dict()
+
+		for panels in leo_types.values():
+
+			block_names = panels['block_names_classic']
+			for key, block_name in block_names.items():
+				panel_name = panels['panel_names_classic'][key]
+				code_name  = panels['code_names_classic'][key]
+
+				if not block_name in catalog.keys():
+					catalog[block_name] = {
+							"name": panel_name,
+							"code": code_name }
+
+			block_names = panels['block_names_hydro']
+			for key, block_name in block_names.items():
+				panel_name = panels['panel_names_hydro'][key]
+				code_name  = panels['code_names_hydro'][key]
+
+				if not block_name in catalog.keys():
+					catalog[block_name] = {
+							"name": panel_name,
+							"code": code_name }
+
+		return catalog

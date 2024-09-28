@@ -136,7 +136,7 @@ class DxfDrawing:
 			size = Config.collector_size/scale
 			pos = (pos[0] - size/2, pos[1] - size/2) 
 			block = self.msp.add_blockref(
-				leo_icons["collector"],
+				leo_icons["collector"]["name"],
 				pos,
 				dxfattribs={
 					'xscale': 0.1/scale,
@@ -177,7 +177,7 @@ class DxfDrawing:
 
 	def draw_end_caps(self, room: Room, dorsal: Dorsal):
 
-		name = leo_icons["cap"]
+		name = leo_icons["cap"]["name"]
 		frame = room.frame
 
 		if dorsal.reversed:
@@ -227,7 +227,7 @@ class DxfDrawing:
 			ofs_red  = (Config.indent_red, Config.offset_red)
 			ofs_blue = (Config.indent_blue, Config.offset_blue)
 		
-		name = leo_icons["link"]
+		name = leo_icons["link"]["name"]
 		for i, _ in enumerate(dorsal.panels[1:]):
 			a = dorsal.panels[i+1].front_corner
 			b = dorsal.panels[i].rear_corner
@@ -247,7 +247,7 @@ class DxfDrawing:
 
 	def draw_tlink(self, room: Room, dorsal: Dorsal):
 
-		name = leo_icons["tlink"]
+		name = leo_icons["tlink"]["name"]
 		frame = room.frame
 		rot = (dorsal.rot + 2) % 4
 		rot = frame.block_rotation(rot)
@@ -271,16 +271,16 @@ class DxfDrawing:
 		}
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 
 	def draw_bend(self, room: Room, dorsal: Dorsal):
 
-		name = leo_icons["bend"]
+		name = leo_icons["bend"]["name"]
 		frame = room.frame
 
 		local_red = dorsal.red_attach
@@ -297,16 +297,16 @@ class DxfDrawing:
 		}
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 
 	def draw_nipples(self, room: Room, dorsal: Dorsal):
 
-		name = leo_icons["nipple"]
+		name = leo_icons["nipple"]["name"]
 		frame = room.frame
 
 		local_red = dorsal.red_attach
@@ -320,11 +320,11 @@ class DxfDrawing:
 		}
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 	
 	def draw_head_link(self, room: Room, dorsal: Dorsal):
@@ -343,16 +343,16 @@ class DxfDrawing:
 			ofs_red  = (Config.indent_red, Config.offset_red)
 			ofs_blue = (Config.indent_blue, Config.offset_blue)
 
-		name = leo_icons["link"]
+		name = leo_icons["link"]["name"]
 		pos = dorsal.dorsal_to_local(ofs_red, dorsal.front)
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 		pos = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 
 	def draw_dorsal(self, room: Room, dorsal: Dorsal):
@@ -461,7 +461,7 @@ class DxfDrawing:
 			importer.import_block(block)
 
 		for _, block in leo_icons.items():
-			importer.import_block(block)
+			importer.import_block(block['name'])
 
 		importer.finalize()
 

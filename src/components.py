@@ -7,15 +7,18 @@ from ezdxf.document import Drawing
 from model import Model
 from settings import Config, panel_sizes
 from geometry import dist
+import settings
 
 class Components:
 	
 	def __init__(self, model: Model):
 		self.num_panels = 0
 		self.panels = list()
-		self.block_stats = dict()
+		self.panel_counters = dict()
 		self.panel_type = dict()
 		self.panel_record = dict()
+		self.fittings = dict()
+		self.room_icons = dict()
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
@@ -63,10 +66,10 @@ class Components:
 				continue
 
 			# update block statistics
-			if name in self.panel_record:
-				self.block_stats[name] += 1
+			if name in self.panel_counters.keys():
+				self.panel_counters[name] += 1
 			else:
-				self.block_stats[name] = 1
+				self.panel_counters[name] = 1
 
 			block_pos = insert.dxf.get("insert")
 			block_pos = (block_pos[0], block_pos[1])
@@ -85,6 +88,39 @@ class Components:
 
 		for room in self.model.processed:
 			self.model.active_area += room.active_m2
+
+
+	def count_fittings(self, doc: Drawing):
+
+		msp = doc.modelspace() 		
+		fittings = msp.query(f'INSERT[layer=="%s"]' 
+				% Config.layer_fittings)
+
+		for fitting in fittings:
+			name = fitting.dxf.name
+			blocks = (x["name"] for x in settings.leo_icons.values())
+			if not name in blocks:
+				continue
+
+			x, y, _ = fitting.dxf.insert
+			pos = x, y
+
+			if not name in self.fittings.keys():
+				self.fittings[name] = 0
+
+			self.fittings[name] += 1
+			for room in self.model.processed:
+				if not room.is_point_inside(pos):
+					continue
+
+				index = str(room.pindex)
+				if not index in self.room_icons:
+					self.room_icons[index] = dict()
+
+				if not name in self.room_icons[index].keys():
+					self.room_icons[index][name] = 0
+
+				self.room_icons[index][name] += 1
 
 
 	def size_collectors(self, doc:Drawing):
@@ -114,7 +150,9 @@ class Components:
 
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
+		self.count_fittings(doc)
 		self.size_collectors(doc)
+
 
 
 
