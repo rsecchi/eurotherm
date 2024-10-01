@@ -421,6 +421,9 @@ class DxfDrawing:
 				self.draw_dorsal(room, dorsal)
 
 
+	def draw_structure(self, room: Room):
+		...
+
 	def draw_room(self, room: Room):
 
 		size = 2/room.frame.scale
@@ -431,7 +434,8 @@ class DxfDrawing:
 
 		self.draw_lines(room)
 		# self.draw_airlines(room)
-
+		self.draw_passive(room)
+		self.draw_structure(room)
 
 	def draw_model(self):
 
@@ -444,6 +448,42 @@ class DxfDrawing:
 		self.picture.draw(self.model.outfile[:-4]+".png")
 
 		self.draw_collector()
+
+
+	def draw_passive(self, room: Room):
+
+		hatch = self.msp.add_hatch(color=41)
+		hatch.set_pattern_fill("ANSI31", scale=2/self.model.scale)
+
+		hatch.paths.add_polyline_path(room.points, 
+			is_closed=True,
+			flags=const.BOUNDARY_PATH_EXTERNAL)
+
+		hatch.dxf.layer = Config.layer_lux
+
+		for panel in room.panels:
+			poly = room.frame.real_coord(panel.contour())
+			hatch.paths.add_polyline_path(poly, 
+				is_closed=True,
+				flags=const.BOUNDARY_PATH_OUTERMOST)
+								 
+			lux_poly = panel.lux_poly()
+			if lux_poly:
+				luxp = room.frame.real_coord(lux_poly)
+				lux = self.msp.add_hatch(color=Config.color_collector)
+				lux.dxf.layer = Config.layer_lux
+				lux.set_pattern_fill("ANSI31", scale=2/self.model.scale)
+				lux.paths.add_polyline_path(luxp, is_closed=True)
+				pl = self.msp.add_lwpolyline(luxp)
+				pl.dxf.layer = Config.layer_lux	
+
+
+		for obstacle in room.obstacles:
+			if obstacle.color == Config.color_obstacle:
+				continue
+			hatch.paths.add_polyline_path(obstacle.points, 
+				is_closed=True,
+				flags=const.BOUNDARY_PATH_OUTERMOST)
 
 
 	def import_blocks(self, ptype):

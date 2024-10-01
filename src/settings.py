@@ -3,6 +3,11 @@ from math import sqrt
 MAX_DIST  = 1e20
 
 panel_sizes = {
+	"full": 2.4,
+	"lux": 2.4,
+	"split": 1.2,
+	"half": 1.2,
+	"quarter": 0.6,
 	"full_classic": 2.4,
 	"full_hydro": 2.4,
 	"lux_classic": 2.4,
@@ -12,7 +17,7 @@ panel_sizes = {
 	"half_classic": 1.2,
 	"half_hydro": 1.2,
 	"quarter_classic": 0.6,
-	"quarter_hydro": 0.6
+	"quarter_hydro": 0.6,
 }
 
 
@@ -310,17 +315,19 @@ class Config:
 	indent_cap_red_left = 5.04049
 	indent_cap_blue_left = 1.04049
 
-	# deprecated
-	indent_bend_red_left = 7.48974
-	indent_bend_blue_left = 3.48974
-	indent_bend_red_right = 3.40875
-	indent_bend_blue_right = 7.40875
+	# # deprecated
+	# indent_bend_red_left = 7.48974
+	# indent_bend_blue_left = 3.48974
+	# indent_bend_red_right = 3.40875
+	# indent_bend_blue_right = 7.40875
 
 	attach_red_left = 7.48974
 	attach_blue_left = 3.48974
 	attach_red_right = 3.40875
 	attach_blue_right = 7.40875
 
+	lux_hole_width = 145
+	lux_hole_height = 18	
 
 	supply_out = 9.18099
 	supply_in  = 5.18099
@@ -350,7 +357,7 @@ class Config:
 
 
 	@classmethod
-	def panel_blocks_catalog(cls):
+	def panel_catalog(cls):
 
 		catalog = dict()
 
@@ -364,7 +371,9 @@ class Config:
 				if not block_name in catalog.keys():
 					catalog[block_name] = {
 							"name": panel_name,
-							"code": code_name }
+							"code": code_name,
+							"type": key,
+							"area": panel_sizes[key]}
 
 			block_names = panels['block_names_hydro']
 			for key, block_name in block_names.items():
@@ -374,6 +383,19 @@ class Config:
 				if not block_name in catalog.keys():
 					catalog[block_name] = {
 							"name": panel_name,
-							"code": code_name }
+							"code": code_name, 
+							"type": key,
+							"area": panel_sizes[key]}
 
 		return catalog
+
+
+	@classmethod
+	def icon_catalog(cls) -> dict:
+
+		leo_catalog = dict()
+
+		for _ , value in leo_icons.items():
+			leo_catalog[value["name"]] = value
+
+		return leo_catalog

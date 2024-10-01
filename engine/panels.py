@@ -1,7 +1,7 @@
 from ctypes import Structure, POINTER, c_double, c_int
+
 from settings import Config
 
-#from ezdxf.filemanagement import new
 
 panel_map = {
 
@@ -123,7 +123,7 @@ class Panel:
 		return (xn, yn)
 
 
-	def polyline(self):
+	def polyline(self) -> list[tuple[float,float]]:
 	
 		b = self.width 
 		h = self.height 
@@ -141,15 +141,52 @@ class Panel:
 			(-b, -h)
 		]
 
-		self.poly = list()
+		poly = list()
 
 		for point in contour:
-			self.poly.append(self.panel_to_local(point))
+			poly.append(self.panel_to_local(point))
 
+		return poly
+
+
+	def contour(self) -> list[tuple[float,float]]:
+
+		b = self.width 
+		h = self.height 
+		edges = [(-b, -h), (-b, 0.), (0., 0.), 	(0, -h), (-b, -h)]
+
+		poly = list()
+		for point in edges:
+			poly.append(self.panel_to_local(point))
+
+		return poly
+
+
+	def lux_poly(self) -> list[tuple[float,float]]:
+
+		if not (self.name=="full" or self.name=="lux"):
+			return []
+
+		pline = []
+
+		lux_width = Config.lux_hole_width
+		lux_height = Config.lux_hole_height
+
+		ax = (self.width - lux_width)/2 
+		bx = ax + lux_width
+		ay = (self.height - lux_height)/2
+		by = ay + lux_height
+		pline = [(-ax,-ay),(-ax,-by),(-bx,-by),(-bx,-ay),(-ax,-ay)]
+
+		poly = list()
+		for point in pline:
+			poly.append(self.panel_to_local(point))
+
+		return poly
 
 	def draw_panel(self, msp, frame):
-		self.polyline()
-		poly = frame.real_coord(self.poly)
+		poly = self.polyline()
+		poly = frame.real_coord(poly)
 		pline = msp.add_lwpolyline(poly)
 		pline.dxf.layer = Config.layer_panel
 
