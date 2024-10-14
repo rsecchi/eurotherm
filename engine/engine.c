@@ -1,3 +1,4 @@
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,25 +159,32 @@ int i1, i2;
 
 	gap1_left = gaps[i1][pos.j-w];
 	gap2_left = gaps[i2][pos.j-w];
+	gap1_right = gaps[i1][pos.j];
+	gap2_right = gaps[i2][pos.j];
 
+	/* check if gaps are consistent */
 	if (gap1_left < DIST_FROM_WALLS || 
 		gap2_left < DIST_FROM_WALLS)
 		return 0;
 
 	if (pos.j > STEPS_RIGHT_GAP) {
-		gap1_right = gaps[i1][pos.j];
-		gap2_right = gaps[i2][pos.j];
 		if (gap1_right < DIST_FROM_WALLS || 
 			gap2_right < DIST_FROM_WALLS)
 			return 0;
 	}
 
-
+	/* find the minium gap */
 	if (gap1_left < alloc->gap)
 		alloc->gap = gap1_left;
 
 	if (gap2_left < alloc->gap)
 		alloc->gap = gap2_left;
+
+	if (gap1_right < alloc->gap)
+		alloc->gap = gap1_right;
+
+	if (gap2_right < alloc->gap)
+		alloc->gap = gap2_right;
 
 	return 1;
 }
@@ -470,7 +478,7 @@ double gap = 0;
 
 	for(int k=0; k<NUM_OFFSETS; k++) {
 		alloc->offset = offset;
-		alloc->gap = 0;
+		alloc->gap = DBL_MAX;
 		alloc->offset_col = k;
 
 		/* reset scoreboards */
@@ -493,6 +501,7 @@ double gap = 0;
 		offset.x += OFFSET_STEP;		
 	}
 
+	alloc->gap = gap;
 	return max_score;
 }
 

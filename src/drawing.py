@@ -479,14 +479,12 @@ class DxfDrawing:
 		rcoords = []
 		step = Config.extra_track/scale
 		lgap = ucoords[0] - ux_min
-		print("left", room.pindex, lgap, step)
 		if lgap>step:
 			ltracks = int(lgap/step)
 			incr = lgap/(ltracks+1)
 			lcoords = [ux_min + i*incr for i in range(1,ltracks+1)]
 	
 		rgap = ux_max - ucoords[-1]
-		print("right", room.pindex, rgap, step)
 		if rgap>step:
 			rtracks = int(rgap/step)
 			incr = lgap/(rtracks+1)
