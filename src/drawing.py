@@ -487,7 +487,7 @@ class DxfDrawing:
 		rgap = ux_max - ucoords[-1]
 		if rgap>step:
 			rtracks = int(rgap/step)
-			incr = lgap/(rtracks+1)
+			incr = rgap/(rtracks+1)
 			rcoords = [ucoords[-1] + i*incr for i in range(1,rtracks+1)]
 		
 		ucoords = lcoords + ucoords + rcoords

@@ -169,7 +169,8 @@ class ReferenceFrame:
 			if ( Ar < max_area ):
 				max_area = Ar
 				max_uv = uv
-
+			
+		uvx, uvy =  max_uv
 		angle = min(abs(uvx),abs(uvy))/max(abs(uvx),abs(uvy))
 		if (angle > 0.01):
 			self.vector = max_uv
