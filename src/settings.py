@@ -281,6 +281,7 @@ class Config:
 	color_disabled_room = 6     ;# magenta
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
+	color_tracks = 30           ;# orange
 
 	max_room_area = 500
 	collector_size = 60
@@ -337,6 +338,9 @@ class Config:
 	
 	cos_beam_angle = 0.7071 
 	leeway = 28
+	inter_track = 50
+	extra_track = 60
+	track_thick_mm = 5
 
 	_handlers = dict() 
 

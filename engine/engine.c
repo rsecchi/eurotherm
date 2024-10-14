@@ -220,16 +220,16 @@ grid_pos_t pos, tpos;
 dorsal_width_t width;
 heading_t dir;
 int max_score = 0, new_score;
-int score;
+int score = 0;
 int num_panels, k=0, kp, type;
 uint16_t *flag, panel_done, panel_fail;
 uint32_t parity;
 int level;
 
 	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
-
 	uint16_t (*flags)[alloc->wall_grid.cols] = alloc->wall_grid.flags;
 
+	dorsal->score = 0;
 	width = dorsal->width;
 	dir = dorsal->heading;
 
@@ -319,10 +319,11 @@ int level;
 		k++;
 		pos.j += INTER_RAIL_STEPS;
 	}
-	// printf("\n");
+	
 
 	k--;
-	score = dorsal->score = _panels[k].score;
+	if (k>=0)
+		score = dorsal->score = _panels[k].score;
 
 	num_panels = 0;
 	while(k>=0 && score>0) {
@@ -453,8 +454,8 @@ int rows;
 	alloc->dorsals = score[k-1].dorsal;
 
 	return score[k-1].score;
-
 }
+
 
 uint32_t search_offset(allocation_t* alloc)
 {
@@ -466,7 +467,6 @@ double gap = 0;
 	rows = alloc->wall_grid.rows;
 	alloc->panels = NULL;
 	offset = (point_t){box->xmin, box->ymin};
-
 
 	for(int k=0; k<NUM_OFFSETS; k++) {
 		alloc->offset = offset;
@@ -638,6 +638,7 @@ point_t point;
 
 	pnls_sel = (upright_score > flat_score) ?
 		panels_upright:panels_flat;
+
 
 	return pnls_sel; 
 }

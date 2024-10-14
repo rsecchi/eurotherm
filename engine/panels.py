@@ -1,4 +1,7 @@
 from ctypes import Structure, POINTER, c_double, c_int
+from math import cos, pi, sin
+
+from ezdxf.entities.insert import Insert
 
 from settings import Config
 
@@ -7,32 +10,37 @@ panel_map = {
 
 	"full": {
 		"width_cm":  200,
-		"heigth_cm": 120,
-		"area_m2":   2.4
+		"height_cm": 120,
+		"area_m2":   2.4,
+		"tracks":    5
 	}, 
 
 	"lux": {
 		"width_cm":  200,
-		"heigth_cm": 120,
-		"area_m2":   2.4
+		"height_cm": 120,
+		"area_m2":   2.4,
+		"tracks":    5
 	}, 
 
 	"split": { 
 		"width_cm": 200,
-		"heigth_cm": 60,
-		"area_m2":  1.2
+		"height_cm": 60,
+		"area_m2":  1.2,
+		"tracks":    5
 	},
 
 	"half": {
 		"width_cm":  100,
-		"heigth_cm": 120,
-		"area_m2":   1.2
+		"height_cm": 120,
+		"area_m2":   1.2,
+		"tracks":    3
 	}, 
 
 	"quarter": {
 		"width_cm":  100,
-		"heigth_cm":  60,
-		"area_m2":   0.6
+		"height_cm":  60,
+		"area_m2":   0.6,
+		"tracks":    3
 	}, 
 }
 
@@ -98,7 +106,7 @@ class Panel:
 		self.type = panel.contents.type
 		self.name = name = panel_names[self.type]
 		self.width = panel_map[name]["width_cm"]
-		self.height = panel_map[name]["heigth_cm"]
+		self.height = panel_map[name]["height_cm"]
 		self.area_m2 = panel_map[name]["area_m2"]
 
 		if self.rot == 0 or self.rot == 3:
@@ -121,6 +129,13 @@ class Panel:
 		xn = x*rot[0] + y*rot[1] + x0
 		yn = x*rot[2] + y*rot[3] + y0
 		return (xn, yn)
+
+
+	@classmethod 
+	def versor(cls, insert: Insert):
+		attribs = insert.dxfattribs()
+		angle = attribs['rotation']
+		return cos(pi*angle/180), sin(pi*angle/180)
 
 
 	def polyline(self) -> list[tuple[float,float]]:

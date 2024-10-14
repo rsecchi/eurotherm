@@ -1,7 +1,9 @@
+from math import pi, cos, sin
 from ezdxf.addons.importer import Importer 
+from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
-from engine.panels import panel_names
+from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
 from model import Model, Room
@@ -14,7 +16,28 @@ from settings import leo_icons
 from reference_frame import dist
 
 dxf_version = "AC1032"
-from geometry import Picture, extend_pipes, norm, xprod
+from geometry import Picture, extend_pipes, norm, trim_segment_by_poly, xprod
+from geometry import poly_t
+
+
+def panel_tracks(panel: Insert):
+
+	attribs = panel.dxfattribs()
+	angle = attribs['rotation']
+	name = attribs['name']
+	scale = attribs['xscale']/10
+	ptype = Config.panel_catalog()[name]['type']
+	x, y, _ = attribs['insert']
+	tracks = panel_map[ptype]['tracks']
+
+	ux, uy = cos(pi*angle/180), sin(pi*angle/180)
+	base = x*ux + y*uy
+	step = Config.inter_track/scale
+	coords: list[float] = []
+	for i in range(tracks):
+		coords.append(base - i*step)
+
+	return coords
 
 
 class DxfDrawing:
@@ -79,7 +102,7 @@ class DxfDrawing:
 		self.new_layer(Config.layer_lux, 0)
 		self.new_layer(Config.layer_probes, 0)
 		self.new_layer(Config.layer_joints, 0)
-		self.new_layer(Config.layer_struct, 0)
+		self.new_layer(Config.layer_struct, Config.color_tracks)
 
 		self.doc.layers.get(Config.layer_lux).off()
 		self.doc.layers.get(Config.layer_struct).off()
@@ -422,7 +445,90 @@ class DxfDrawing:
 
 
 	def draw_structure(self, room: Room):
-		...
+
+		panels = self.doc.query('*[layer=="%s"]' % Config.layer_panel)
+		scale = room.frame.scale
+		step = Config.inter_track/scale
+
+		room_panels: list[Insert] = []
+		for panel in panels:
+			if not isinstance(panel, Insert):
+				continue
+			attribs = panel.dxfattribs()
+			panelx, panely, _ = attribs["insert"]
+			if room.is_point_inside((panelx, panely)):
+				room_panels.append(panel)
+
+		if not room_panels:
+			return
+
+		# Derive main axes
+		u = ux, uy = Panel.versor(room_panels[0])
+		vx, vy = -uy, ux
+
+		ucoords: list[float] = []
+		for panel in room_panels:
+			ucoords.extend(panel_tracks(panel))
+		ucoords.sort()
+
+		ux_min = min([xprod(p, u) for p in room.points])
+		ux_max = max([xprod(p, u) for p in room.points])
+
+		# lateral tracks
+		lcoords = []
+		rcoords = []
+		step = Config.extra_track/scale
+		lgap = ucoords[0] - ux_min
+		print("left", room.pindex, lgap, step)
+		if lgap>step:
+			ltracks = int(lgap/step)
+			incr = lgap/(ltracks+1)
+			lcoords = [ux_min + i*incr for i in range(1,ltracks+1)]
+	
+		rgap = ux_max - ucoords[-1]
+		print("right", room.pindex, rgap, step)
+		if rgap>step:
+			rtracks = int(rgap/step)
+			incr = lgap/(rtracks+1)
+			rcoords = [ucoords[-1] + i*incr for i in range(1,rtracks+1)]
+		
+		ucoords = lcoords + ucoords + rcoords
+
+
+		# remove duplicates and intermediate tracks
+		pcoords: list[float] = []
+		prev = min(ucoords) - 10/scale
+		for ucoord in ucoords:
+			gap = ucoord - prev
+			if gap < 1/scale:
+				continue
+
+			if gap > step:
+				incr = gap/(int(gap/step) + 1)
+				offset = prev + incr
+				while offset < ucoord:
+					pcoords.append(offset)
+					offset += incr
+
+			pcoords.append(ucoord)
+			prev = ucoord
+
+
+		# trim tracks
+		tracks: poly_t = []
+		for ucoord in pcoords:
+			posx = ux*ucoord
+			posy = uy*ucoord
+			vect = [(posx, posy), (posx-vx, posy-vy)]
+			seg_list = trim_segment_by_poly(room.points, vect)
+			for seg in seg_list:
+				tracks.append(seg)
+
+		for track in tracks:
+			line = self.msp.add_lwpolyline(track)
+			line.dxf.layer = Config.layer_struct
+			line.dxf.const_width = Config.track_thick_mm/scale
+			
 
 	def draw_room(self, room: Room):
 
@@ -435,7 +541,7 @@ class DxfDrawing:
 		self.draw_lines(room)
 		# self.draw_airlines(room)
 		self.draw_passive(room)
-		self.draw_structure(room)
+
 
 	def draw_model(self):
 
@@ -448,6 +554,9 @@ class DxfDrawing:
 		self.picture.draw(self.model.outfile[:-4]+".png")
 
 		self.draw_collector()
+		
+		for room in self.model.processed:
+			self.draw_structure(room)
 
 
 	def draw_passive(self, room: Room):

@@ -67,5 +67,4 @@ class Bill:
 		filename = self.model.outfile[:-3] + "dat"
 		with open(filename, "w") as file:
 			file.write(self.text)
-		print(self.text)
 

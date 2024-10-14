@@ -60,6 +60,29 @@ def line_cross(line0, line1):
 	return (b0x + s*(b1x-b0x), b0y + s*(b1y-b0y))
 
 
+def find_intersect(line0, vect):
+
+	a0x = line0[0][0]
+	a0y = line0[0][1]
+	a1x = line0[1][0]
+	a1y = line0[1][1]
+	b0x = vect[0][0]
+	b0y = vect[0][1]
+	b1x = vect[1][0]
+	b1y = vect[1][1]
+
+	delta  = -(a1x-a0x)*(b1y-b0y)+(b1x-b0x)*(a1y-a0y)
+	if delta==0:
+		return None
+
+	deltat = -(b0x-a0x)*(b1y-b0y)+(b1x-b0x)*(b0y-a0y)
+	t = deltat/delta
+
+	if not (0<=t and t<=1):
+		return None
+
+	return (a0x + t*(a1x-a0x), a0y + t*(a1y-a0y))
+
 
 def meeting_point(line0, line1):
 
@@ -263,7 +286,7 @@ def trim_segment_by_poly(poly, seg):
 	crss = list()
 	for i in range(len(poly)-1):
 		line = (poly[i], poly[i+1])
-		r = line_cross(line, seg)
+		r = find_intersect(line, seg)
 		if r:
 			d = dist(seg[0], r)
 			crss.append([d, r])

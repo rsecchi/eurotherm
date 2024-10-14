@@ -18,6 +18,13 @@ def dist(point1, point2):
 	return sqrt(dx*dx+dy*dy)
 	
 
+def versor(point1, point2):
+	dx = point1[0] - point2[0]
+	dy = point1[1] - point2[1]
+	size = sqrt(dx*dx+dy*dy)
+	return (dx/size, dy/size)
+	
+
 class Outline:
 	def __init__(self):
 		self.points = list()
