@@ -342,6 +342,9 @@ class Config:
 	extra_track = 60
 	track_thick_mm = 5
 
+	search_step = 5
+	size_smartp_icon = 10
+
 	_handlers = dict() 
 
 	@classmethod

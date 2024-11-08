@@ -1,8 +1,11 @@
-from math import pi, cos, sin
+from math import floor, pi, cos, sin
+from types import SimpleNamespace
 from ezdxf.addons.importer import Importer 
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from numpy import isin
+from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -13,10 +16,10 @@ from settings import Config
 from settings import debug
 from settings import leo_types 
 from settings import leo_icons
-from reference_frame import dist
+from reference_frame import adv, diff, dist, mul, versor
 
 dxf_version = "AC1032"
-from geometry import Picture, extend_pipes, norm, trim_segment_by_poly, xprod
+from geometry import Picture, extend_pipes, norm, trim, trim_segment_by_poly, xprod
 from geometry import poly_t
 
 
@@ -442,6 +445,68 @@ class DxfDrawing:
 
 			for dorsal in line.dorsals:
 				self.draw_dorsal(room, dorsal)
+ 
+
+	def draw_probes(self, room: Room):
+
+		if not isinstance(room.collector, Room):
+			return
+
+		scale = room.frame.scale
+		step = Config.search_step/scale
+
+		col = room.collector.pos
+		u = versor(col, room.pos)
+		v = -u[1], u[0]
+		ux  = [xprod(diff(col,p), u) for p in room.points]
+
+		ux_min = min(ux)
+		ux_max = max(ux)
+
+		coord = ux_min
+		while coord<ux_max:
+			p = adv(mul(coord, u), col)
+			coord += step
+
+			segs = trim_segment_by_poly(room.points, [p, adv(p,v)])
+			for seg in segs:
+				ss = versor(seg[1], seg[0])
+				d = dist(seg[0], seg[1]) - step
+				sd = adv(mul(d,ss), seg[0])
+				while d>0:
+					sd = adv(mul(d,ss), seg[0])
+					d -= step
+					bsize = Config.size_smartp_icon/scale
+					box = SimpleNamespace(points = 
+						   [(sd[0] + bsize, sd[1] + bsize),
+					        (sd[0] + bsize, sd[1] - bsize),
+					        (sd[0] - bsize, sd[1] - bsize),
+					        (sd[0] - bsize, sd[1] + bsize),
+					        (sd[0] + bsize, sd[1] + bsize)])
+
+					if not room.embeds(box):
+						continue
+
+					flag = True
+					for obs in room.obstacles:
+						if obs.contains(box):
+							flag = False
+							break
+
+					if flag:
+						self.msp.add_lwpolyline(box.points)
+						block = self.msp.add_blockref(
+							leo_icons["probe_T"]["name"],
+							sd,
+							dxfattribs={
+								'xscale': 0.1/scale,
+								'yscale': 0.1/scale,
+								'rotation': 0 
+							}
+						)
+
+						block.dxf.layer = Config.layer_probes
+						return
 
 
 	def draw_structure(self, room: Room):
@@ -540,6 +605,12 @@ class DxfDrawing:
 		# self.draw_airlines(room)
 		self.draw_passive(room)
 
+		frame = room.frame
+		for panel in room.panels:
+			contour = frame.real_coord(panel.contour())
+			panel_obs = Room(contour, None)
+			room.obstacles.append(panel_obs)
+
 
 	def draw_model(self):
 
@@ -555,6 +626,7 @@ class DxfDrawing:
 		
 		for room in self.model.processed:
 			self.draw_structure(room)
+			self.draw_probes(room)
 
 
 	def draw_passive(self, room: Room):

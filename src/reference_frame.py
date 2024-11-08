@@ -25,6 +25,22 @@ def versor(point1, point2):
 	return (dx/size, dy/size)
 	
 
+def adv(p1, p2):
+	return p1[0]+p2[0], p1[1]+p2[1]
+
+
+def diff(p1, p2):
+	return p2[0]-p1[0], p2[1]-p1[1]
+
+
+def mul(val, point):
+	return val*point[0], val*point[1]
+
+
+def neg(p1):
+	return -p1[0], -p1[1]
+
+
 class Outline:
 	def __init__(self):
 		self.points = list()

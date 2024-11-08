@@ -1,4 +1,6 @@
 from typing import Optional
+
+from ezdxf.entities.lwpolyline import LWPolyline
 from engine.panels import panel_map
 from lines import Panel, LinesManager
 
@@ -197,12 +199,16 @@ class Room:
 		self.boxes = list()
 		self.coord = list()
 
-		self.points = list(poly.vertices())	
+		if type(poly) == LWPolyline:
+			self.points = list(poly.vertices())	
+		else:
+			self.points = poly
+
 		self.frame = ReferenceFrame(self)
 
 		# Add a final point to closed polylines
 		p = self.points
-		if (poly.is_closed):
+		if (type(poly) == LWPolyline and poly.is_closed):
 			self.points.append((p[0][0], p[0][1]))
 
 		# Check if the polyine is open with large final gap
@@ -235,7 +241,11 @@ class Room:
 		self.feeds = 0
 		self.flow = 0.0
 
-		self.color = poly.dxf.color
+		if type(poly) == LWPolyline:
+			self.color = poly.dxf.color
+		else:
+			self.color = Config.color_obstacle
+
 		# self.arrangement = PanelArrangement(self)
 		self.panels: list[Panel] = list()
 		self.lines_manager = LinesManager()
@@ -352,6 +362,13 @@ class Room:
 
 		return (ints % 2 == 1)
 
+
+	def embeds(self, room):
+		for point in room.points:
+			if (not self.is_point_inside(point)):
+				return False
+
+		return True
 
 
 	def contains(self, room):
