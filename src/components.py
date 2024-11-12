@@ -40,9 +40,9 @@ class Components:
 
 	def get_lines(self):
 		for room in self.model.processed:
-
-			room.lines_manager.get_dorsals(room.panels)
-			room.lines_manager.get_lines()
+			ptype = self.model.data["ptype"]
+			room.lines_manager.get_dorsals(room.panels, ptype)
+			room.lines_manager.get_lines(ptype)
 
 
 	def get_components(self):

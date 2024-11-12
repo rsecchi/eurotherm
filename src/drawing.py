@@ -1,11 +1,9 @@
-from math import floor, pi, cos, sin
+from math import  pi, cos, sin
 from types import SimpleNamespace
 from ezdxf.addons.importer import Importer 
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
-from numpy import isin
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -19,16 +17,15 @@ from settings import leo_icons
 from reference_frame import adv, diff, dist, mul, versor
 
 dxf_version = "AC1032"
-from geometry import Picture, extend_pipes, norm, trim, trim_segment_by_poly, xprod
+from geometry import Picture, extend_pipes, norm, trim_segment_by_poly, xprod
 from geometry import poly_t
 
 
-def panel_tracks(panel: Insert):
+def panel_tracks(panel: Insert, scale: float) -> list[float]:
 
 	attribs = panel.dxfattribs()
 	angle = attribs['rotation']
 	name = attribs['name']
-	scale = attribs['xscale']/10
 	ptype = Config.panel_catalog()[name]['type']
 	x, y, _ = attribs['insert']
 	tracks = panel_map[ptype]['tracks']
@@ -470,6 +467,8 @@ class DxfDrawing:
 
 			segs = trim_segment_by_poly(room.points, [p, adv(p,v)])
 			for seg in segs:
+				if dist(seg[0], seg[1]) < step:
+					continue
 				ss = versor(seg[1], seg[0])
 				d = dist(seg[0], seg[1]) - step
 				sd = adv(mul(d,ss), seg[0])
@@ -499,8 +498,8 @@ class DxfDrawing:
 							leo_icons["probe_T"]["name"],
 							sd,
 							dxfattribs={
-								'xscale': 0.1/scale,
-								'yscale': 0.1/scale,
+								'xscale': 0.05/scale,
+								'yscale': 0.05/scale,
 								'rotation': 0 
 							}
 						)
@@ -533,7 +532,7 @@ class DxfDrawing:
 
 		ucoords: list[float] = []
 		for panel in room_panels:
-			ucoords.extend(panel_tracks(panel))
+			ucoords.extend(panel_tracks(panel, scale))
 		ucoords.sort()
 
 		ux_min = min([xprod(p, u) for p in room.points])
@@ -584,6 +583,7 @@ class DxfDrawing:
 			posy = uy*ucoord
 			vect = [(posx, posy), (posx-vx, posy-vy)]
 			seg_list = trim_segment_by_poly(room.points, vect)
+
 			for seg in seg_list:
 				tracks.append(seg)
 

@@ -2,6 +2,7 @@ from typing import Tuple
 from planner import Panel
 from settings import Config, dist, MAX_DIST
 from geometry import trim, poly_t
+from settings import leo_types
 
 class Dorsal:
 	def __init__(self):
@@ -157,17 +158,20 @@ class LinesManager():
 		self.num_lines = 0
 		self.pipe_length = 0.
 		self.lines: list[Line] = []
+		self.line_coverage_m2: float = Config.line_coverage_m2
 
 
 	def append(self, line: Line):
 		self.lines.append(line)
 
 
-	def get_dorsals(self, panels: list[Panel]):
+	def get_dorsals(self, panels: list[Panel], ptype: str):
 
 		self.panels = panels
 		if panels == []:
 			return
+
+		self.line_coverage_m2 = 2.4 * leo_types[ptype]["panels"] + 0.01
 
 		dorsal_row = 0
 		dorsal = Dorsal()
@@ -176,7 +180,7 @@ class LinesManager():
 		for panel in panels:
 
 			if (panel.dorsal_row != dorsal_row or
-			   dorsal.area_m2 + panel.area_m2 > Config.line_coverage_m2):
+			   dorsal.area_m2 + panel.area_m2 > self.line_coverage_m2):
 				dorsal = Dorsal()
 			
 				if (dorsal_row == panel.dorsal_row):
@@ -280,7 +284,7 @@ class LinesManager():
 				else:
 					others.append(l[j+1])
 
-			if area_m2 > Config.line_coverage_m2:
+			if area_m2 > self.line_coverage_m2:
 				continue
 
 			if others == []:
@@ -330,10 +334,12 @@ class LinesManager():
 					dorsal.indent_side = (dorsal.side[1], prev_level)
 					
 
-	def get_lines(self):
+	def get_lines(self, ptype: str):
 
 		if self.dorsals==[]:
 			return
+
+		self.line_coverage_m2 = 2.4 * leo_types[ptype]["panels"] + 0.01
 
 		self.num_lines = len(self.dorsals) + 1 
 		self.pipe_length = MAX_DIST
