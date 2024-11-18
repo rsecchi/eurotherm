@@ -9,6 +9,7 @@ from model import Model
 from settings import Config, panel_sizes
 from geometry import dist
 import settings
+from model import Room
 
 
 def point_in_box(pos: tuple, box: tuple) -> bool:
@@ -202,11 +203,31 @@ class Components:
 			self.num_lines += count//2
 
 
+	def count_lines(self, doc:Drawing):
+	
+		print("Counting lines")
+		msp = doc.modelspace()
+		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
+
+		for room in self.model.processed:
+			if not isinstance(room.collector, Room):
+				continue
+			print("Room %d" % room.pindex, len(polylines))
+			for poly in polylines:
+				if not isinstance(poly, lwpolyline.LWPolyline):
+					continue
+				print(list(poly.vertices()))
+				
+				
+
+
+
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
 		self.count_fittings(doc)
 		self.size_collectors(doc)
 		self.count_probes(doc)
+		#self.count_lines(doc)
 
 
 
