@@ -4,6 +4,7 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -14,12 +15,15 @@ from settings import Config
 from settings import debug
 from settings import leo_types 
 from settings import leo_icons
+from geometry import point_t
 from reference_frame import adv, diff, dist, mul, versor
 
 dxf_version = "AC1032"
 from geometry import Picture, extend_pipes, norm, trim_segment_by_poly, xprod
 from geometry import poly_t
 
+
+MAX_DIST  = 1e20
 
 def panel_tracks(panel: Insert, scale: float) -> list[float]:
 
@@ -108,8 +112,8 @@ class DxfDrawing:
 		self.doc.layers.get(Config.layer_struct).off()
 
 
-	def write_text(self, message, position, 
-		align=const.MTEXT_MIDDLE_CENTER, 
+	def write_text(self, message:str, position: tuple[float, float],
+				align: int=const.MTEXT_MIDDLE_CENTER, 
 		zoom=1., col=Config.color_text,
 		layer=Config.layer_text):
 		
@@ -137,6 +141,45 @@ class DxfDrawing:
 		pline.dxf.layer = Config.layer_error
 		poly = self.msp.add_lwpolyline(yaxis)
 		poly.dxf.layer = Config.layer_error
+
+
+	def draw_zones(self):
+
+		scale = self.model.scale
+
+		# Box zones
+		for clt in self.model.collectors:
+			if (not clt.is_leader):
+				continue
+
+			# Box zones
+			if not clt.user_zone:
+				margin = 2*Config.min_dist/scale
+				ax = min([c.ax for c in clt.zone_rooms]) - margin
+				ay = min([c.ay for c in clt.zone_rooms]) - margin
+				bx = max([c.bx for c in clt.zone_rooms]) + margin
+				by = max([c.by for c in clt.zone_rooms]) + margin
+			
+				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
+				pl = self.msp.add_lwpolyline(pline)
+				pl.dxf.layer = Config.layer_text
+				pl.dxf.color = Config.color_zone
+				pl.dxf.linetype = 'CONTINUOUS'
+			else:
+				ax = -MAX_DIST
+				by = -MAX_DIST
+
+				for p in clt.user_zone.poly:
+					if p[1] > by or (p[1] == by and p[0] < ax):
+						ax = p[0]; by = p[1]
+
+			self.write_text("Zone %d" % clt.zone_num, 
+			  (ax, Config.min_dist+by), 
+				const.MTEXT_BOTTOM_LEFT, zoom=1.0/scale)
+
+
+			# if not clt.user_zone:
+			# 	self.zone_bb.append([ax,ay,bx,by])
 
 
 	def draw_airlines(self, room: Room):
@@ -225,11 +268,11 @@ class DxfDrawing:
 
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
-		block.dxf.layer = Config.layer_link
+		block.dxf.layer = Config.layer_fittings
 
 
 	def draw_panel_links(self, room: Room, dorsal: Dorsal):
@@ -260,12 +303,12 @@ class DxfDrawing:
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
-			block.dxf.layer = Config.layer_link
+			block.dxf.layer = Config.layer_fittings
 
 			pos = dorsal.dorsal_to_local(ofs_blue, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
-			block.dxf.layer = Config.layer_link
+			block.dxf.layer = Config.layer_fittings
 
 
 	def draw_tlink(self, room: Room, dorsal: Dorsal):
@@ -442,19 +485,18 @@ class DxfDrawing:
 
 			for dorsal in line.dorsals:
 				self.draw_dorsal(room, dorsal)
- 
 
-	def draw_probes(self, room: Room):
 
-		if not isinstance(room.collector, Room):
-			return
+	def find_free_box(self, room: Room, u: point_t) -> point_t:
 
 		scale = room.frame.scale
 		step = Config.search_step/scale
 
-		col = room.collector.pos
-		u = versor(col, room.pos)
+		if not isinstance(room.collector, Room):
+			return (0,0)
+
 		v = -u[1], u[0]
+		col = room.collector.pos
 		ux  = [xprod(diff(col,p), u) for p in room.points]
 
 		ux_min = min(ux)
@@ -494,18 +536,40 @@ class DxfDrawing:
 
 					if flag:
 						self.msp.add_lwpolyline(box.points)
-						block = self.msp.add_blockref(
-							leo_icons["probe_T"]["name"],
-							sd,
-							dxfattribs={
-								'xscale': 0.05/scale,
-								'yscale': 0.05/scale,
-								'rotation': 0 
-							}
-						)
+						return sd
 
-						block.dxf.layer = Config.layer_probes
-						return
+		return (0,0)
+
+
+
+	def draw_probes(self, room: Room):
+
+		if not isinstance(room.collector, Room):
+			return
+
+		scale = room.frame.scale
+		col = room.collector.pos
+		vers = versor(col, room.pos)
+
+		pos = self.find_free_box(room, vers)
+
+		if (room.color == Config.color_bathroom  and 
+			  room.area_m2() >= Config.min_area_probe_th_m2):
+			icon = leo_icons["probe_TH"]["name"]
+		else:
+			icon = leo_icons["probe_T"]["name"]
+
+		block = self.msp.add_blockref(
+				icon,
+				pos,
+				dxfattribs={
+					'xscale': 0.05/scale,
+					'yscale': 0.05/scale,
+					'rotation': 0 
+					}
+				)
+
+		block.dxf.layer = Config.layer_probes
 
 
 	def draw_structure(self, room: Room):
@@ -613,6 +677,8 @@ class DxfDrawing:
 
 
 	def draw_model(self):
+
+		self.draw_zones()
 
 		for room in self.model.processed:
 			# self.draw_coord_system(room)

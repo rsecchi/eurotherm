@@ -619,6 +619,7 @@ class Model():
 
 
 	def create_zones(self):
+		print("Creating zones")
 
 		# create trees
 		self.find_gates()
@@ -693,7 +694,7 @@ class Model():
 
 			if (i+1 < len(room.links)):
 				del room.links[i:]
-
+		
 		return True
 
 

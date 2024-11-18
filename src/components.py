@@ -1,3 +1,4 @@
+from math import ceil
 from ezdxf.entities import lwpolyline
 from ezdxf.entities.mtext import MText
 from engine.panels import panel_map
@@ -9,6 +10,13 @@ from settings import Config, panel_sizes
 from geometry import dist
 import settings
 
+
+def point_in_box(pos: tuple, box: tuple) -> bool:
+	x, y = pos
+	x0, y0, x1, y1 = box
+	return x0 <= x <= x1 and y0 <= y <= y1
+
+
 class Components:
 	
 	def __init__(self, model: Model):
@@ -19,6 +27,13 @@ class Components:
 		self.panel_record = dict()
 		self.fittings = dict()
 		self.room_icons = dict()
+		self.collectors = list()
+		self.probes = list()
+		self.num_lines = 0
+		self.num_probes_t = 0
+		self.num_probes_th = 0
+		self.smartbases = 0
+		self.smartcomforts = 0
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
@@ -121,6 +136,44 @@ class Components:
 
 				self.room_icons[index][name] += 1
 
+	def count_probes(self, doc: Drawing):
+
+		msp = doc.modelspace() 		
+		probes = msp.query(f'INSERT[layer=="{Config.layer_probes}"]')
+		for probe in probes:
+			x, y, _ = probe.dxf.insert
+			pos = x, y
+			self.probes.append(pos)
+
+			if probe.dxf.name == settings.leo_icons["probe_T"]["name"]:
+				self.num_probes_t += 1
+
+			if probe.dxf.name == settings.leo_icons["probe_TH"]["name"]:
+				self.num_probes_th += 1
+
+
+		zones = msp.query(f'LWPOLYLINE[layer=="{Config.layer_text}"]')
+
+		for zone in zones:
+			if not isinstance(zone, lwpolyline.LWPolyline):
+				continue
+
+			# determine the bounding box of the zone polyline
+			polyline = list(zone.vertices())
+			x0, y0 = polyline[0]
+			x1, y1 = polyline[2]
+			bbox = (x0, y0, x1, y1)	
+
+			probes_in_zone = 0
+			for probe in self.probes:
+				if point_in_box(probe, bbox):
+					probes_in_zone += 1
+	
+			smartbases = ceil(probes_in_zone/8)
+			self.smartbases += ceil(smartbases)
+			self.smartcomforts += ceil(smartbases/8)
+			
+
 
 	def size_collectors(self, doc:Drawing):
 
@@ -145,12 +198,15 @@ class Components:
 					count += 1
 
 			tags.text += " (%d+%d)" % (count//2, count//2)
+			self.collectors.append(count//2)
+			self.num_lines += count//2
 
 
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
 		self.count_fittings(doc)
 		self.size_collectors(doc)
+		self.count_probes(doc)
 
 
 

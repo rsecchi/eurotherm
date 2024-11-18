@@ -258,6 +258,7 @@ class Config:
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
 	font_size = 10 
 	line_coverage_m2 = 12.001 
+	min_dist = 10
 
 	layer_text      = 'Eurotherm_text'
 	layer_box       = 'Eurotherm_box'
@@ -344,6 +345,8 @@ class Config:
 
 	search_step = 5
 	size_smartp_icon = 10
+
+	min_area_probe_th_m2 = 9.0
 
 	_handlers = dict() 
 
