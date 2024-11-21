@@ -4,7 +4,6 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -121,7 +120,7 @@ class DxfDrawing:
 			dxfattribs={"style": "Arial"})
 		text.dxf.insert = position
 		text.dxf.attachment_point = align
-		text.dxf.char_height = (Config.font_size)*zoom
+		text.dxf.char_height = Config.font_size/self.model.scale
 		text.dxf.layer = layer
 		text.dxf.color = col
 

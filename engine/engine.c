@@ -384,6 +384,9 @@ int rows;
 	trial.offset_col = alloc->offset_col;
 	rows = alloc->wall_grid.rows;
 
+	if (HD_STEPS>=rows) 
+		return 0;
+
 	while(k < rows) {
 
 		kp[NARROW] = k - HD_STEPS;

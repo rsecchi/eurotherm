@@ -60,6 +60,7 @@ class App:
 			self.dxf.draw_model()
 			self.dxf.save()
 
+
 		# count components and save
 		self.components.count_components(self.dxf.doc)
 		self.dxf.save()
