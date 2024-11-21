@@ -1194,7 +1194,8 @@ class Model():
 
 			obs_area_tot = 0
 			for obs in room.obstacles:
-				obs_area_tot += obs.area * self.scale * self.scale
+				if obs.color == Config.color_neutral:
+					obs_area_tot += obs.area * self.scale * self.scale
 			area = self.scale * self.scale * room.area - obs_area_tot
 
 			room.feeds_eff = ceil(area/self.area_per_feed_m2*target_eff)
