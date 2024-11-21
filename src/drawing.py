@@ -120,7 +120,7 @@ class DxfDrawing:
 			dxfattribs={"style": "Arial"})
 		text.dxf.insert = position
 		text.dxf.attachment_point = align
-		text.dxf.char_height = Config.font_size/self.model.scale
+		text.dxf.char_height = Config.font_size/self.model.scale*zoom
 		text.dxf.layer = layer
 		text.dxf.color = col
 
@@ -173,8 +173,8 @@ class DxfDrawing:
 						ax = p[0]; by = p[1]
 
 			self.write_text("Zone %d" % clt.zone_num, 
-			  (ax, Config.min_dist+by), 
-				const.MTEXT_BOTTOM_LEFT, zoom=1.0/scale)
+			  (ax, by + Config.min_dist/scale), 
+				const.MTEXT_BOTTOM_LEFT, zoom=0.6)
 
 
 			# if not clt.user_zone:
@@ -212,7 +212,7 @@ class DxfDrawing:
 
 			block.dxf.layer = Config.layer_collector
 			self.write_text("%s" % collector.name, 
-				   collector.pos, zoom=0.6/scale, 
+				   collector.pos, zoom=0.6, 
 				   layer=Config.layer_collector)
 
 
@@ -751,8 +751,7 @@ class DxfDrawing:
 
 	def draw_room(self, room: Room):
 
-		size = 2/room.frame.scale
-		self.write_text("Locale %d" % room.pindex, room.pos, zoom=size)
+		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
 		for panel in room.panels:
 			self.draw_panel(room, panel)
