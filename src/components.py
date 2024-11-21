@@ -1,4 +1,5 @@
 from math import ceil
+from typing import Dict, List
 from ezdxf.entities import lwpolyline
 from ezdxf.entities.mtext import MText
 from engine.panels import panel_map
@@ -28,7 +29,7 @@ class Components:
 		self.panel_record = dict()
 		self.fittings = dict()
 		self.room_icons = dict()
-		self.collectors = list()
+		self.collectors: List[Dict[str, str|int]] = []
 		self.probes = list()
 		self.num_lines = 0
 		self.num_probes_t = 0
@@ -173,7 +174,6 @@ class Components:
 			smartbases = ceil(probes_in_zone/8)
 			self.smartbases += ceil(smartbases)
 			self.smartcomforts += ceil(smartbases/8)
-			
 
 
 	def size_collectors(self, doc:Drawing):
@@ -199,27 +199,32 @@ class Components:
 					count += 1
 
 			tags.text += " (%d+%d)" % (count//2, count//2)
-			self.collectors.append(count//2)
+			self.collectors.append(
+					{"name": tags.text,
+					 "count": count//2})
+
 			self.num_lines += count//2
 
 
-	def count_lines(self, doc:Drawing):
+	def count_lines_from_room(self, doc:Drawing):
 	
-		print("Counting lines")
 		msp = doc.modelspace()
 		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
 
 		for room in self.model.processed:
 			if not isinstance(room.collector, Room):
 				continue
-			print("Room %d" % room.pindex, len(polylines))
+
+			count = 0
 			for poly in polylines:
 				if not isinstance(poly, lwpolyline.LWPolyline):
 					continue
-				print(list(poly.vertices()))
-				
-				
+				points = list(poly.vertices())
+			
+				if room.is_point_inside(points[0]):
+					count += 1
 
+			room.total_lines += count//2
 
 
 	def count_components(self, doc:Drawing):
@@ -227,7 +232,7 @@ class Components:
 		self.count_fittings(doc)
 		self.size_collectors(doc)
 		self.count_probes(doc)
-		#self.count_lines(doc)
+		self.count_lines_from_room(doc)
 
 
 

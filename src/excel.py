@@ -1,5 +1,4 @@
 import openpyxl
-import os
 from components import Components
 from settings import Config
 from openpyxl.styles.borders import Border, Side
@@ -187,7 +186,7 @@ class XlsDocument:
 
 				pos = 'G' + str(index)
 				ws[pos] = room.total_lines
-
+					
 				if (room.panel_record["full_classic"] +
 					room.panel_record["lux_classic"] +
 					room.panel_record["full_hydro"]   +

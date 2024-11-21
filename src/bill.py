@@ -95,10 +95,12 @@ class Bill:
 			code = catalog[name]["code"]
 			self.nav_item(quantity, code, name)
 
+
 	def collectors_bill(self):
 
 		tot_adpt = 0
-		count = Counter(self.components.collectors)
+		sizes = [int(clt["count"]) for clt in self.components.collectors]
+		count = Counter(sizes)
 		for size, qnt in count.items():
 			tot_adpt += qnt*size
 			code = '41200101%02d' % size

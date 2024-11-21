@@ -297,8 +297,19 @@ class DxfDrawing:
 		for i, _ in enumerate(dorsal.panels[1:]):
 			a = dorsal.panels[i+1].front_corner
 			b = dorsal.panels[i].rear_corner
+
 			if dist(a,b) > 1:
-				continue
+				self.draw_gap(room, dorsal, a, b)
+
+				pos = dorsal.dorsal_to_local(ofs_red, b)
+				pos = frame.real_from_local(pos)
+				block = self.msp.add_blockref(name, pos, attribs)
+				block.dxf.layer = Config.layer_fittings
+
+				pos = dorsal.dorsal_to_local(ofs_blue, b)
+				pos = frame.real_from_local(pos)
+				block = self.msp.add_blockref(name, pos, attribs)
+				block.dxf.layer = Config.layer_fittings
 
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
@@ -367,6 +378,88 @@ class DxfDrawing:
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_fittings
+
+
+	def draw_gap(self, room: Room, dorsal: Dorsal, a: point_t, b: point_t):
+		frame = room.frame
+
+		# draw pipes
+		if dorsal.reversed:
+			ofs_red  = (-Config.indent_red, Config.offset_red)
+			ofs_blue = (-Config.indent_blue, Config.offset_blue)
+			ofs_red_rev  = (Config.indent_blue, Config.offset_red)
+			ofs_blue_rev = (Config.indent_red, Config.offset_blue)
+		else:
+			ofs_red  = (Config.indent_red, Config.offset_red)
+			ofs_blue = (Config.indent_blue, Config.offset_blue)
+			ofs_red_rev  = (-Config.indent_blue, Config.offset_red)
+			ofs_blue_rev = (-Config.indent_red, Config.offset_blue)
+
+		local_red = dorsal.dorsal_to_local(ofs_red, a)
+		local_blue = dorsal.dorsal_to_local(ofs_blue, a)
+		real_red = frame.real_from_local(local_red)
+		real_blue = frame.real_from_local(local_blue)
+
+		local_red_rev = dorsal.dorsal_to_local(ofs_red_rev, b)
+		local_blue_rev = dorsal.dorsal_to_local(ofs_blue_rev, b)
+		real_red_rev = frame.real_from_local(local_red_rev)
+		real_blue_rev = frame.real_from_local(local_blue_rev)
+
+		pline = self.msp.add_lwpolyline([real_red, real_red_rev])
+		pline.dxf.layer = Config.layer_link
+		pline.dxf.color = Config.color_supply_red
+		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
+
+		pline = self.msp.add_lwpolyline([real_blue,real_blue_rev])
+		pline.dxf.layer = Config.layer_link
+		pline.dxf.color = Config.color_supply_blue
+		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
+
+		# draw nipples
+		if dorsal.reversed:
+			ofs_red = (Config.attach_red_left, Config.offset_red)
+			ofs_blue = (Config.attach_blue_left, Config.offset_blue)
+			ofs_red_rev = (-Config.attach_red_right, Config.offset_red)
+			ofs_blue_rev = (-Config.attach_blue_right, Config.offset_blue)
+		else:
+			ofs_red = (Config.attach_red_right, Config.offset_red)
+			ofs_blue = (Config.attach_blue_right, Config.offset_blue)
+			ofs_red_rev = (-Config.attach_red_left, Config.offset_red)
+			ofs_blue_rev = (-Config.attach_blue_left, Config.offset_blue)
+
+		local_red = dorsal.dorsal_to_local(ofs_red, a)
+		local_blue = dorsal.dorsal_to_local(ofs_blue, a)
+		real_red = frame.real_from_local(local_red)
+		real_blue = frame.real_from_local(local_blue)
+
+		local_red_rev = dorsal.dorsal_to_local(ofs_red_rev, b)
+		local_blue_rev = dorsal.dorsal_to_local(ofs_blue_rev, b)
+		real_red_rev = frame.real_from_local(local_red_rev)
+		real_blue_rev = frame.real_from_local(local_blue_rev)
+
+		name = leo_icons["nipple"]["name"]
+		rot = frame.block_rotation(dorsal.rot)
+		attribs={
+			'xscale': 0.1/room.frame.scale,
+			'yscale': 0.1/room.frame.scale,
+			'rotation': rot + 180*dorsal.upright
+		}
+		block = self.msp.add_blockref(name, real_red, attribs)
+		block.dxf.layer = Config.layer_fittings
+
+		block = self.msp.add_blockref(name, real_blue, attribs)
+		block.dxf.layer = Config.layer_fittings
+
+		attribs={
+			'xscale': 0.1/room.frame.scale,
+			'yscale': 0.1/room.frame.scale,
+			'rotation': rot + 180*(1-dorsal.upright)
+		}
+		block = self.msp.add_blockref(name, real_red_rev, attribs)
+		block.dxf.layer = Config.layer_fittings
+
+		block = self.msp.add_blockref(name, real_blue_rev, attribs)
 		block.dxf.layer = Config.layer_fittings
 
 
