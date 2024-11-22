@@ -87,12 +87,13 @@ else:
 		output[".zip"] = tmp + "output" + ".zip"
 		update_link(basename, ".zip")
 
-	print('<div class="section">')
+	print('<div class="section_dup">')
+
+	print('<div class="file_list">')
 	if lang == "ita":
 		print('<h4>Risultati calcolo tecnico</h4><ul>')
 	else:
 		print('<h4>Results of elaboration</h4><ul>')
-
 
 
 	fname = {}
@@ -109,7 +110,6 @@ else:
 		else:
 			print('\t<li><span>Download file %s</span>' % ftype, end="")
 		print('[<a href="/output/%s" download>%s</a>]</li>' % (ff, ff)) 
-
 	
 
 	print('</ul></div>')
@@ -118,7 +118,7 @@ else:
 	if os.path.exists(output[".png"]):
 		fimage = open(output[".txt"], "r")
 		ff = os.path.basename(os.readlink(output[".png"]))
-		print('<div class="section" >')
+		print('<div class="florplan" >')
 		# <img src="img_girl.jpg" alt="Girl in a jacket">
 		if lang=="ita":
 			print('<h4>Pianta</h4>')
@@ -127,6 +127,8 @@ else:
 		print('<div style="text-align: center;" >')
 		print('<img src="/output/%s" width="500">' % ff) 
 		print("</div></div>")
+
+	print("</div>")
 
 	if os.path.exists(output[".rep"]):
 		fin = open(output[".rep"], "r")

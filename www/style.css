@@ -58,6 +58,13 @@ body {
   gap: 15px;
 }
 
+.container {
+  /* Allinea il secondo div (con i link) al centro */
+  display: flex;
+  padding-left: 0px;
+  margin-left: 0px;
+  gap: 15px;
+}
 
 
 .right {
@@ -149,7 +156,7 @@ h3 {
     text-align: left;
     padding: 20px;
 	width: auto;
-    max-width: 800px; /* You can adjust this value based on your design preferences */
+    max-width: 1000px; /* You can adjust this value based on your design preferences */
     margin: 30px; /* This will center the div horizontally */
     border: 1px solid #ccc; /* Just for demonstration purposes */
 	border-radius: 10px;
@@ -335,3 +342,32 @@ h3 {
     border-color: #6c757d;
     margin-right: 20px;
 }
+
+/* .file_list, .floorplan { */
+/* 	display: flex; */
+/* 	flex-wrap: wrap; */
+/* 	gap: 10px; */
+/* } */
+
+.file_list {
+	width: 60%;
+}
+
+
+.section_dup {
+	display: flex;
+    text-align: left;
+    padding: 20px;
+	width: auto;
+    max-width: 1000px; 
+    margin: 30px; /* This will center the div horizontally */
+    border: 1px solid #ccc; /* Just for demonstration purposes */
+	border-radius: 10px;
+	font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.floorplan {
+	width: 40%;
+	border: 4px solid #ccc;
+}
+

@@ -4,6 +4,7 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -43,6 +44,38 @@ def panel_tracks(panel: Insert, scale: float) -> list[float]:
 	return coords
 
 
+
+class Preview:
+
+	def __init__(self, model: Model):
+		self.model = model
+		self.picture = Picture()
+
+
+	def draw_model(self):
+
+		col = "black"
+		for room in self.model.processed:
+
+			for obs in room.obstacles:
+				self.picture.add(obs.points, color="lightgrey")
+
+			if room.color == Config.color_valid_room:
+				col = "blue"
+			
+			if room.color == Config.color_bathroom:
+				col = "green"
+
+			self.picture.add(room.points, color=col)
+
+
+		self.picture.set_frame()
+
+
+	def save(self):
+		self.picture.draw(self.model.outfile[:-4]+".png")
+
+
 class DxfDrawing:
 
 	def __init__(self, model: Model):
@@ -53,7 +86,6 @@ class DxfDrawing:
 		self.create_layers()
 		self.typology = dict()
 		self.model = model
-		self.picture = Picture()
 
 		self.blocks = {}
 
@@ -774,10 +806,7 @@ class DxfDrawing:
 		for room in self.model.processed:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
-			self.picture.add(room.points)
 
-		self.picture.set_frame()
-		self.picture.draw(self.model.outfile[:-4]+".png")
 
 		self.draw_collector()
 		

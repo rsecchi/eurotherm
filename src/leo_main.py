@@ -7,7 +7,7 @@ import conf
 from model import Model
 from components import Components
 from bill import Bill
-from drawing import DxfDrawing
+from drawing import DxfDrawing, Preview
 from excel import XlsDocument
 from report import Report
 
@@ -42,6 +42,7 @@ class App:
 		self.xls = XlsDocument(self.components)
 		self.report = Report(self.components)
 		self.bill = Bill(self.report)
+		self.preview = Preview(self.model)
 
 		self.dxf.import_floorplan(self.model.input_file)
 		self.dxf.import_blocks(self.data["ptype"])
@@ -59,6 +60,8 @@ class App:
 			self.components.get_components()
 			self.dxf.draw_model()
 			self.dxf.save()
+			self.preview.draw_model()
+			self.preview.save()
 
 
 		# count components and save
