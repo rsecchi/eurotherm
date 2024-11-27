@@ -4,7 +4,6 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -66,8 +65,19 @@ class Preview:
 			if room.color == Config.color_bathroom:
 				col = "green"
 
+			self.picture.text(room.pos, "%d" % room.pindex, color=col)	
 			self.picture.add(room.points, color=col)
 
+		for collector in self.model.collectors:
+			px, py = collector.pos
+			offs = Config.collector_size/2/self.model.scale
+			collector_shape = [(px-offs, py-offs), 
+							  (px+offs, py-offs),
+							  (px+offs, py+offs),
+							  (px-offs, py+offs),
+							  (px-offs, py-offs)]
+					
+			self.picture.add(collector_shape, color="red")
 
 		self.picture.set_frame()
 

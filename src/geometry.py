@@ -1,6 +1,9 @@
 from PIL import Image, ImageDraw
 from math import sqrt
 
+from PIL.ImageFont import ImageFont, truetype
+
+
 MAX_DIST = 1e20
 
 point_t = tuple[float, float]
@@ -385,10 +388,13 @@ class Picture:
 
 	def __init__(self):
 		self.polylines = []
+		self.messages = []
 		self.colors = []
 		w = Picture.width_px
 		h = Picture.height_px
-		self.image = Image.new("RGBA", (w, h), (255, 255, 255, 255))
+		self.image = Image.new("RGBA", (w, h), 255)
+		self.font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+		self.font = truetype(self.font_path, 12)
 		self.drawing = ImageDraw.Draw(self.image)
 		self.xscale = 1.0
 		self.yscale = 1.0
@@ -449,6 +455,11 @@ class Picture:
 		self.yorig = (Picture.height_px-self.xscale*(ymin+ymax))/2
 
 
+	def text(self, point, text, color="black"):
+		self.messages.append({"point": point, 
+						   "text": text,
+					       "color": color})
+
 	def draw(self, filename: str):
 		for i, poly in enumerate(self.polylines):
 			color = self.colors[i]
@@ -460,6 +471,15 @@ class Picture:
 				self.drawing.ellipse(point, fill=color)
 				continue
 			self.drawing.line(dpoly, fill=color, width=1)
+
+		for msg in self.messages:
+			point = self.scale([msg['point']])[0]
+			color = msg["color"]
+			text = msg["text"]
+			width, height = self.drawing.textsize(text)
+			point = (point[0]-width/2, point[1]-height/2)
+			self.drawing.text(point, text, fill=color)
+
 		self.image.save(filename)
 
 

@@ -93,7 +93,6 @@ class Report:
 				 "eng": f"coverage {coverage} m3/h, excess {excess} m3/h"})
 
 		section.close()
-		print(section.text)
 		
 		filesec = self.outfile[:-4] + ".rep"
 		f = open(filesec, "w")
