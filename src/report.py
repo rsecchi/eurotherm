@@ -1,8 +1,9 @@
+from pprint import pprint
 from components import Components
 from settings import Config
 from model import Room
 import conf
-
+from page import Section
 
 
 def print_line(a: int) -> str:
@@ -32,7 +33,7 @@ class Report:
 		self.components = components
 		self.model = components.model
 		data = self.model.data
-		self.outfile = conf.spool + data['outfile'][:-4]+".txt"
+		self.outfile = conf.spool + data['outfile'][:-4] + ".txt"
 		self.text = ""
 		self.perimeter = 0
 
@@ -41,7 +42,66 @@ class Report:
 		self.text = text
 
 
+	def output_section(self):
+
+
+		air_handlers = self.components.air_handlers
+
+		lang = self.model.data['lang']
+		section = Section(lang)
+		section.header( 
+				 {"ita": "Eurotherm consiglia:",
+				  "eng": "Eurotherm recommends:"})
+
+
+		for j, item in enumerate(air_handlers):
+
+			section.paragraph(
+				{"ita": "Zona: %s" % item['zone'],
+				 "eng": "Zone: %s" % item['zone']})
+
+			label = item['air_handler'][j]['type_label']
+			flow = int(air_handlers[j]['coverage'])	
+
+			if item['air_handler'][j]['mount'] == 'V':
+				mount = {"ita": "ad installazione verticale",
+						 "eng": "vertical mounting"}
+			else:
+				mount = {"ita": "ad installazione orizzontale",
+						 "eng": "horizontal mounting"}
+
+			section.paragraph(
+				{"ita": f" {label} {mount['ita']} " + 
+							f"per una portata di {flow} m3/h",
+				 "eng": f" {label} {mount['eng']} " +
+							f"for a flow of {flow} m3/h"})
+
+			for i, qnt in enumerate(item['best_ac']):
+
+				if qnt == 0:
+					continue
+
+				mod = item['air_handler'][i]['model']
+				section.paragraph( "%d x %s" % (qnt, mod))
+
+
+			coverage = int(item['best_flow'])
+			excess = int(item['best_flow'] - item['coverage'])
+
+			section.paragraph(
+				{"ita": f"copertura {coverage} m3/h, eccesso {excess} m3/h",
+				 "eng": f"coverage {coverage} m3/h, excess {excess} m3/h"})
+
+		section.close()
+		print(section.text)
+		
+		filesec = self.outfile[:-4] + ".rep"
+		f = open(filesec, "w")
+		print(section.text, file = f)
+
+
 	def save_report(self):
+		self.output_section()
 		f = open(self.outfile, "w")
 		print(self.text, file = f)
 

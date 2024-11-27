@@ -70,6 +70,7 @@ class App:
 
 		self.xls.save_in_xls()
 
+		self.components.air_handling()
 		self.report.make_report()
 		self.report.save_report()
 		self.bill.make_bill()

@@ -1,4 +1,5 @@
 from math import ceil
+from pprint import pprint
 from typing import Dict, List
 from ezdxf.entities import lwpolyline
 from ezdxf.entities.mtext import MText
@@ -36,11 +37,13 @@ class Components:
 		self.num_probes_th = 0
 		self.smartbases = 0
 		self.smartcomforts = 0
+		self.air_handlers = []
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
 			self.panel_record[panel+"_hydro"] = 0
 		self.model = model
+		self.data = model.data
 
 
 	def get_panels(self):
@@ -235,5 +238,54 @@ class Components:
 		self.count_lines_from_room(doc)
 
 
+	def air_handling(self):
+
+		mount = 'V' if self.data["inst"] == "vert" else 'O'
+		regulator = self.data["regulator"]
+
+		for clt in self.model.collectors:
+			if not clt.is_leader:
+				continue
+			
+			# Zone handling
+			zone_area = 0
+			for room in clt.zone_rooms:
+				zone_area += room.area_m2()
+			volume = float(self.data["height"]) * zone_area
+
+			air = []
+			for ac in settings.air_handlers:
+				if (regulator == ac['type'] and 
+					  mount == ac['mount']):
+					air.append(ac)
+
+			l = len(air)
+			air.sort(key= lambda x: x["flow_m3h"]);
+			max_ac = ceil(volume/air[0]["flow_m3h"])
+		
+			num_ac = [0]*l
+			best_ac = [0]*l
+			best_flow = settings.MAX_COST
+			for i in range((max_ac+1) ** l):
+				flowtot = 0
+				count = i
+				for k in range(l):
+					val = count % (max_ac+1)
+					count = count//(max_ac+1)
+					num_ac[k] = val
+					flowtot += val * air[k]["flow_m3h"]
+				if (flowtot >= volume and flowtot < best_flow):
+					best_flow = flowtot
+					for k, val in enumerate(num_ac):
+						best_ac[k] = num_ac[k]
+
+			item = {
+				"zone": clt.zone_num,
+				"air_handler": air,
+				"best_ac": best_ac,
+				"best_flow": best_flow,
+				"coverage": volume,
+			}
+			self.air_handlers.append(item)
 
 

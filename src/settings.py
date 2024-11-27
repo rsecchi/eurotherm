@@ -1,6 +1,7 @@
 from math import sqrt
 
 MAX_DIST  = 1e20
+MAX_COST  = 1000000
 
 panel_sizes = {
 	"full": 2.4,
@@ -243,6 +244,181 @@ leo_types = {
 		},
     },
 }
+
+
+
+air_handlers = [
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 581 DC",
+		"mount": "O",
+		"width_mm": [756],
+		"height_mm": [260],
+		"depth_mm": [803],
+		"flow_m3h": 300,
+		"code": "7110010301",
+		"accessories": {"sifone", "plenum"}
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 901 DC",
+		"mount": "O",
+		"width_mm": [706],
+		"height_mm": [309],
+		"depth_mm": [936],
+		"flow_m3h": 580,
+		"code": "7110010601",
+		"accessories": {"sifone"}
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 320 DI (incasso)",
+		"mount": "V",
+		"width_mm": [402],
+		"height_mm": [637],
+		"depth_mm": [203],
+		"flow_m3h": 200,
+		"code": "7110020101",
+		"accessories": {"sifone", "telaio1", "griglia1"}
+	},
+	{
+		"type": "dehum",
+		"type_label": "Deumidificatore",
+		"model": "DEUMIDIFICATORE 581 DI (incasso)",
+		"mount": "V",
+		"width_mm": [732],
+		"height_mm": [732],
+		"depth_mm": [203],
+		"flow_m3h": 300,
+		"code": "7110020101",
+		"accessories": {"sifone", "telaio2", "griglia2"}
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 582 DCC",
+		"mount": "O",
+		"width_mm": [756],
+		"depth_mm": [260],
+		"height_mm": [803],
+		"flow_m3h": 300,
+		"code": "7210020701",
+		"accessories": {"sifone", "plenum"}
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 901 DCC",
+		"mount": "O",
+		"width_mm": [706],
+		"height_mm": [309],
+		"depth_mm": [936],
+		"flow_m3h": 580,
+		"code": "7210010602",
+		"accessories": {"sifone"}
+	},
+	{
+		"type": "dehum_int",
+		"type_label": "Deuclimatizzatore",
+		"model": "DEU-CLIMATIZZATORE 581 DCI (incasso)",
+		"mount": "V",
+		"width_mm": [732],
+		"height_mm": [732],
+		"depth_mm": [203],
+		"flow_m3h": 300,
+		"code": "7210020301",
+		"accessories": {"sifone", "telaio2", "griglia2"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300S",
+		"mount": "O",
+		"width_mm": [1204.4],
+		"height_mm": [979.5],
+		"depth_mm": [244],
+		"flow_m3h": 300,
+		"code": "7410010103",
+		"accessories": {("sifone",2), "filtro"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 500S",
+		"mount": "O",
+		"width_mm": [1254.4],
+		"height_mm": [810.5],
+		"depth_mm": [294],
+		"flow_m3h": 500,
+		"code": "7410010105",
+		"accessories": {("sifone",2), "filtro"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300V",
+		"mount": "V",
+		"width_mm": [1391.7],
+		"height_mm": [700],
+		"depth_mm": [342.3],
+		"flow_m3h": 300,
+		"code": "7510010101",
+		"accessories": {"sifone", "filtro"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 500V",
+		"mount": "V",
+		"width_mm": [1696.7],
+		"height_mm": [700],
+		"depth_mm": [421],
+		"flow_m3h": 500,
+		"code": "7510010102",
+		"accessories": {"sifone", "filtro"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEU-CLIMATIZZATORE DCR 1000",
+		"mount": "O",
+		"width_mm": [805,1097],
+		"height_mm": [691,723],
+		"depth_mm": [350.5,350.5],
+		"flow_m3h": 1000,
+		"code": "7110011001",
+		"accessories": {("sifone",2), "dcr1000"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEU-CLIMATIZZATORE DCR 2000",
+		"mount": "O",
+		"width_mm": [950.5,1097],
+		"height_mm": [691,723],
+		"depth_mm": [350.5,350.5],
+		"flow_m3h": 2000,
+		"code": "7110011002",
+		"accessories": {("sifone", 2), "dcr2000"}
+	},
+	{
+		"type": "dehum_int_ren",
+		"type_label": "Deuclima VMC",
+		"model": "DEUCLIMA-VMC 300SY",
+		"mount": "O",
+		"width_mm": [1070],
+		"height_mm": [880],
+		"depth_mm": [251],
+		"flow_m3h": 300,
+		"code": "7410010104",
+		"accessories": {"sifone"}
+	},
+]
+
+
 
 
 def dist(point1, point2):

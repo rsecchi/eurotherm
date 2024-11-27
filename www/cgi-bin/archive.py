@@ -75,7 +75,6 @@ else:
 		href_xls = '"/output/' + f[:-4] + '.xlsx"'
 		href_log = '"/output/' + f[:-4] + '.txt"'
 
-
 		fname = os.path.basename(f)
 
 		if (fname == "input.dxf" or fname == "output.dxf"):

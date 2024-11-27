@@ -619,7 +619,6 @@ class Model():
 
 
 	def create_zones(self):
-		print("Creating zones")
 
 		# create trees
 		self.find_gates()

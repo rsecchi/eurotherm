@@ -227,6 +227,7 @@ class Bill:
 		self.nav_item(qnt, code, desc)
 
 
+
 	def make_bill(self):
 	
 		self.active_panel_bill()
