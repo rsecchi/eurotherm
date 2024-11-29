@@ -59,8 +59,14 @@ class Preview:
 			for obs in room.obstacles:
 				if obs.color == Config.color_obstacle:
 					col = "yellow"
-				else:
-					col = "lightgrey"
+				if obs.color == Config.color_neutral:
+					col = "silver"
+				if obs.color == Config.color_panel_contour:
+					if room.color == Config.color_valid_room:
+						col = "lightblue"
+					else:
+						col = "lightgreen"
+
 				self.picture.add(obs.points, color=col)
 
 			if room.color == Config.color_valid_room:
@@ -810,7 +816,7 @@ class DxfDrawing:
 		for panel in room.panels:
 			contour = frame.real_coord(panel.contour())
 			panel_obs = Room(contour, None)
-			panel_obs.color = Config.color_neutral
+			panel_obs.color = Config.color_panel_contour
 			room.obstacles.append(panel_obs)
 
 

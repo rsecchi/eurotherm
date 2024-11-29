@@ -177,7 +177,8 @@ class Report:
 			% self.bathroom_passive_area
 		smtxt += "Total perimeter ....................... %6.01f m\n" \
 			% (self.perimeter*scale/100)
-		smtxt += "Total lines .............................. $$$\n" 
+		smtxt += "Total lines .............................. %3d\n" \
+			% self.components.num_lines
 
 		self.text += smtxt 
 

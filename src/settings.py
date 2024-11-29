@@ -459,6 +459,7 @@ class Config:
 	color_zone = 4              ;# cyan
 	color_box = 8               ;# grey
 	color_tracks = 30           ;# orange
+	color_panel_contour = 9     ;# light grey
 
 	max_room_area = 500
 	collector_size = 60

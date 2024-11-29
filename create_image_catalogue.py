@@ -1,142 +1,182 @@
+from math import sqrt
 import os
 import sys
+from typing import Optional
+
 from PIL import Image
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from utils.dataset import Dataset
+from utils.reportPDF import ReportPDF
+from utils.reportPDF import PagePDF
+
 import matplotlib.pyplot as plt
 
-from reportlab.lib import colors
-from reportlab.pdfgen import canvas
-from datetime import datetime
-
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 
 if len(sys.argv) != 2:
     print("Usage: python create_image_catalogue.py <input_folder>")
     sys.exit(1)
 
 
-# Function to validate the folder
-def validate_folder(folder):
-    if not os.path.exists(folder):
-        print(f"Error: The folder '{folder}' does not exist.")
-        sys.exit(1)
-    if not os.path.isdir(folder):
-        print(f"Error: '{folder}' is not a directory.")
-        sys.exit(1)
+class TxtData(Dataset):
 
-input_folder = sys.argv[1]
-validate_folder(input_folder)
+    def __init__(self, folder: str):
+        self.folder = folder
+        self.tags = []
+        self.data: list[dict] = []
+        self.failed = []
+        self.stats = []
 
 
-# Function to extract lines starting with a given text
-def extract_data(input_folder, start_text, sindex, eindex):
+    def validate_folder(self):
 
-    data = []
+        if not os.path.exists(self.folder):
+            print(f"Error: The folder '{self.folder}' does not exist.")
+            sys.exit(1)
 
-    if not os.path.exists(input_folder):
-        print(f"Error: The folder '{input_folder}' does not exist.")
-        return data 
-
-    # Iterate over all text files in the directory
-    for file_name in os.listdir(input_folder):
-        if file_name.startswith("LEO_") and file_name.endswith(".txt"):
-            file_path = os.path.join(input_folder, file_name)
-
-            with open(file_path, 'r', encoding='utf-8') as file:
-                for line in file:
-                    if line.startswith(start_text):
-                        data.append(float(line[sindex:eindex]))
-    return data
+        if not os.path.isdir(self.folder):
+            print(f"Error: '{self.folder}' is not a directory.")
+            sys.exit(1)
 
 
-
-class TextPagePDF:
-   
-    top_margin = 200
-    bottom_margin = 50
-    left_margin = 50
-    right_margin = 50
-
-    def __init__(self, row_width=12, pagesize=A4):
-        self.textlines = []
-        self.row_width = row_width
-        self.width, self.height = pagesize
-        self.pagesize = pagesize
-        self.cursor = (self.left_margin, self.height - self.top_margin)
-        self.title = ""
-
-    def add_text(self, text):
-        pos = self.cursor
-        self.cursor = (pos[0], pos[1] - self.row_width)
-        self.textlines.append({"pos": pos, "text": text})
-
-    def add_title(self, title):
-        self.title = title
-        pos = self.cursor
-        self.cursor = (pos[0], pos[1] - self.row_width)
+    def add_tag(self, tag: str, sindex: int, eindex: int):
+        self.tags.append({"tag": tag, "sindex": sindex, "eindex": eindex})
 
 
-
-class ReportPDF:
-
-    title = "Leonardo Planner CS Report"
-    title_font = "Helvetica-Bold"
-    title_font_size = 24
-
-    text_font = "Helvetica"
-    text_font_size = 12
-
-    addition_font = "Helvetica-Oblique"
-    addition_font_size = 10
-    addition_text = "Statistics on the Selected Floor Plans."
-
-    author_text = "Prepared by: Eurotherm Inc."
-    author_font = "Helvetica"
-    author_font_size = 10
-
-    def __init__(self, output_file, pagesize=A4):
-        self.output_file = output_file
-        self.pdf = canvas.Canvas(output_file, pagesize=pagesize)
-        self.width, self.height = pagesize
-        self.files_processed = 0
+    def points(self, tag1: str, tag2: str):
+        vals = []
+        for item in self.data:
+            vals.append((item[tag1], item[tag2]))
+        return vals
 
 
-    def write_title(self, title: str):
-        pdf = self.pdf
-        pdf.setFont(self.title_font, self.title_font_size)
-        pdf.drawString(200, 700, title)
-        pdf.setStrokeColor(colors.black)
-        pdf.setLineWidth(2)
-        pdf.line(50, 680, 550, 680)
+    def ratio(self, tag1: str, tag2: str):
+        vals = []
+        for item in self.data:
+            ratio = (item[tag1], item[tag2] / item[tag1])
+            vals.append(ratio)
+        return vals
+
+    def extract_tag(self, doc: str, tag: str, sindex: int, eindex: int):
+        for line in doc.split("\n"):
+            if line.startswith(tag):
+                return float(line[sindex:eindex])
+        return None
 
 
-    def create_cover_page(self):
-        # Create a canvas for the PDF
-        pdf = self.pdf
-        
-        self.write_title(self.title)
-        
-        pdf.setFont(self.text_font, self.text_font_size)
-        current_date = datetime.now().strftime("%B %d, %Y")
-        pdf.drawString(250, 650, f"Date: {current_date}")
-       
-        # Add a note at the top
-        pdf.setFont(self.addition_font, self.addition_font_size)
-        pdf.drawString(150, 600, self.addition_text)
-        
-        # Draw the company or author name at the bottom
-        pdf.setFont(self.author_font, self.author_font_size)
-        pdf.drawString(230, 100, self.author_text)
-        
+    def calc_stats(self):
+
+        for tag in self.tags:
+            entry = {"tag": tag["tag"]}
+            items = [item[tag["tag"]] for item in self.data]
+            entry["mean"] = sum(items) / len(items)
+            entry["median"] = items[len(items) // 2]
+            entry["min"] = min(items)
+            entry["max"] = max(items)
+            diffs = [(x - entry["mean"])**2 for x in items]
+            entry["stdev"] = sqrt(sum(diffs) / len(items))
+            self.stats.append(entry)
+
+
+    def sort_data(self, tag: str):
+        self.data = sorted(self.data, key=lambda x: x[tag]) 
+
+
+    def extract_data(self):
+
+        data = self.data
+        if not os.path.exists(data_folder):
+            print(f"Error: The folder '{data_folder}' does not exist.")
+            return data
+
+        # Iterate over all text files in the directory
+        for file_name in os.listdir(data_folder):
+            if file_name.startswith("LEO_") and file_name.endswith(".txt"):
+                file_path = os.path.join(data_folder, file_name)
+
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    doc = file.read()
+                    element = {}
+                    element["file"] = file_path
+                    for tag in self.tags:
+                        tag_name = tag["tag"]
+                        si = tag["sindex"]
+                        ei = tag["eindex"]
+
+                        val = self.extract_tag(doc, tag_name, si, ei)
+                        if val is not None:
+                            element[tag_name] = val
+
+                data.append(element)
+
+        self.failed = [item for item in self.data if len(item.keys()) < 2]
+        self.data = [item for item in self.data if len(item.keys()) >= 2]
+
+
+class TextPagePDF(PagePDF):
+    def __init__(self):
+        super().__init__()
+
+    def render(self, pdf: canvas.Canvas):
+        self.page_title(pdf)
+        self.print_text(pdf)
+        return super().render(pdf)
+
+
+class GraphPagePDF(PagePDF):
+
+    def __init__(self):
+        super().__init__()
+        self.graphs = []
+
+
+    def add_plot(self, data, graphname: str, xlabel="X", ylabel="Y"):
+        graph = {
+            "data": data,
+            "graphname": graphname,
+            "xlabel": xlabel,
+            "ylabel": ylabel
+        }
+        self.graphs.append(graph)
+
+
+    def make_plot(self, graph: dict):
+        graphname = graph["graphname"]
+        xlabel = graph["xlabel"]
+        ylabel = graph["ylabel"]
+        data = graph["data"]
+
+        x, y = zip(*data)
+        plt.scatter(x, y,
+                color='blue',
+                s=50, alpha=0.7,
+                edgecolors='black',
+                label='Data points')
+
+        plt.xlabel(xlabel, fontsize=14)
+        plt.ylabel(ylabel, fontsize=14)
+        plt.grid(True)
+        plt.savefig(graphname, format='png', dpi=300)
+
+
+    def render(self, pdf: canvas.Canvas):
+
+        yc = self.height - 120
+        for graph in self.graphs:
+            self.make_plot(graph)
+            image = Image.open(graph["graphname"])
+            size = image.size
+            width = self.width - 200
+            height = width * size[1] / size[0]
+            xc = (self.width - width) / 2
+            yc -= height + 50
+            pdf.drawImage(graph["graphname"], xc, yc,
+                          width=width, height=height, mask="auto")
         pdf.showPage()
 
 
-
     def distribution(self, data, xlabel: str):
-        # Step 1: Sort the data
 
-        plt.hist(data, bins=25, edgecolor='black', 
+        plt.hist(data, bins=25, edgecolor='black',
                  alpha=0.7, color='skyblue', label="Histogram")
 
         # Set plot labels and title
@@ -157,10 +197,18 @@ class ReportPDF:
         return xlabel+".png"
 
 
-    def add_drawing(self, image_path):
 
-        image = Image.open(image_path)
-        pdf = self.pdf
+
+class DrawingPagePDF(PagePDF):
+
+    def __init__(self, image_path: str):
+        super().__init__()
+        self.image_path = image_path
+
+
+    def render(self, pdf: canvas.Canvas):
+
+        image = Image.open(self.image_path)
         page_width, page_height = self.width, self.height
         # image = image.convert("RGBA")
 
@@ -176,17 +224,17 @@ class ReportPDF:
         y = page_height - image.height - 30
 
         # Draw the image on the PDF
-        pdf.drawImage(image_path, x, y,
+        pdf.drawImage(self.image_path, x, y,
                 width=image.width, height=image.height, mask="auto")
 
         # Add the file name below the image
         pdf.setFont("Helvetica", 10)
-        pdf.drawCentredString(page_width / 2, page_height - 30, file_name)
-
+        pdf.drawCentredString(page_width / 2, page_height - 30, 
+                              self.image_path)
 
         # Add the content of the corresponding .txt file (if it exists)
-        txt_file_path = os.path.join(input_folder, 
-                           os.path.splitext(file_name)[0] + ".txt")
+        txt_file_path = os.path.splitext(self.image_path)[0] + ".txt"
+
         if os.path.exists(txt_file_path):
             with open(txt_file_path, "r", encoding="utf-8") as txt_file:
                 txt_content = txt_file.read()
@@ -201,92 +249,57 @@ class ReportPDF:
                     pdf.drawString(xpos,
                         page_height - image.height - 50 - line_no * 10, line)
 
-        self.files_processed += 1
         pdf.showPage()
 
 
-    def add_page(self, page: TextPagePDF):
-        pdf = self.pdf
 
-        self.write_title(page.title)
+# Create a PDF report
+report = ReportPDF()
 
-        pdf.setFont(self.text_font, self.text_font_size)
-        for line in page.textlines:
-            pos = line["pos"]
-            text = line["text"]
-            pdf.drawString(pos[0], pos[1], text)
+data_folder = sys.argv[1]
+data = TxtData(data_folder)
 
-        pdf.showPage()
-
-
-    def save(self):
-        self.pdf.save()
-
+data.add_tag("Total area ", 39, 44)
+data.add_tag("Total active area ", 39, 44)
+data.add_tag("Total passive area ", 39, 44)
+data.add_tag("Normal area ", 39, 44)
+data.add_tag("Normal active area ", 39, 44)
+data.extract_data()
+data.sort_data("Total area ")
+data.calc_stats()
 
 
-
-def make_stats_page(report: ReportPDF, folder: str):
-
-    tot_area = extract_data(folder, "Total area ", 39, 44)
-    active_area = extract_data(folder, "Total active area ", 39, 44)
-    passive_area = extract_data(folder, "Total passive area ", 39, 44)
-    norm_area = extract_data(folder, "Normal area ", 39, 44)
-    norm_act_area = extract_data(folder, "Normal active area ", 39, 44)
-    # norm_psv_area = extract_data(folder, "Normal passive area ", 39, 44)
-
-    perc_active = 100 * sum(active_area) / sum(tot_area) 
-    perc_passive = 100 * sum(passive_area) / sum(tot_area) 
-    perc_normal = 100 * sum(norm_area) / sum(tot_area)
-    perc_normal_act = 100 * sum(norm_act_area) / sum(tot_area)
-    # perc_normal_psv = 100 * sum(norm_psv_area) / sum(tot_area)
+# Add a page with the main statistics
+calcpage = TextPagePDF()
+calcpage.add_title("Main Statistics")
+for item in data.stats:
+    txt  = f"{item['tag']:20}"
+    txt += f" {item['mean']:8.2f}"
+    txt += f" {item['stdev']:8.2f}"
+    calcpage.add_text(txt)
+report.add_page(calcpage)
 
 
-    page = TextPagePDF()
-    page.add_title("Main Statistics")
-    page.add_text(f"Total Area: {sum(tot_area):0.2f}")
-    page.add_text(f"Active Area: {sum(active_area):0.2f}")
-    page.add_text(f"Passive Area: {sum(passive_area):0.2f}")
-    page.add_text(f"Normal Area: {sum(norm_area):0.2f}")
-    page.add_text(f"Normal Active Area: {sum(norm_act_area):0.2f}")
-    page.add_text("")
-
-    page.add_text(f"Percentage Active: {perc_active:0.2f}%")
-    page.add_text(f"Percentage Passive: {perc_passive:0.2f}%")
-    page.add_text(f"Percentage Normal: {perc_normal:0.2f}%")
-    page.add_text(f"Percentage Normal Active: {perc_normal_act:0.2f}%")
-    # page.add_text(f"Percentage Normal Passive: {perc_normal_psv:0.2f}%")
-    page.add_text("")
-
-    report.add_page(page)
+# Add a page with the coordinate plot
+graph = GraphPagePDF()
+points = data.ratio("Total area ", "Total active area ")
+graph.add_plot(points, "area_plot.png", "Tot. area[m2] ", "Active area [m2]")
+report.add_page(graph)
 
 
-
-# Create a PDF file to store the images
-output_pdf = "leonardo_report.pdf"
-report = ReportPDF(output_pdf)
-report.create_cover_page()
-
-# Add a page with statistic's Data
-make_stats_page(report, input_folder)
-
-
-
-# Process each PNG file with the required naming pattern
-pattern_prefix = "LEO_"
 files_processed = 0
+for item in data.data:
+    file_name = os.path.basename(item["file"])
+    image_path = os.path.join(data_folder, 
+            os.path.splitext(file_name)[0] + ".png")
+    if os.path.exists(image_path):
+        drawing_page = DrawingPagePDF(image_path)
+        report.add_page(drawing_page)
+        files_processed += 1
+
 
 # Iterate over all files in the directory
-for file_name in sorted(os.listdir(input_folder)):
-    if file_name.startswith(pattern_prefix) and file_name.endswith(".png"):
-        image_path = os.path.join(input_folder, file_name)
-        report.add_drawing(image_path)
 
-# Save the PDF if any files were processed
-if report.files_processed > 0:
-    report.save()
-    print(f"PDF created successfully "
-          + f"with {files_processed} images: {output_pdf}")
-else:
-    print(f"No files matching the pattern '{pattern_prefix}*.png'"
-          + f" were found in '{input_folder}'.")
+report.generate()
+
 
