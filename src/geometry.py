@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 from math import sqrt
 
-from PIL.ImageFont import ImageFont, truetype
+from PIL.ImageFont import truetype
 
 
 MAX_DIST = 1e20
