@@ -44,6 +44,8 @@ class Report:
 
 	def output_section(self):
 
+		if self.model.data['head'] == "none":
+			return
 
 		air_handlers = self.components.air_handlers
 

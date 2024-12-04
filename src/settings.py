@@ -41,26 +41,30 @@ leo_icons = {
 	},
 	"cap": {
 		"name": "Tappo CS",
-		"code": "6910022300"
+		"code": "6910022307",
+		"desc": "CONF. TAPPO CHIUSURA FINE LINEA CLICK&SAFE",
 	},
 	"bend": {
 		"name": "Gomito 20-CS",
-		"code": "6910022306"
+		"code": "6910022306",
+		"desc": "CONF. RACCORDO GOMITO 20-CLICK&SAFE",
 	},
 	"nipple": {
 		"name": "Nipples 20-CS",
-		"code": "6910022304"
+		"code": "6910022304",
+		"desc": "CONF. RACCORDO 20-CLICK&SAFE",
 	},
 	"link": {
 		"name": "Manicotto CS-CS",
-		"code": "6910022302"
+		"code": "6910022302",
+		"desc": "CONF. RACCORDO DRITTO CLICK&SAFE",
 	},
 	"tlink": {
 		"name": "T 20-CS-20",
-		"code": "6910022305"
+		"code": "6910022305",
+		"desc": "CONF. RACCORDO T 20-CLICK&SAFE-20",
 	}
 }
-
 
 
 leo_types = {
@@ -444,7 +448,6 @@ class Config:
 	layer_error     = 'Eurotherm_error'
 	layer_lux       = 'Eurotherm_lux'
 	layer_probes    = 'Eurotherm_probes'
-	layer_joints    = 'Eurotherm_joints'
 	layer_struct    = 'Eurotherm_structure'
 	layer_collector = 'Collettori'
 	layer_fittings  = 'Raccorderia'

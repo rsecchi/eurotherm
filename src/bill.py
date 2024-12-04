@@ -28,12 +28,12 @@ class Bill:
 
 	def passive_panels_bill(self):
 		# Passive panels
-		code = '6111020101'
-		desc = 'LEONARDO PASSIVO 1200x2000x50mm'
+		code = '6113120301'
+		desc = 'LEONARDO PASSIVO CLICK&SAFE 1200x2000x60mm'
 		qnt = 1.05*self.report.normal_passive_area
 		self.nav_item(qnt, code, desc)
-		code = '6114020201'
-		desc = 'LEONARDO PASSIVO IDRO 1200x2000x50mm'
+		code = '6114120301'
+		desc = 'LEONARDO PASSIVO IDRO CLICK&SAFE 1200x2000x60mm'
 		qnt = 1.05*self.report.bathroom_passive_area
 		self.nav_item(qnt, code, desc)
 
@@ -93,7 +93,8 @@ class Bill:
 
 		for name, quantity in self.components.fittings.items():
 			code = catalog[name]["code"]
-			self.nav_item(quantity, code, name)
+			desc = catalog[name]["desc"]
+			self.nav_item(quantity, code, desc)
 
 
 	def collectors_bill(self):
@@ -128,29 +129,28 @@ class Bill:
 			else:
 				total_amb += quantity
 
-		closures = 0
-		if (self.model.ptype['handler']=='30'):
-			code = '6113021002'
-			desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
-			qnt = ceil(0.25*(total))
-			closures = total 
-			self.nav_item(qnt, code, desc)
-		else:
-			code = '6110020103'
-			desc = 'LEONARDO QUADRO CHIUSURA RACCORDI 420x260mm'
-			qnt = total_amb
-			self.nav_item(qnt, code, desc)
+		# if (self.model.ptype['handler']=='30'):
+		# 	code = '6113021002'
+		# 	desc = 'LEONARDO QUADRO DI CHIUSURA PLUS'
+		# 	qnt = ceil(0.25*(total))
+		# 	self.nav_item(qnt, code, desc)
+		# else:
 
-			code = '6112020201'
-			desc = 'LEONARDO QUADRO CHIUSURA RACC.AMB.UMIDI 420x260mm'
-			qnt = total_hydro
-			self.nav_item(qnt, code, desc)
-			closures = total_amb + total_hydro
-
-		code = '6920042001'
-		desc = 'COLLA PER QUADRI DI CHIUSURA'
-		qnt = ceil(closures/4.35)
+		code = '6112020202'
+		desc = 'KIT QUADRO CHIUSURA CLICK&SAFE 204X265X15mm'
+		qnt = total_amb
 		self.nav_item(qnt, code, desc)
+
+		code = '6112020203'
+		desc = 'KIT QUADRO DI CHIUSURA IDRO CLICK&SAFE204x265x15mm'
+		qnt = total_hydro
+		self.nav_item(qnt, code, desc)
+
+
+		# code = '6920042001'
+		# desc = 'COLLA PER QUADRI DI CHIUSURA'
+		# qnt = ceil(closures/4.35)
+		# self.nav_item(qnt, code, desc)
 
 
 
@@ -195,7 +195,7 @@ class Bill:
 		qnt = self.components.num_lines
 		self.nav_item(qnt, code, desc)
 	
-		code = '5140030101'
+		code = '5140030201'
 		desc = 'SMARTCOMFORT 365'
 		qnt = self.components.smartcomforts
 		self.nav_item(qnt, code, desc)

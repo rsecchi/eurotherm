@@ -156,7 +156,6 @@ class DxfDrawing:
 		self.new_layer(Config.layer_error, 0)
 		self.new_layer(Config.layer_lux, 0)
 		self.new_layer(Config.layer_probes, 0)
-		self.new_layer(Config.layer_joints, 0)
 		self.new_layer(Config.layer_struct, Config.color_tracks)
 
 		self.doc.layers.get(Config.layer_lux).off()
@@ -679,7 +678,6 @@ class DxfDrawing:
 							break
 
 					if flag:
-						self.msp.add_lwpolyline(box.points)
 						return sd
 
 		return (0,0)
@@ -828,12 +826,14 @@ class DxfDrawing:
 			# self.draw_coord_system(room)
 			self.draw_room(room)
 
-
 		self.draw_collector()
 		
 		for room in self.model.processed:
 			self.draw_structure(room)
-			self.draw_probes(room)
+			if not self.model.data["control"] == "noreg":
+				self.draw_probes(room)
+
+		self.doc.layers.remove(Config.layer_error)
 
 
 	def draw_passive(self, room: Room):
