@@ -67,13 +67,6 @@ class Bill:
 		# desc = 'RACCORDO LEONARDO 20-20 (4pz)'
 		# self.text_nav += nav_item(qnt2, code, desc)
 
-		# rings
-		# code = '6910022011'
-		# desc = 'ANELLO PER RACC.LEONARDO IN PLASTICA D20 (8pz)'	
-		# qnt1 = fittings['Rac_20_20_dritto']['count']
-		# qnt2 = fittings['Rac_20_20_curva']['count']
-		# qnt = 2*tot_cirs + 3*2*self.joints + 2*qnt1 + 2*qnt2
-		# self.text_nav += nav_item(qnt, code, desc)
 
 	def active_panel_bill(self):
 		counters = self.components.panel_counters
@@ -91,11 +84,17 @@ class Bill:
 
 		catalog = Config.icon_catalog()
 
+		rings = 0
 		for name, quantity in self.components.fittings.items():
 			code = catalog[name]["code"]
 			desc = catalog[name]["desc"]
+			if "rings" in catalog[name]:
+				rings += quantity*catalog[name]["rings"]
 			self.nav_item(quantity, code, desc)
 
+		code = '6910022312'
+		desc = 'CONF. ANELLO PVDF Ø20'
+		self.nav_item(rings, code, desc)
 
 	def collectors_bill(self):
 

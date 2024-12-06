@@ -48,11 +48,13 @@ leo_icons = {
 		"name": "Gomito 20-CS",
 		"code": "6910022306",
 		"desc": "CONF. RACCORDO GOMITO 20-CLICK&SAFE",
+		"rings": 1,
 	},
 	"nipple": {
 		"name": "Nipples 20-CS",
 		"code": "6910022304",
 		"desc": "CONF. RACCORDO 20-CLICK&SAFE",
+		"rings": 1,
 	},
 	"link": {
 		"name": "Manicotto CS-CS",
@@ -63,6 +65,25 @@ leo_icons = {
 		"name": "T 20-CS-20",
 		"code": "6910022305",
 		"desc": "CONF. RACCORDO T 20-CLICK&SAFE-20",
+		"rings": 2,
+	},
+	"fit": {
+		"name": "Nipples 20-20",
+		"code": "6910022308",
+		"desc": "CONF. RACCORDO 20-20",
+		"rings": 2,
+	},
+	"bendfit": {
+		"name": "Gomito 20-20",
+		"code": "6910022309",
+		"desc": "CONF. RACCORDO GOMITO 20-20",
+		"rings": 2,
+	},
+	"tfit": {
+		"name": "T 20-20-20",
+		"code": "6910022310",
+		"desc": "CONF. RACCORDO T 20-20-20",
+		"rings": 3,
 	}
 }
 

@@ -98,7 +98,7 @@ polygon_t *pgon;
 	n2 = n1 - (int)panel_desc[p->type].y_steps;
 	m2 = m1 - (int)panel_desc[p->type].x_steps;
 
-	if (m2<0 || n2<=0)
+	if (m2<0 || n2<0) 
 		goto fail;
 
 	if (!((gv[n1][m1] & 0x01) &&
@@ -233,7 +233,6 @@ int num_panels, k=0, kp, type;
 uint16_t *flag, panel_done, panel_fail;
 uint32_t parity;
 int level;
-
 	uint32_t (*bounds)[2] = alloc->wall_grid.bounds;
 	uint16_t (*flags)[alloc->wall_grid.cols] = alloc->wall_grid.flags;
 

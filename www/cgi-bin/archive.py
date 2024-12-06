@@ -23,6 +23,9 @@ if lang=="eng":
 if os.path.exists(lock_name):
 
 	# Show progress of calculation
+	print("Cache-Control: no-store, no-cache, must-revalidate")
+	print("Pragma: no-cache")
+	print("Expires: 0")
 	print("Content-Type: text/html\n")
 	ff = open(load_page, "r")
 	print(ff.read())
@@ -38,6 +41,9 @@ else:
 	form = cgi.FieldStorage()	
 
 	# Show webpage with results
+	print("Cache-Control: no-store, no-cache, must-revalidate")
+	print("Pragma: no-cache")
+	print("Expires: 0")
 	print("Content-Type: text/html\n")
 	ff = open(done_page, "r")
 	print(ff.read())
