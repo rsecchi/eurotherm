@@ -7,13 +7,17 @@
 #include "cairo_drawing.h"
 
 
+void set_one_direction(int one_direction)
+{
+	config.one_direction = one_direction;
+}
+
+
 pnl_t* planner(room_t* room)
 {
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
 	transform_t trsf;
-
-	check_config();
 
 	if (config.debug) {
 		trsf.origin = (point_t){320, 240};

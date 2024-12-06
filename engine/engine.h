@@ -43,6 +43,7 @@ typedef struct {
 	int debug;
 	int max_row_debug;
 	int debug_animation;
+	int one_direction;
 } config_t;
 
 extern config_t config;

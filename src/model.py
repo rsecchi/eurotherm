@@ -185,6 +185,7 @@ class Room:
 		self.sup = 0
 		self.inf = 0
 		self.fixed_collector = None
+		self.vector = False
 
 		self.is_collector = False
 		self.leader = None
@@ -1142,6 +1143,7 @@ class Model():
 					uv = room.frame.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
 					room.frame.rot_orig = p1
 					room.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
+					room.vector = True
 					break
 			else:
 				# Check if vector is vector fixes to collector

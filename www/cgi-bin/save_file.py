@@ -9,6 +9,9 @@ from subprocess import Popen
 import json
 
 
+print("Cache-Control: no-store, no-cache, must-revalidate")
+print("Pragma: no-cache")
+print("Expires: 0")
 print("Content-Type: text/html\n")
 cgitb.enable()
 form = cgi.FieldStorage()

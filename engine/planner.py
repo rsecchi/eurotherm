@@ -3,7 +3,7 @@ from ctypes import POINTER, CDLL, pointer
 
 from panels import EngineRoom, EnginePolygon, EnginePoint, EnginePanel
 from panels import Panel
-from ctypes import pointer
+from ctypes import pointer, c_int
 
 # Load the shared library
 current_file = os.path.abspath(__file__) 
@@ -20,12 +20,16 @@ mylib.planner.restype = POINTER(EnginePanel)
 mylib.free_list.argtypes = [POINTER(EnginePanel)]
 mylib.free_list.restype = None
 
+mylib.set_one_direction.argtypes = [c_int]
+mylib.set_one_direction.restype = None
+
 
 class Planner:
 	def __init__(self, room_outline):
 
 		self.panels: list[Panel] = []
 		self.room = EngineRoom()
+		self.one_direction = 0
 
 		room = self.room 
 		room.walls = EnginePolygon(room_outline.points)
@@ -49,6 +53,9 @@ class Planner:
 
 		return self.panels 
 
+
+	def set_one_direction(self):
+		mylib.set_one_direction(1)
 
 
 ######### TESTING #########################

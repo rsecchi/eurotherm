@@ -19,16 +19,13 @@ panel_desc_t panel_desc[] =
 
 #define ALL_FAIL  0xFFC0
 
-config_t config;
-
-void check_config() {
-	/* set default */
-	config.debug = 0;
-	config.enable_quarters = 1;
-	config.max_row_debug = 10000;
-	config.debug_animation = 0;
-	
-}
+config_t config = {
+	.debug = 0,
+	.enable_quarters = 1,
+	.max_row_debug = 10000,
+	.debug_animation = 0,
+	.one_direction = 0
+};
 
 int count_panels(panel_t* head)
 {
@@ -603,6 +600,9 @@ point_t point;
 	/* calculate panel flats */
 	panels_flat = panel_room(room, &flat_score);
 	set_orient_flags(panels_flat);
+
+	if (config.one_direction) 
+		return panels_flat;
 
 
 	/* calculate panels upright*/
