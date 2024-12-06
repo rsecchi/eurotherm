@@ -225,8 +225,9 @@ class Components:
 				if not isinstance(poly, lwpolyline.LWPolyline):
 					continue
 				points = list(poly.vertices())
-			
-				if room.is_point_inside(points[0]):
+
+				if (room.is_point_inside(points[0]) and 
+						room.collector.is_point_inside(points[-1])):
 					count += 1
 
 			room.total_lines += count//2
