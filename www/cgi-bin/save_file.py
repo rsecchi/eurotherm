@@ -9,11 +9,7 @@ from subprocess import Popen
 import json
 
 
-print("Cache-Control: no-store, no-cache, must-revalidate")
-print("Pragma: no-cache")
-print("Expires: 0")
 print("Content-Type: text/html\n")
-
 cgitb.enable()
 form = cgi.FieldStorage()
 
@@ -46,24 +42,14 @@ def start_script(cfg_file):
 #############################################
 
 
-# def get_filename(fid) -> str:
-# 	bname = fid[:-4]
-# 	for i in range(1,100):
-# 		basename = bname + "_leo_%02d.dxf" % i
-# 		ff = tmp + basename
-# 		if (not os.path.exists(ff)):
-# 			return basename
-# 	return ""
-
-
 def get_filename(fid) -> str:
 	bname = fid[:-4]
-	basename = bname + "_leo.dxf" 
-	ff = tmp + basename
-	if (not os.path.exists(ff)):
-		return basename
+	for i in range(1,100):
+		basename = bname + "_leo_%02d.dxf" % i
+		ff = tmp + basename
+		if (not os.path.exists(ff)):
+			return basename
 	return ""
-
 
 
 output_filename = ""

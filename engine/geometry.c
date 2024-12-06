@@ -373,8 +373,9 @@ int x_cm, x_step_cm = grid->x_step;
 				bounds[i][1] = MAX(j1, bounds[i][1]);
 			}
 
-			for(int j=0; j<=MIN(j1,cols-1); j++)
-				gh[i][j]++;
+			if (orig.x<x)
+				for(int j=0; j<=MIN(j1,cols-1); j++)
+					gh[i][j]++;
 
 			if (do_gaps) {
 				x_cm = x - orig.x;
@@ -410,9 +411,9 @@ next:
 				}
 
 			i1 = (y-orig.y)/y_step;
-
-			for(int i=0; i<=MIN(i1,rows-1); i++)
-				gv[i][j]++;
+			if (orig.y<y)
+				for(int i=0; i<=MIN(i1,rows-1); i++)
+					gv[i][j]++;
 
 		}
 	}
