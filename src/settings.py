@@ -102,7 +102,7 @@ leo_types = {
 			"full"    : "LEONARDO CS 5,5 - 1200x2000x60mm",
 			"lux"     : "LEONARDO CS LUX - 1200x2000x60mm",
 			"split"   : "LEONARDO CS 5,5 - 600x2000x60mm",
-			"half"    : "LEONARDO CS 5,5 - 1200x2000x60mm",
+			"half"    : "LEONARDO CS 5,5 - 1200x1000x60mm",
 			"quarter" : "LEONARDO CS 5,5 - 600x1000x60mm",
 		},
 

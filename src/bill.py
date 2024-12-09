@@ -137,12 +137,12 @@ class Bill:
 
 		code = '6112020202'
 		desc = 'KIT QUADRO CHIUSURA CLICK&SAFE 204X265X15mm'
-		qnt = total_amb
+		qnt = ceil(total_amb*1.1)
 		self.nav_item(qnt, code, desc)
 
 		code = '6112020203'
 		desc = 'KIT QUADRO DI CHIUSURA IDRO CLICK&SAFE204x265x15mm'
-		qnt = total_hydro
+		qnt = ceil(total_hydro*1.1)
 		self.nav_item(qnt, code, desc)
 
 
