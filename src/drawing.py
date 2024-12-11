@@ -53,6 +53,11 @@ class Preview:
 
 	def draw_model(self):
 
+		for room in self.model.processed:
+			if room.error:
+				self.picture.add_shaded_area(room.points, 
+					color=Config.error_shade)
+
 		col = "black"
 		for room in self.model.processed:
 
@@ -133,9 +138,16 @@ class DxfDrawing:
 			self.doc.layers.remove(Config.layer_panelp)
 
 		for room in self.model.processed:
-			size = 2/room.frame.scale
 			self.write_text("Locale %d" % 
-				   room.pindex, room.pos, zoom=size)
+				   room.pindex, room.pos, zoom=2.0)
+
+			if room.error:
+				hatch = self.msp.add_hatch(color=41)
+				hatch.set_pattern_fill("ANSI31", scale=2/self.model.scale)
+				hatch.paths.add_polyline_path(room.points, 
+					is_closed=True,
+					flags=const.BOUNDARY_PATH_EXTERNAL)
+				hatch.dxf.layer = Config.layer_error
 
 		self.doc.saveas(self.model.outfile)
 

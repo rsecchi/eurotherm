@@ -345,7 +345,6 @@ class LinesManager():
 		self.pipe_length = MAX_DIST
 
 		self.best_partition = []
-
 		for partition in self.partitions(self.dorsals, 1):
 			partition_length = len(partition)
 

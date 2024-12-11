@@ -52,6 +52,8 @@ class App:
 			self.report.text += self.model.text
 			self.report.save_report()
 			self.dxf.output_error()
+			self.preview.draw_model()
+			self.preview.save()
 			return
 
 		self.report.set_text(self.model.text)

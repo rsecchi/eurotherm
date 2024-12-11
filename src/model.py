@@ -1090,6 +1090,8 @@ class Model():
 					 " to visualize errors @\n")
 					room[i].poly.dxf.layer = Config.layer_error
 					room[j].poly.dxf.layer = Config.layer_error
+					room[i].error = True
+					room[j].error = True
 					self.output.print(wstr)
 					return False
 
@@ -1174,12 +1176,17 @@ class Model():
 		# Check if room too large  for a collector
 		for room in self.processed:
 			area = self.scale * self.scale * room.area
+			for obstacle in room.obstacles:
+				area -= obstacle.area*self.scale*self.scale
+			# flow = area*flow_per_m2*Config.target_eff
 			flow = area*flow_per_m2
 			if flow > flow_per_collector:
-				wstr = "ABORT: Room %d larger than collector capacity @\n" % room.pindex
+				wstr = "ABORT: Room %d larger than collector capacity @\n" %\
+						room.pindex
 				wstr += ("Check %s layer" % Config.layer_error + 
 					" to visualize errors @\n")
 				room.poly.dxf.layer = Config.layer_error
+				room.error = True
 				self.output.print(wstr)
 
 				return False

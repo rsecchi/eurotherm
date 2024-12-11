@@ -485,6 +485,8 @@ class Config:
 	color_tracks = 30           ;# orange
 	color_panel_contour = 9     ;# light grey
 
+	error_shade = "orange"
+
 	max_room_area = 500
 	collector_size = 60
 	target_eff = 0.7

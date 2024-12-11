@@ -390,6 +390,7 @@ class Picture:
 		self.polylines = []
 		self.messages = []
 		self.colors = []
+		self.shades = []
 		w = Picture.width_px
 		h = Picture.height_px
 		self.image = Image.new("RGBA", (w, h), 255)
@@ -412,6 +413,16 @@ class Picture:
 		self.polylines.append(poly)
 		self.colors.append(color)
 		
+
+	def add_shaded_area(self, poly, color="grey"):
+		if not poly:
+			return
+
+		if isinstance(poly, tuple):
+			poly = [poly]
+
+		self.shades.append({"poly": poly, "color": color})
+
 
 	def scale(self, poly):
 		opoly = []
@@ -461,6 +472,12 @@ class Picture:
 					       "color": color})
 
 	def draw(self, filename: str):
+
+		for shade in self.shades:
+			color = shade["color"]
+			poly = self.scale(shade["poly"])
+			self.drawing.polygon(poly, fill=color)
+
 		for i, poly in enumerate(self.polylines):
 			color = self.colors[i]
 			dpoly = self.scale(poly)
