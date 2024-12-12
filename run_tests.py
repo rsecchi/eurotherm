@@ -15,7 +15,7 @@ cfg = {
     "head": "air",
     "ptype": "55",
     "cname": "",
-    "regulator": "dehum",
+    "regulator": "dehum_int",
     "caddr": "",
     "ccomp": "",
     "lang": "ita",

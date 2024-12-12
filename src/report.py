@@ -56,43 +56,43 @@ class Report:
 				  "eng": "Eurotherm recommends:"})
 
 
-		for j, item in enumerate(air_handlers):
+		for item in air_handlers:
 
 			section.paragraph(
 				{"ita": "Zona: %s" % item['zone'],
 				 "eng": "Zone: %s" % item['zone']})
-
-			label = item['air_handler'][j]['type_label']
-			flow = int(air_handlers[j]['coverage'])	
-
-			if item['air_handler'][j]['mount'] == 'V':
-				mount = {"ita": "ad installazione verticale",
-						 "eng": "vertical mounting"}
-			else:
-				mount = {"ita": "ad installazione orizzontale",
-						 "eng": "horizontal mounting"}
-
-			section.paragraph(
-				{"ita": f" {label} {mount['ita']} " + 
-							f"per una portata di {flow} m3/h",
-				 "eng": f" {label} {mount['eng']} " +
-							f"for a flow of {flow} m3/h"})
 
 			for i, qnt in enumerate(item['best_ac']):
 
 				if qnt == 0:
 					continue
 
+				label = item['air_handler'][i]['type_label']
+				flow = int(air_handlers[i]['coverage'])	
+
+				if item['air_handler'][i]['mount'] == 'V':
+					mount = {"ita": "ad installazione verticale",
+							 "eng": "vertical mounting"}
+				else:
+					mount = {"ita": "ad installazione orizzontale",
+							 "eng": "horizontal mounting"}
+
+				section.paragraph(
+					{"ita": f" {label} {mount['ita']} " + 
+								f"per una portata di {flow} m3/h",
+					 "eng": f" {label} {mount['eng']} " +
+								f"for a flow of {flow} m3/h"})
+
+
 				mod = item['air_handler'][i]['model']
 				section.paragraph( "%d x %s" % (qnt, mod))
 
+				coverage = int(item['best_flow'])
+				excess = int(item['best_flow'] - item['coverage'])
 
-			coverage = int(item['best_flow'])
-			excess = int(item['best_flow'] - item['coverage'])
-
-			section.paragraph(
-				{"ita": f"copertura {coverage} m3/h, eccesso {excess} m3/h",
-				 "eng": f"coverage {coverage} m3/h, excess {excess} m3/h"})
+				section.paragraph(
+				  {"ita": f"copertura {coverage} m3/h, eccesso {excess} m3/h",
+				   "eng": f"coverage {coverage} m3/h, excess {excess} m3/h"})
 
 		section.close()
 		

@@ -76,7 +76,7 @@ class XlsDocument:
 		ws['E14'] = ws['E18'] = total_split_panels
 
 		# copy number of feeds
-		# ws1['F14'] = ws1['F18'] = self.feeds
+		ws['F14'] = ws['F18'] = self.components.num_lines
 
 		# copy number of collectors 
 		ws['G14'] = ws['G18'] = str(no_collectors) 
