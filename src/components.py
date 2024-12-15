@@ -1,9 +1,7 @@
 from math import ceil
-from pprint import pprint
 from typing import Dict, List
 from ezdxf.entities import lwpolyline
 from ezdxf.entities.mtext import MText
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_map
 from engine.planner import Planner
 
