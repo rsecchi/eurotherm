@@ -1,7 +1,11 @@
 from collections import Counter
 from math import ceil
+from pprint import pprint
+from code_tests.pylint.tests.functional import w
+from code_tests.pylint.tests.functional.i.import_outside_toplevel import o
 from report import Report
 from settings import Config
+import settings
 
 
 class Bill:
@@ -135,14 +139,14 @@ class Bill:
 		# 	self.nav_item(qnt, code, desc)
 		# else:
 
-		code = '6112020202'
-		desc = 'KIT QUADRO CHIUSURA CLICK&SAFE 204X265X15mm'
-		qnt = ceil(total_amb*1.1)
-		self.nav_item(qnt, code, desc)
+		# code = '6112020202'
+		# desc = 'KIT QUADRO CHIUSURA CLICK&SAFE 204X265X15mm'
+		# qnt = ceil(total_amb*1.1)
+		# self.nav_item(qnt, code, desc)
 
 		code = '6112020203'
 		desc = 'KIT QUADRO DI CHIUSURA IDRO CLICK&SAFE204x265x15mm'
-		qnt = ceil(total_hydro*1.1)
+		qnt = ceil((total_amb+total_hydro)*1.1)
 		self.nav_item(qnt, code, desc)
 
 
@@ -160,7 +164,8 @@ class Bill:
 		desc = 'BOTOLA'
 		tot_clts = len(self.components.collectors)
 		self.nav_item(tot_clts, code, desc)
-		desc = 'MANOMETRO'
+		code = '4910020112'
+		desc = 'MANOMETRO 50 1/2" 10 BAR'
 		self.nav_item(tot_clts, code, desc)
 		code = '4710020306'
 		desc = 'COPPIA VALVOLE SFERA SL SQ/DR.1"1/4 F - 1"F'
@@ -189,10 +194,10 @@ class Bill:
 
 	def probe_bill(self):
 	
-		code = '5150020202'
-		desc = 'TESTINE ELETTROTERMICHE 2 FILI'
-		qnt = self.components.num_lines
-		self.nav_item(qnt, code, desc)
+		# code = '5150020202'
+		# desc = 'TESTINE ELETTROTERMICHE 2 FILI'
+		# qnt = self.components.num_lines
+		# self.nav_item(qnt, code, desc)
 	
 		code = '5140030201'
 		desc = 'SMARTCOMFORT 365'
@@ -226,77 +231,84 @@ class Bill:
 		self.nav_item(qnt, code, desc)
 
 
+	def accessories_bill(self, acces, qnt: int):
 
-	def make_bill(self):
-	
-		self.active_panel_bill()
-		self.passive_panels_bill()
-		self.make_fittings_bill()
-		self.pipe_bill()
-		self.collectors_bill()
-		self.control_panel_bill()
-		self.hatch_bill()
-		self.inhibit_bill()
+		for acc in acces:
+			if type(acc) == tuple:
+				code = settings.accessories[acc[0]]['code']
+				desc = settings.accessories[acc[0]]['desc']
+				num = acc[1]*qnt
+			else: 
+				code = settings.accessories[acc]['code']
+				desc = settings.accessories[acc]['desc']
+				num = qnt
+			self.nav_item(num, code, desc)
 
-		## headers (testina)	
-		if not self.model.control == "reg":
-			code = '5150020201'
-			desc = 'TESTINE ELETTROTERMICHE 4 FILI'
-			qnt = self.components.num_lines
+
+	def air_treatment_bill(self):
+
+		# If air conditioning
+		smartairs = 0
+		if not self.model.head == "none":
+			compamat_R = 0
+			compamat_TOP = 0
+			compamat_SUPER = 0
+			for zone in self.model.zones:
+				if zone.flow < 1850:
+					compamat_R += 1
+				else:
+					if zone.flow < 4000:
+						compamat_TOP += 1
+					else:
+						compamat_SUPER +=1
+
+			if self.model.data['regulator']=="dehum_int":
+				smartairs = len(self.model.zones)
+
+			if compamat_R > 0:
+				code = '5330010101'
+				desc = 'COMPAMAT R'
+				qnt = compamat_R
+				self.nav_item(qnt, code, desc)
+
+			if compamat_TOP > 0:
+				code = '5330010201'
+				desc = 'COMPAMAT TOP'
+				qnt = compamat_TOP
+				self.nav_item(qnt, code, desc)
+
+			if compamat_SUPER > 0:
+				code = '5330010301'
+				desc = 'COMPAMAT SUPER'
+				qnt = compamat_SUPER
+				self.nav_item(qnt, code, desc)
+
+			code = '5140020202'
+			desc = 'SMARTAIR PER LA GESTIONE DELL\'UNITA\' ARIA E SERRANDE'
+			qnt = smartairs
 			self.nav_item(qnt, code, desc)
 
-		if self.model.control == "reg":
-			self.probe_bill()
+
+		if self.model.data['control'] == "reg":
+			code = '5140020301'
+			desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
+			qnt = self.components.smartbases + smartairs
+			self.nav_item(qnt, code, desc)
 
 
-		## If air conditioning
-		#if not self.head == "none":
-		#	compamat_R = 0
-		#	compamat_TOP = 0
-		#	compamat_SUPER = 0
-		#	for zone in zones:
-		#		if zone.flow < 1850:
-		#			compamat_R += 1
-		#		else:
-		#			if zone.flow < 4000:
-		#				compamat_TOP += 1
-		#			else:
-		#				compamat_SUPER +=1
+		for zone in self.components.air_handlers:
+			air = zone["air_handler"]
+			best_ac = zone["best_ac"]
+			for k, ac in enumerate(air):
+				if best_ac[k] > 0:
+					code = ac['code']
+					desc = ac['model']
+					qnt = best_ac[k]
+					self.nav_item(qnt, code, desc)
 
-		#	mtype = self.mtype[:-5]
-		#	smartairs = 0
-		#	if mtype=="dehum_int":
-		#		smartairs = len(zones)
+					self.accessories_bill(ac['accessories'], qnt)
 
-		#	if compamat_R > 0:
-		#		code = '5330010101'
-		#		desc = 'COMPAMAT R'
-		#		qnt = compamat_R
-		#		self.text_nav += nav_item(qnt, code, desc)
-
-		#	if compamat_TOP > 0:
-		#		code = '5330010201'
-		#		desc = 'COMPAMAT TOP'
-		#		qnt = compamat_TOP
-		#		self.text_nav += nav_item(qnt, code, desc)
-
-		#	if compamat_SUPER > 0:
-		#		code = '5330010301'
-		#		desc = 'COMPAMAT SUPER'
-		#		qnt = compamat_SUPER
-		#		self.text_nav += nav_item(qnt, code, desc)
-
-		#	code = '5140020202'
-		#	desc = 'SMARTAIR PER LA GESTIONE DELL\'UNITA\' ARIA E SERRANDE'
-		#	qnt = smartairs
-		#	self.text_nav += nav_item(qnt, code, desc)
-
-		#	if self.control == "reg":
-		#		code = '5140020301'
-		#		desc = 'SET DI CONNETTORI SMARTBASE / SMARTAIR'
-		#		qnt = smartbases + smartairs
-		#		self.text_nav += nav_item(qnt, code, desc)
-
+		# if not self.model.head == "none":
 		#	# COMPAMAT accessories
 		#	for k, cnd in enumerate(self.cnd):
 		#		if (self.best_ac[k]>0):
@@ -316,6 +328,32 @@ class Bill:
 		#					num = 1
 							
 		#				self.text_nav += nav_item(qnt*num, code, desc)
+
+
+	def make_bill(self):
+	
+		self.active_panel_bill()
+		self.passive_panels_bill()
+		self.make_fittings_bill()
+		self.pipe_bill()
+		self.collectors_bill()
+		self.control_panel_bill()
+		self.hatch_bill()
+		self.inhibit_bill()
+
+		if self.model.head != "none":
+			self.air_treatment_bill()
+
+
+		code = '5150020202'
+		desc = 'TESTINE ELETTROTERMICHE 4 FILI'
+		qnt = self.components.num_lines
+		self.nav_item(qnt, code, desc)
+
+		if self.model.control == "reg":
+			self.probe_bill()
+
+
 						
 
 	def save(self):

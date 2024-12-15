@@ -3,6 +3,7 @@ from pprint import pprint
 from typing import Dict, List
 from ezdxf.entities import lwpolyline
 from ezdxf.entities.mtext import MText
+from code_tests.pylint.tests.functional.i.import_outside_toplevel import i
 from engine.panels import panel_map
 from engine.planner import Planner
 
@@ -104,11 +105,19 @@ class Components:
 				room.panel_record[handler] += 1
 				room.active_m2 += panel_sizes[handler]
 				room.ratio = room.active_m2/room.area_m2()
+				room.flow = self.model.flow_per_m2 * room.active_m2
 				self.panel_record[handler] += 1
 				break
 
 		for room in self.model.processed:
 			self.model.active_area += room.active_m2
+
+
+	def zone_flow(self):
+		
+		for zone in self.model.zones:
+			for room in zone.zone_rooms:
+				zone.flow += room.flow
 
 
 	def count_fittings(self, doc: Drawing):
@@ -235,6 +244,7 @@ class Components:
 
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
+		self.zone_flow()
 		self.count_fittings(doc)
 		self.size_collectors(doc)
 		self.count_probes(doc)

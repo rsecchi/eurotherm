@@ -444,6 +444,46 @@ air_handlers = [
 ]
 
 
+accessories = {
+	"sifone": {
+		"code": "7910080907",
+		"desc": "Sifone"
+	},
+	"plenum": {
+		"code": "7510030203",
+		"desc": "Plenum di mandata 2/3xD160"
+	},
+	"telaio1": {
+		"code": "7910010201",
+		"desc": "Telaio da murare"
+	},
+	"griglia1": {
+		"code": "7910010101",
+		"desc": "Griglia in legno laccato"
+	},
+	"telaio2": {
+		"code": "7910030201",
+		"desc": "Telaio da murare"
+	},
+	"griglia2": {
+		"code": "7910030101",
+		"desc": "Griglia in legno laccato"
+	},
+	"filtro": {
+		"code": "7910080980",
+		"desc": "Box filtro con lampada UV e silenziatore"	
+	},
+	"dcr1000": {
+		"code": "7910090901",
+		"desc": "Silenziatore DCR1000"
+	},
+	"dcr2000": {
+		"code": "7910090902",
+		"desc": "Silenziatore DCR2000"
+	},
+}
+
+
 
 
 def dist(point1, point2):

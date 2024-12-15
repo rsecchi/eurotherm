@@ -33,7 +33,6 @@ default_add_dist = 4
 
 collector_margin_factor = 1.5
 
-flow_per_m2 = 23.33
 flow_per_collector = 2200
 feeds_per_collector = 13
 
@@ -530,9 +529,9 @@ class Model():
 				self.ptype = ptype
 
 				self.area_per_feed_m2 = ptype['panels'] * 2.4
-				flow_per_m2 = ptype['flow_panel'] / 2.4
+				self.flow_per_m2 = ptype['flow_panel'] / 2.4
 				print('Area/line = %g m2' % self.area_per_feed_m2)
-				print('Flow_per_m2 = %g l/m2' % flow_per_m2)
+				print('Flow_per_m2 = %g l/m2' % self.flow_per_m2)
 
 
 	def print(self, text):
@@ -1178,8 +1177,8 @@ class Model():
 			area = self.scale * self.scale * room.area
 			for obstacle in room.obstacles:
 				area -= obstacle.area*self.scale*self.scale
-			# flow = area*flow_per_m2*Config.target_eff
-			flow = area*flow_per_m2
+			# flow = area*self.flow_per_m2*Config.target_eff
+			flow = area*self.flow_per_m2
 			if flow > flow_per_collector:
 				wstr = "ABORT: Room %d larger than collector capacity @\n" %\
 						room.pindex
@@ -1212,8 +1211,8 @@ class Model():
 			feeds_max += room.feeds_max
 			# connect room based on max allocation
 			room.feeds = room.feeds_max
-			room.flow_eff = area*target_eff*flow_per_m2
-			room.flow_max = area*flow_per_m2
+			room.flow_eff = area*target_eff*self.flow_per_m2
+			room.flow_max = area*self.flow_per_m2
 			flow_eff += room.flow_eff
 			flow_max += room.flow_max
 			room.flow = room.flow_max
