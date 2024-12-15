@@ -1,8 +1,5 @@
 from collections import Counter
 from math import ceil
-from pprint import pprint
-from code_tests.pylint.tests.functional import w
-from code_tests.pylint.tests.functional.i.import_outside_toplevel import o
 from report import Report
 from settings import Config
 import settings
