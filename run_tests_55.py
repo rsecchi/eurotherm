@@ -13,7 +13,7 @@ cfg = {
     "height": "2.7",
     "units": "auto",
     "head": "air",
-    "ptype": "30",
+    "ptype": "55",
     "cname": "",
     "regulator": "dehum_int",
     "caddr": "",
