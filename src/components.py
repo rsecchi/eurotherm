@@ -196,7 +196,7 @@ class Components:
 
 		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
 
-		margin = Config.leeway/self.model.scale + 1
+		margin = (Config.leeway+1)/self.model.scale
 		for tags in coll_tags:
 			assert isinstance(tags, MText)
 			x, y, _ = tags.dxf.insert
@@ -205,6 +205,7 @@ class Components:
 			count = 0
 			for poly in polylines:
 				assert isinstance(poly, lwpolyline.LWPolyline) 
+				
 				head = dist(poly[0], pos)
 				tail = dist(poly[-1], pos)
 				if head<margin or tail<margin:
