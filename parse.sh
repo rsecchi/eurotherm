@@ -38,7 +38,7 @@ sed 's/#@#/\n/g' LEO_test.tmp > LEO_test.tmp1
 
 sed 's/@#/\n/g; s/,/_/g; s/#/,/g' LEO_test.tmp1 > LEO_test.tmp2
 
-{ echo -n "Filename","Total processed rooms","Total collectors","Total area","Total active area","Total passive area","Normal area","Normal active area","Normal passive area","Hydro area","Hydro active area","Hydro passive area", "Total perimeter","Total lines"
+{ echo -n "Filename","Total processed rooms","Total collectors","Total area","Total active area","Total passive area","Normal area","Normal active area","Normal passive area","Hydro area","Hydro active area","Hydro passive area", "Total perimeter","Total lines",
 cat prods | tr -d ',' | paste -sd "," | sed 's/\r//g' 
 } > LEO_test.tmp3
 

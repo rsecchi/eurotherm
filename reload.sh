@@ -1,15 +1,16 @@
 #!/bin/bash
 
+
+TESTNAME="
+	Abitazioni-000_070 
+	Abitazioni-071_105 
+	Abitazioni-106_165 
+	Abitazioni-166_260 
+	Abitazioni-260-end
+"
+
 for TYPE in 55 35 30;
 do
-
-	TESTNAME="
-		Abitazioni-000_070 
-		Abitazioni-071_105 
-		Abitazioni-106_165 
-		Abitazioni-166_260 
-		Abitazioni-260-end
-	"
 
 	for TEST in $TESTNAME;
 	do

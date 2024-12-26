@@ -47,20 +47,3 @@ for file in sorted(os.listdir(spool_dir)):
 			spool_dir + 'config.cfg'], stdout=subprocess.PIPE, text=True)
 	print(process.communicate()[0])
 
-# for file in sorted(os.listdir("reg_tests2")):
-# 	filename = file[:-4]
-# 	extension = file[-4:]
-# 	if file[:4] == "test"  and extension == ".dxf":
-# 		cfg["file"] = file
-# 		cfg["infile"] = file
-# 		cfg["outfile"] = "LEO_" + file
-# 		print(file)
-# 		data = json.dumps(cfg, indent=4)
-# 		cfgfile = open("reg_tests/config.cfg", "w")
-# 		cfgfile.write(data)
-# 		cfgfile.close()
-# 		process = Popen(['/usr/bin/python3', 'src/leo_main.py', '../reg_tests/config.cfg'], stdout=subprocess.PIPE, text=True)
-# 		print(process.communicate()[0])
-		
-
-
