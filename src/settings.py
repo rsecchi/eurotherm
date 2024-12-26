@@ -652,3 +652,9 @@ class Config:
 			leo_catalog[value["name"]] = value
 
 		return leo_catalog
+
+
+	@classmethod
+	def list_vars(cls):
+		return cls.__dict__
+
