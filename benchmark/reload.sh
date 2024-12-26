@@ -1,6 +1,7 @@
 #!/bin/bash
 
 
+
 TESTNAME="
 	Abitazioni-000_070 
 	Abitazioni-071_105 
@@ -9,33 +10,35 @@ TESTNAME="
 	Abitazioni-260-end
 "
 
+LEO_DIR=$PWD/..
+LOCAL_DIR=$PWD
+
+
 for TYPE in 55 35 30;
 do
 
 	for TEST in $TESTNAME;
 	do
 
-		DIR=/home/raffaello/eurotherm/planimetrie/$TEST
+		export ARCHIVE=/home/raffaello/eurotherm/planimetrie/$TEST
+		echo $ARCHIVE
 
 		# Reload the configuration
-		cd Docker
 		docker stop devel
-
-		export ARCHIVE=$DIR
-		echo $ARCHIVE
+		cd $LEO_DIR/Docker
 		./run_devel_image.sh
-
+		cd $LOCAL_DIR
+		
+		# Run the tests
 		docker exec -it devel /usr/bin/python3 \
-			/usr/local/src/eurotherm/run_tests_${TYPE}.py
-
-		cd ..
+			/usr/local/src/eurotherm/benchmark/run_tests_${TYPE}.py
 		./parse.sh $ARCHIVE
 
-		mv $DIR/LEO_test.csv csv_files/${TEST}-${TYPE}.csv
+		mv $ARCHIVE/LEO_test.csv ${TEST}-${TYPE}.csv
 
 	done
 
 done
 
-ssconvert csv_files/*.csv --merge-to=LEO-tests.xls
+ssconvert *.csv --merge-to=LEO-tests.xls
 
