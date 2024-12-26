@@ -2,6 +2,7 @@
 
 import cgi, os, sys
 import cgitb
+import html_elems
 
 cgitb.enable()
 
@@ -48,13 +49,15 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	print("<pre>")
-	print("Settings:")
-	print(settings_path)
-	print("</pre>")
-
 	sys.path.append(settings_path)
 	from settings import Config
-	print(Config.__dict__)
+
+	section = html_elems.Section("Options")
+
+	for key, value in Config.__dict__.items():
+		if not key.startswith("__"):
+			section.add(key, value)
+
+	section.print()
 
 print("</body></html>")

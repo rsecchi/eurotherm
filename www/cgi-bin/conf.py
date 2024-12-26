@@ -17,4 +17,4 @@ script       = "/usr/local/src/eurotherm/run_leo_main.sh"
 root     = "/usr/local/src/eurotherm/"
 spool    = "/var/spool/eurotherm/"
 
-settings_path = tmp + "src/"
+settings_path = root + "src/"
