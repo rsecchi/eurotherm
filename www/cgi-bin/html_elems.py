@@ -2,14 +2,18 @@
 
 class Element:
 	def __init__(self, name, value):
+
+		if type(value) == int:
+			self.name_type = name + '_int'
+
+		if type(value) == float:
+			self.name_type = name + '_float'
+
+		if type(value) == str:
+			self.name_type = name + '_str'
+
 		self.name = name
 		self.value = value
-
-	def __str__(self):
-		return f'{self.name} = {self.value}'
-
-	def __repr__(self):
-		return f'{self.name} = {self.value}'
 
 
 	def print_val(self):
@@ -19,7 +23,8 @@ class Element:
 			print(end='style="text-align:right;width:300px;" ')
 		else:
 			print(end='style="width:300px;" ')
-
+		print(end='name="' + self.name_type + '" ')
+		print(end='id="' + self.name_type + '" ')
 		print(end='value="' + str(self.value) + '">')
 
 
@@ -35,13 +40,13 @@ class Section:
 	def add(self, name: str, value):
 		if not type(value) in self.valid_types:
 			return
-
 		self.content.append(Element(name, value))
 
 	def print(self):
 
+		print('<form id="options" action="options.py" method="post">')
 		print("<div class='section' id=\"" + self.id + "\">")
-
+		print('<button type="submit">Update</button>')
 		print("<table>")
 		print("<th width='300'>Variable</th>")
 		print("<th>Value</th>")
@@ -53,8 +58,8 @@ class Section:
 			print("</td>")
 			print("</tr>")
 		print("</table>")
-
 		print("</div>")
+		print("</form>")
 
 
 

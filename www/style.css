@@ -371,3 +371,11 @@ h3 {
 	border: 4px solid #ccc;
 }
 
+
+
+table {
+  width: 80%; /* Or a fixed width like 400px */
+  margin: 0 auto; /* Centers the table horizontally */
+  border-collapse: collapse;
+}
+

@@ -18,3 +18,4 @@ root     = "/usr/local/src/eurotherm/"
 spool    = "/var/spool/eurotherm/"
 
 settings_path = root + "src/"
+settings_file = tmp + "settings.json"

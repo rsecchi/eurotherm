@@ -1,4 +1,6 @@
+import os, json
 from math import sqrt
+import conf
 
 MAX_DIST  = 1e20
 MAX_COST  = 1000000
@@ -655,6 +657,26 @@ class Config:
 
 
 	@classmethod
-	def list_vars(cls):
-		return cls.__dict__
+	def _init_config(cls):
 
+		if not os.path.exists(conf.settings_file):
+			return
+
+		with open(conf.settings_file, 'r') as f:
+			data = json.loads(f.read())
+			for key, value in data.items():
+				parts = key.split("_")
+				if len(parts) <= 1:
+					continue
+				
+				var_type = parts[-1]
+				var_name = "_".join(parts[:-1])
+				if var_type == "int":
+					value = int(value)
+				elif var_type == "float":
+					value = float(value)
+				
+				setattr(cls, var_name, value)
+
+
+Config._init_config()
