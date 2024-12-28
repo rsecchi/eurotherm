@@ -47,6 +47,8 @@ class Section:
 		print('<form id="options" action="options.py" method="post">')
 		print("<div class='section' id=\"" + self.id + "\">")
 		print('<button type="submit">Update</button>')
+		print('<button type="submit" formaction="delconf.py">Reset</button>')
+
 		print("<table>")
 		print("<th width='300'>Variable</th>")
 		print("<th>Value</th>")
