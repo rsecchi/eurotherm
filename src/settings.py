@@ -535,21 +535,30 @@ class Config:
 	
 	xlsx_template_ita = 'leo_template.xlsx'
 	xlsx_template_eng = 'leo_template_eng.xlsx'
-	sheet_template_1 = 'LEONARDO 5.5'
-	sheet_template_2 = 'LEONARDO 3.5'
-	sheet_template_3 = 'LEONARDO 3.0 PLUS'
 
-	sheet_breakdown_ita = [
-		('Dettaglio Stanze L55', 85.0, 51.8), 
-		('Dettaglio Stanze L35', 84.2, 64.8),
-		('Dettaglio Stanze 30p', 82.3, 80.9)
-	]
+	sheet_templates_ita = [
+		('LEONARDO 5.5', 'Dettaglio Stanze L55', 85.0, 51.8),
+		('LEONARDO 3.5', 'Dettaglio Stanze L35', 84.2, 64.8),
+		('LEONARDO 3.0 PLUS', 'Dettaglio Stanze 30p', 82.3, 80.9)
+	]	
 
-	sheet_breakdown_eng = [
-		('Room Breakdown L55', 85.0, 51.8), 
-		('Room Breakdown L35', 84.2, 64.8),
-		('Room Breakdown 30p', 82.3, 80.9)
-	]
+	sheet_templates_eng = [
+		('LEONARDO 5.5','Room Breakdown L55', 85.0, 51.8),
+		('LEONARDO 3.5','Room Breakdown L35', 84.2, 64.8),
+		('LEONARDO 3.0 PLUS','Room Breakdown 30p', 82.3, 80.9)
+	]	
+
+	# sheet_breakdown_ita = [
+	# 	('Dettaglio Stanze L55', 85.0, 51.8), 
+	# 	('Dettaglio Stanze L35', 84.2, 64.8),
+	# 	('Dettaglio Stanze 30p', 82.3, 80.9)
+	# ]
+
+	# sheet_breakdown_eng = [
+	# 	('Room Breakdown L55', 85.0, 51.8), 
+	# 	('Room Breakdown L35', 84.2, 64.8),
+	# 	('Room Breakdown 30p', 82.3, 80.9)
+	# ]
 
 
 	offset_red = 4.15

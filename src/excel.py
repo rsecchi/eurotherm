@@ -32,19 +32,22 @@ class XlsDocument:
 
 	def save_in_xls(self):
 
-		xlsx_template = Config.xlsx_template_ita
 		if self.data["lang"] == "eng":
 			xlsx_template = Config.xlsx_template_eng
+			sheet_template = Config.sheet_templates_eng
+		else:
+			xlsx_template = Config.xlsx_template_ita
+			sheet_template = Config.sheet_templates_ita
+
 
 		xlsx_template = "/usr/local/src/eurotherm/" + xlsx_template
 		wb = openpyxl.load_workbook(xlsx_template)
-		ws1 = wb[Config.sheet_template_1]
-		ws2 = wb[Config.sheet_template_2]
-		ws3 = wb[Config.sheet_template_3]
 
-		for ws in [ws1, ws2, ws3]:
+
+		for ws_data in sheet_template:
+			ws = wb[ws_data[0]]
 			self.xls_headers(ws)
-			self.room_breakdown(ws)
+			self.room_breakdown(ws, ws_data)
 
 		out = conf.spool+self.data["outfile"][:-4]+".xlsx"		
 		wb.save(out)
@@ -83,170 +86,167 @@ class XlsDocument:
 		
 
 
-	def room_breakdown(self, ws):
+	def room_breakdown(self, ws, ws_data):
 
 		model = self.components.model
 
-		sheet_breakdown = Config.sheet_breakdown_ita
-		if self.data["lang"] == "eng":
-			sheet_breakdown = Config.sheet_breakdown_eng
+		warm_coef = ws_data[2]
+		cool_coef = ws_data[3]
 
-		for sheet, warm_coef, cool_coef in sheet_breakdown:
+		ws['A22'] = str(ws_data[1])
+		ws.row_dimensions[3].height = 32
 
-			ws['A22'] = str(sheet)
-			ws.row_dimensions[3].height = 32
+		# header
+		for i in range(65,85):
+			if (67<=i<=78):
+				ws.column_dimensions[chr(i)].width = 10
+			ws[chr(i)+'23'].alignment = \
+				Alignment(wrapText=True, 
+					vertical ='center',
+					horizontal ='center')
 
-			# header
-			for i in range(65,85):
-				if (67<=i<=78):
-					ws.column_dimensions[chr(i)].width = 10
-				ws[chr(i)+'23'].alignment = \
+		self.rooms_header(ws)
+
+		set_border(ws, '23', "ABCDEFGHIJKLMNOPQ")
+		ws['A23'].border = XlsDocument.thin_left_top
+		ws['B23'].border = XlsDocument.thin_left_top
+		ws['G23'].border = XlsDocument.thin_left_top
+		ws['L23'].border = XlsDocument.thin_left_top
+		ws['O23'].border = XlsDocument.thin_left_top
+		ws['Q23'].border = XlsDocument.thin_right_top
+
+		model.processed.sort(key=lambda x: 
+			(x.collector.zone_num, x.collector.number, x.pindex))
+
+		zone = 0
+		index = 24
+		number = -1
+		for room in model.processed:
+
+			ws['A'+str(index)].border = XlsDocument.thin_left
+			ws['B'+str(index)].border = XlsDocument.thin_left
+			ws['G'+str(index)].border = XlsDocument.thin_left
+			ws['L'+str(index)].border = XlsDocument.thin_left
+			ws['O'+str(index)].border = XlsDocument.thin_left
+			ws['Q'+str(index)].border = XlsDocument.thin_right
+
+			# body
+			for i in range(65,82):
+				pos = chr(i)+str(index)
+				ws[pos].alignment = \
 					Alignment(wrapText=True, 
 						vertical ='center',
 						horizontal ='center')
+				color = "D0D0D0"
+				if (index%2==0 and i>65):
+					color = "F0F0F0"
+				ws[pos].fill = PatternFill(start_color=color, 
+						fill_type = "solid")
 
-			self.rooms_header(ws)
-
-			set_border(ws, '23', "ABCDEFGHIJKLMNOPQ")
-			ws['A23'].border = XlsDocument.thin_left_top
-			ws['B23'].border = XlsDocument.thin_left_top
-			ws['G23'].border = XlsDocument.thin_left_top
-			ws['L23'].border = XlsDocument.thin_left_top
-			ws['O23'].border = XlsDocument.thin_left_top
-			ws['Q23'].border = XlsDocument.thin_right_top
-
-			model.processed.sort(key=lambda x: 
-				(x.collector.zone_num, x.collector.number, x.pindex))
-
-			zone = 0
-			index = 24
-			number = -1
-			for room in model.processed:
-
-				ws['A'+str(index)].border = XlsDocument.thin_left
-				ws['B'+str(index)].border = XlsDocument.thin_left
-				ws['G'+str(index)].border = XlsDocument.thin_left
-				ws['L'+str(index)].border = XlsDocument.thin_left
-				ws['O'+str(index)].border = XlsDocument.thin_left
-				ws['Q'+str(index)].border = XlsDocument.thin_right
-
-				# body
-				for i in range(65,82):
-					pos = chr(i)+str(index)
-					ws[pos].alignment = \
-						Alignment(wrapText=True, 
-							vertical ='center',
-							horizontal ='center')
-					color = "D0D0D0"
-					if (index%2==0 and i>65):
-						color = "F0F0F0"
-					ws[pos].fill = PatternFill(start_color=color, 
-							fill_type = "solid")
-
-				while (room.collector.zone_num>zone):
-					zone += 1
-					pos = 'A' + str(index)
-					ws[pos] = "Zona %d" % zone
-					set_border(ws,str(index), 'B')
-				
-				if (room.collector.number != number):
-					number = room.collector.number
-					set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
-					ws['A'+str(index)].border = XlsDocument.thin_left_top
-					ws['B'+str(index)].border = XlsDocument.thin_left_top
-					ws['G'+str(index)].border = XlsDocument.thin_left_top
-					ws['L'+str(index)].border = XlsDocument.thin_left_top
-					ws['O'+str(index)].border = XlsDocument.thin_left_top
-					ws['Q'+str(index)].border = XlsDocument.thin_right_top
+			while (room.collector.zone_num>zone):
+				zone += 1
+				pos = 'A' + str(index)
+				ws[pos] = "Zona %d" % zone
+				set_border(ws,str(index), 'B')
+			
+			if (room.collector.number != number):
+				number = room.collector.number
+				set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
+				ws['A'+str(index)].border = XlsDocument.thin_left_top
+				ws['B'+str(index)].border = XlsDocument.thin_left_top
+				ws['G'+str(index)].border = XlsDocument.thin_left_top
+				ws['L'+str(index)].border = XlsDocument.thin_left_top
+				ws['O'+str(index)].border = XlsDocument.thin_left_top
+				ws['Q'+str(index)].border = XlsDocument.thin_right_top
 
 
-				pos = 'B' + str(index)
-				ws[pos] = room.collector.name
-				ws[pos].alignment = Alignment(horizontal='center')
-				
-				pos = 'C' + str(index)
-				ws[pos] = room.pindex
-				ws[pos].alignment = Alignment(horizontal='center')
+			pos = 'B' + str(index)
+			ws[pos] = room.collector.name
+			ws[pos].alignment = Alignment(horizontal='center')
+			
+			pos = 'C' + str(index)
+			ws[pos] = room.pindex
+			ws[pos].alignment = Alignment(horizontal='center')
 
-				pos = 'E' + str(index)
-				ws[pos] = room.area_m2()
-				ws[pos].number_format = "0.0"
+			pos = 'E' + str(index)
+			ws[pos] = room.area_m2()
+			ws[pos].number_format = "0.0"
 
-				if (room.active_m2==0):
-					index += 1
-					continue
-
-				pos = 'D' + str(index)
-				ws[pos] = room.active_m2
-				ws[pos].number_format = "0.0"
-
-				pos = 'F' + str(index)
-				ws[pos] = room.ratio
-				ws[pos].number_format = "0.0"
-
-				pos = 'G' + str(index)
-				ws[pos] = room.total_lines
-					
-				if (room.panel_record["full_classic"] +
-					room.panel_record["lux_classic"] +
-					room.panel_record["full_hydro"]   +
-					room.panel_record["lux_hydro"]	>0):
-					pos = 'H' + str(index)
-					ws[pos] = (room.panel_record["full_classic"] +
-					           room.panel_record["lux_classic"] +
-					           room.panel_record["full_hydro"]  +
-					           room.panel_record["lux_hydro"])
-
-				if (room.panel_record["split_classic"]+
-					room.panel_record["split_hydro"]>0):
-					pos = 'I' + str(index)
-					ws[pos] = (room.panel_record["split_classic"] + 
-					           room.panel_record["split_hydro"])
-
-				if (room.panel_record["half_classic"]+
-					room.panel_record["half_hydro"]>0):
-					pos = 'J' + str(index)
-					ws[pos] = (room.panel_record["half_classic"] + 
-					           room.panel_record["half_hydro"])
-
-				if (room.panel_record["quarter_classic"]+
-					room.panel_record["quarter_hydro"]>0):
-					pos = 'K' + str(index)
-					ws[pos] = (room.panel_record["half_classic"] + 
-					           room.panel_record["half_hydro"])
-
-
-				# heating 
-				pos = 'L' + str(index)
-				ws[pos] = radiated = room.active_m2 * warm_coef
-				ws[pos].number_format = "0"
-
-				pos = 'M' + str(index)
-				ws[pos] = output = radiated * 1.1
-				ws[pos].number_format = "0"
-
-				pos = 'N' + str(index)
-				ws[pos] = 3.6*output/(4.186*ws['K14'].value)
-				ws[pos].number_format = "0"
-
-				# cooling
-				pos = 'O' + str(index)
-				ws[pos] = absorbed = room.active_m2 * cool_coef
-				ws[pos].number_format = "0"
-
-				pos = 'P' + str(index)
-				ws[pos] = output = absorbed * 1.1
-				ws[pos].number_format = "0"
-
-				pos = 'Q' + str(index)
-				ws[pos] = 3.6*output/(4.186*ws['K18'].value)
-				ws[pos].number_format = "0"
-
-
-				#ws[pos_area].number_format = "0.00"
+			if (room.active_m2==0):
 				index += 1
+				continue
 
-			set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
+			pos = 'D' + str(index)
+			ws[pos] = room.active_m2
+			ws[pos].number_format = "0.0"
+
+			pos = 'F' + str(index)
+			ws[pos] = room.ratio
+			ws[pos].number_format = "0.0"
+
+			pos = 'G' + str(index)
+			ws[pos] = room.total_lines
+				
+			if (room.panel_record["full_classic"] +
+				room.panel_record["lux_classic"] +
+				room.panel_record["full_hydro"]   +
+				room.panel_record["lux_hydro"]	>0):
+				pos = 'H' + str(index)
+				ws[pos] = (room.panel_record["full_classic"] +
+						   room.panel_record["lux_classic"] +
+						   room.panel_record["full_hydro"]  +
+						   room.panel_record["lux_hydro"])
+
+			if (room.panel_record["split_classic"]+
+				room.panel_record["split_hydro"]>0):
+				pos = 'I' + str(index)
+				ws[pos] = (room.panel_record["split_classic"] + 
+						   room.panel_record["split_hydro"])
+
+			if (room.panel_record["half_classic"]+
+				room.panel_record["half_hydro"]>0):
+				pos = 'J' + str(index)
+				ws[pos] = (room.panel_record["half_classic"] + 
+						   room.panel_record["half_hydro"])
+
+			if (room.panel_record["quarter_classic"]+
+				room.panel_record["quarter_hydro"]>0):
+				pos = 'K' + str(index)
+				ws[pos] = (room.panel_record["half_classic"] + 
+						   room.panel_record["half_hydro"])
+
+
+			# heating 
+			pos = 'L' + str(index)
+			ws[pos] = radiated = room.active_m2 * warm_coef
+			ws[pos].number_format = "0"
+
+			pos = 'M' + str(index)
+			ws[pos] = output = radiated * 1.1
+			ws[pos].number_format = "0"
+
+			pos = 'N' + str(index)
+			ws[pos] = 3.6*output/(4.186*ws['K14'].value)
+			ws[pos].number_format = "0"
+
+			# cooling
+			pos = 'O' + str(index)
+			ws[pos] = absorbed = room.active_m2 * cool_coef
+			ws[pos].number_format = "0"
+
+			pos = 'P' + str(index)
+			ws[pos] = output = absorbed * 1.1
+			ws[pos].number_format = "0"
+
+			pos = 'Q' + str(index)
+			ws[pos] = 3.6*output/(4.186*ws['K18'].value)
+			ws[pos].number_format = "0"
+
+
+			#ws[pos_area].number_format = "0.00"
+			index += 1
+
+		set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
 
 
 	def rooms_header(self, ws):
