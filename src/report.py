@@ -1,4 +1,3 @@
-from pprint import pprint
 from components import Components
 from settings import Config
 from model import Room
@@ -44,6 +43,8 @@ class Report:
 
 	def output_section(self):
 
+		ind = "&nbsp;&nbsp;&nbsp;"
+
 		if self.model.data['head'] == "none":
 			return
 
@@ -58,14 +59,22 @@ class Report:
 
 		for item in air_handlers:
 
+			flow = int(item['coverage'])	
+			if lang == "ita":
+				req_flow_str = f"portata richiesta {flow} m3/h"
+			else:
+				req_flow_str = f"required flow {flow} m3/h"
+
 			section.paragraph(
-				{"ita": "Zona: %s" % item['zone'],
-				 "eng": "Zone: %s" % item['zone']})
+				{"ita": "Zona: %s, " % item['zone'] + req_flow_str,
+				 "eng": "Zone: %s, " % item['zone'] + req_flow_str})
+
 
 			for i, qnt in enumerate(item['best_ac']):
 
 				if qnt == 0:
 					continue
+
 
 				label = item['air_handler'][i]['type_label']
 
@@ -76,23 +85,18 @@ class Report:
 					mount = {"ita": "ad installazione orizzontale",
 							 "eng": "horizontal mounting"}
 
-			flow = int(item['coverage'])	
-			section.paragraph(
-				{"ita": f" {label} {mount['ita']} " + 
-							f"per una portata di {flow} m3/h",
-				 "eng": f" {label} {mount['eng']} " +
-							f"for a flow of {flow} m3/h"})
+				mount = mount[lang]	
+				mod = item['air_handler'][i]['model']
+				section.paragraph(ind+"%d x %s %s, %s" % 
+					  (qnt, label, mount, mod))
 
-
-			mod = item['air_handler'][i]['model']
-			section.paragraph( "%d x %s" % (qnt, mod))
 
 			coverage = int(item['best_flow'])
 			excess = int(item['best_flow'] - item['coverage'])
 
 			section.paragraph(
-			  {"ita": f"copertura {coverage} m3/h, eccesso {excess} m3/h",
-			   "eng": f"coverage {coverage} m3/h, excess {excess} m3/h"})
+			  {"ita": ind+f"copertura {coverage} m3/h, eccesso {excess} m3/h",
+			   "eng": ind+f"coverage {coverage} m3/h, excess {excess} m3/h"})
 
 		section.close()
 		
