@@ -48,6 +48,10 @@ class Components:
 	def get_panels(self):
 
 		for room in self.model.processed:
+
+			if room.color == Config.color_disabled_room:
+				continue
+
 			room_outline = room.frame.room_outline()
 
 			planner = Planner(room_outline)
