@@ -707,8 +707,9 @@ class DxfDrawing:
 
 		pos = self.find_free_box(room, vers)
 
-		if (room.color == Config.color_bathroom  and 
-			  room.area_m2() <= Config.min_area_probe_th_m2):
+		if (self.model.data["head"] == "none" or
+			  (room.color == Config.color_bathroom  and 
+			  room.area_m2() <= Config.min_area_probe_th_m2)):
 			icon = leo_icons["probe_T"]["name"]
 		else:
 			icon = leo_icons["probe_TH"]["name"]
