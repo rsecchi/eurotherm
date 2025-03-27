@@ -6,6 +6,16 @@ Main Python script executing the calculation. It can be called as a command line
 ```
 where the filename is the DXF inputs and units it is the units used in the DXF in cm or "auto"
 
+
+# Running regression test
+
+```
+Docker/run_devel_regtests.sh
+docker exec -it devel_regtests /bin/bash
+python3 regtests/run_tests.py
+```
+
+
 # Installing the web interface
 
 > We assume to extract the files in /usr/local/scr 

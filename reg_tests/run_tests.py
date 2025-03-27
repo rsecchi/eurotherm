@@ -12,6 +12,7 @@ cfg = {
     "ccomp": "",
     "file": "",
     "control": "reg",
+	"lang": "eng",
     "height": "2.7",
     "laid": "without",
     "head": "air",
@@ -20,18 +21,6 @@ cfg = {
     "infile": "",
     "lock_name": "/var/spool/eurotherm/eurotherm.lock"
 }
-
-# Get the current working directory
-current_directory = os.getcwd()
-print("Current Working Directory:", current_directory)
-
-# Change to the parent directory
-parent_directory = os.path.dirname(current_directory)
-os.chdir(parent_directory)
-
-# Verify the change
-updated_directory = os.getcwd()
-print("Updated Working Directory:", updated_directory)
 
 
 for file in sorted(os.listdir("reg_tests")):
@@ -46,7 +35,11 @@ for file in sorted(os.listdir("reg_tests")):
 		cfgfile = open("reg_tests/config.cfg", "w")
 		cfgfile.write(data)
 		cfgfile.close()
-		process = Popen(['/usr/bin/python3', 'src/leo_main.py', '../reg_tests/config.cfg'], stdout=subprocess.PIPE, text=True)
+		process = Popen([
+			'/bin/sh', 
+			'run_leo_main.sh',
+			'reg_tests/config.cfg'],
+			stdout=subprocess.PIPE, text=True)
 		print(process.communicate()[0])
 		
 
