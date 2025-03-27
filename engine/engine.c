@@ -373,6 +373,7 @@ uint32_t dorsal_score, eval;
 dorsal_t trial;
 dorsal_t *dors_up = alloc->_dors_up;
 dorsal_t *dors_down = alloc->_dors_down;
+dorsal_t *dorsal;
 dorsal_score_t* score = alloc->_dorsal_score;
 int rows;
 
@@ -383,7 +384,7 @@ int rows;
 	if (HD_STEPS>=rows) 
 		return 0;
 
-	while(k < rows) {
+	for(k=HD_STEPS; k < rows; k++) {
 
 		kp[NARROW] = k - HD_STEPS;
 		kp[WIDE]   = MAX(k - 2*HD_STEPS, 0);
@@ -444,19 +445,20 @@ int rows;
 		score[k].dorsal = score[k-1].dorsal;
 		score[k].score = score[k-1].score;
 
-		if (dors_up[k].score > score[k].score || 
-			(dors_up[k].score == score[k].score && k<rows/2)) {
-			score[k].dorsal = &dors_up[k];
-			score[k].score = dors_up[k].score;
-		}	
+		if (dors_up[k].score >= dors_down[k].score)
+			dorsal = &dors_up[k];
+		else
+			dorsal = &dors_down[k];
 
-		if (dors_down[k].score > score[k].score || 
-			(dors_down[k].score == score[k].score && k<rows/2)) {
-			score[k].dorsal = &dors_down[k];
-			score[k].score = dors_down[k].score;
+		if (dorsal->next == NULL) 
+			continue;
+		
+		eval = dorsal->next->score;
+		if (dorsal->score > score[k].score ||  
+			(dorsal->score == score[k].score && eval==0)) {
+				score[k].dorsal = dorsal;
+				score[k].score = dorsal->score;
 		}
-
-		k++;
 	}
 	alloc->dorsals = score[k-1].dorsal;
 
