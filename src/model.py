@@ -509,7 +509,6 @@ class Model():
 			for ptype in panel_types:
 				if (ctype == ptype['full_name']):
 					self.ptype = ptype
-			return
 
 		self.ents = self.msp.query('*[layer=="%s"]' 
 				% self.inputlayer)

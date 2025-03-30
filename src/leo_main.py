@@ -10,6 +10,7 @@ from bill import Bill
 from drawing import DxfDrawing, Preview
 from excel import XlsDocument
 from report import Report
+from settings import Config
 
 
 class App:
@@ -44,8 +45,7 @@ class App:
 		self.bill = Bill(self.report)
 		self.preview = Preview(self.model)
 
-		self.dxf.import_floorplan(self.model.input_file)
-		self.dxf.import_blocks(self.data["ptype"])
+		self.dxf.import_layer(self.model.input_file, Config.input_layer)
 
 		# Create output file for elaborate
 		if not self.model.build_model():
@@ -56,6 +56,9 @@ class App:
 			self.preview.save()
 			return
 
+		if not self.model.refit:
+			self.dxf.import_blocks(self.data["ptype"])
+
 		self.report.set_text(self.model.text)
 
 		if not self.model.refit:
@@ -64,6 +67,21 @@ class App:
 			self.dxf.save()
 			self.preview.draw_model()
 			self.preview.save()
+		else:
+			layers = [
+				Config.layer_text,
+				Config.layer_box,      
+				Config.layer_panel,    
+				Config.layer_panelp,   
+				Config.layer_link,     
+				Config.layer_error,    
+				Config.layer_lux,      
+				Config.layer_probes,   
+				Config.layer_struct,   
+				Config.layer_collector,
+				Config.layer_fittings] 
+			for layer in layers:
+				self.dxf.import_layer(self.model.input_file, layer)
 
 
 		# count components and save

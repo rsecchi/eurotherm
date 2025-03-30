@@ -115,11 +115,11 @@ class DxfDrawing:
 		self.blocks = {}
 
 
-	def import_floorplan(self, filename):
+	def import_layer(self, filename:str, layer_name:str):
 		input_doc = readfile(filename)
 		importer = Importer(input_doc, self.doc)
 
-		floorplan = input_doc.query('*[layer=="%s"]' % Config.input_layer)
+		floorplan = input_doc.query('*[layer=="%s"]' % layer_name)
 
 		importer.import_entities(floorplan)
 		importer.finalize()

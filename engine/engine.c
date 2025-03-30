@@ -453,9 +453,10 @@ int rows;
 		if (dorsal->next == NULL) 
 			continue;
 		
-		eval = dorsal->next->score;
-		if (dorsal->score > score[k].score ||  
-			(dorsal->score == score[k].score && eval==0)) {
+		/* eval = dorsal->next->score; */
+		if (dorsal->score > score[k].score)
+			/* ||  (dorsal->score == score[k].score && eval==0)) */ 
+		{
 				score[k].dorsal = dorsal;
 				score[k].score = dorsal->score;
 		}
