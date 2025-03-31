@@ -324,14 +324,18 @@ class LinesManager():
 			prev_level = dors[i-1].level
 			curr_top = dors[i].top
 			prev_btm = dors[i-1].bottom
-			if abs(prev_btm-curr_top)<1 and (level>prev_level):
-				dorsal.indented = True
-				if not dorsal.upright:
-					dorsal.indent_front = (prev_level, dorsal.front[1])
-					dorsal.indent_side = (prev_level, dorsal.side[1])
-				else:
+
+			if not dorsal.upright:
+				if abs(prev_btm-curr_top)<1 and (level>prev_level):
+					dorsal.indented = True
 					dorsal.indent_front = (dorsal.front[1], prev_level)
 					dorsal.indent_side = (dorsal.side[1], prev_level)
+
+			if dorsal.upright:
+				if abs(prev_btm-curr_top)<1 and (level<prev_level):
+					dorsal.indented = True
+					dorsal.indent_front = (prev_level, dorsal.front[1])
+					dorsal.indent_side = (prev_level, dorsal.side[1])
 					
 
 	def get_lines(self, ptype: str):
