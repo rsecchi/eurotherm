@@ -20,8 +20,13 @@ mylib.planner.restype = POINTER(EnginePanel)
 mylib.free_list.argtypes = [POINTER(EnginePanel)]
 mylib.free_list.restype = None
 
+
+# Configuration functions
 mylib.set_one_direction.argtypes = [c_int]
 mylib.set_one_direction.restype = None
+
+mylib.set_debug.argtypes = [c_int]
+mylib.set_debug.restype = None
 
 
 class Planner:
@@ -29,7 +34,6 @@ class Planner:
 
 		self.panels: list[Panel] = []
 		self.room = EngineRoom()
-		self.one_direction = 0
 
 		room = self.room 
 		room.walls = EnginePolygon(room_outline.points)
@@ -54,8 +58,11 @@ class Planner:
 		return self.panels 
 
 
-	def set_one_direction(self):
-		mylib.set_one_direction(1)
+	def set_one_direction(self, direction):
+		mylib.set_one_direction(direction)
+
+	def set_debug(self, debug):
+		mylib.set_debug(debug)
 
 
 ######### TESTING #########################

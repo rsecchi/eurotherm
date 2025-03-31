@@ -56,7 +56,9 @@ class Components:
 
 			planner = Planner(room_outline)
 			if room.vector:
-				planner.set_one_direction()
+				planner.set_one_direction(1)
+			else:
+				planner.set_one_direction(0)
 			room.panels = planner.get_panels()
 
 			self.panels += room.panels

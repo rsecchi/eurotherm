@@ -13,6 +13,12 @@ void set_one_direction(int one_direction)
 }
 
 
+void set_debug(int debug)
+{
+	config.debug = debug;
+}
+
+
 pnl_t* planner(room_t* room)
 {
 	pnl_t *pnls=NULL, *pnl;
