@@ -24,8 +24,9 @@ from geometry import poly_t
 
 MAX_DIST  = 1e20
 
-def panel_tracks(panel: Insert, scale: float) -> list[float]:
+def panel_tracks(panel: Insert, u: point_t, scale: float) -> list[float]:
 
+	uscale = (u[0]/scale, u[1]/scale)
 	attribs = panel.dxfattribs()
 	angle = attribs['rotation']
 	name = attribs['name']
@@ -34,11 +35,14 @@ def panel_tracks(panel: Insert, scale: float) -> list[float]:
 	tracks = panel_map[ptype]['tracks']
 
 	ux, uy = cos(pi*angle/180), sin(pi*angle/180)
-	base = x*ux + y*uy
-	step = Config.inter_track/scale
+
+	base = x*u[0] + y*u[1]
+
+	step = Config.inter_track*uscale[0], Config.inter_track*uscale[1]
 	coords: list[float] = []
 	for i in range(tracks):
-		coords.append(base - i*step)
+		point = base - i*step[0]*ux - i*step[1]*uy
+		coords.append(point)
 
 	return coords
 
@@ -751,7 +755,7 @@ class DxfDrawing:
 
 		ucoords: list[float] = []
 		for panel in room_panels:
-			ucoords.extend(panel_tracks(panel, scale))
+			ucoords.extend(panel_tracks(panel, u, scale))
 		ucoords.sort()
 
 		ux_min = min([xprod(p, u) for p in room.points])
