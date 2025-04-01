@@ -328,8 +328,8 @@ class LinesManager():
 			if not dorsal.upright:
 				if abs(prev_btm-curr_top)<1 and (level>prev_level):
 					dorsal.indented = True
-					dorsal.indent_front = (dorsal.front[1], prev_level)
-					dorsal.indent_side = (dorsal.side[1], prev_level)
+					dorsal.indent_front = (prev_level, dorsal.front[1])
+					dorsal.indent_side = (prev_level, dorsal.side[1])
 
 			if dorsal.upright:
 				if abs(prev_btm-curr_top)<1 and (level<prev_level):
