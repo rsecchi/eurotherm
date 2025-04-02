@@ -120,7 +120,7 @@ class ReferenceFrame:
 		return rotated_points
 
 
-	def room_outline(self):
+	def room_outline(self) -> Outline | None:
 		if not self.vector:
 			return None
 

@@ -601,6 +601,7 @@ class Config:
 	size_smartp_icon = 10
 
 	min_area_probe_th_m2 = 9.0
+	step_retract = 5.0
 
 	_handlers = dict() 
 
