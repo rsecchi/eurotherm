@@ -664,6 +664,8 @@ class DxfDrawing:
 		ux_min = min(ux)
 		ux_max = max(ux)
 
+		sd0 = False 
+
 		coord = ux_min
 		while coord<ux_max:
 			p = adv(mul(coord, u), col)
@@ -676,6 +678,10 @@ class DxfDrawing:
 				ss = versor(seg[1], seg[0])
 				d = dist(seg[0], seg[1]) - step
 				sd = adv(mul(d,ss), seg[0])
+
+				if sd0 is False:
+					sd0 = sd
+
 				while d>0:
 					sd = adv(mul(d,ss), seg[0])
 					d -= step
@@ -699,7 +705,7 @@ class DxfDrawing:
 					if flag:
 						return sd
 
-		return (0,0)
+		return sd0 or (0,0)
 
 
 
