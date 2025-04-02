@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw
 from math import sqrt
 
 from PIL.ImageFont import truetype
+from pyclipper import PyclipperOffset, JT_MITER, ET_CLOSEDPOLYGON
 
 
 MAX_DIST = 1e20
@@ -537,3 +538,22 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t, leeway:float):
 	if point2:
 		pipe2.append(point2)
 		pipe2.append(ext2[1])
+
+
+def offset_poly(poly: poly_t, offset: float) -> list[poly_t]:
+
+	scale = 1e6
+	scaled_poly = [(int(x * scale), int(y * scale)) for x, y in poly]
+
+	pc = PyclipperOffset()
+	pc.AddPath(scaled_poly, JT_MITER, ET_CLOSEDPOLYGON)
+	paths = pc.Execute(offset * scale)
+
+	polygons = []
+	for path in paths:
+		off_path = [(x/scale, y/scale) for x, y in path]
+		polygons.append(off_path+[off_path[0]])
+
+	return polygons
+
+
