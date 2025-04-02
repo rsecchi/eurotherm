@@ -48,7 +48,6 @@ class Components:
 	def config_planner(self, planner: Planner):
 
 		if "full" in self.data:
-			print("Disabling full")
 			planner.disable_full()
 		if "lux" in self.data:
 			planner.disable_lux()

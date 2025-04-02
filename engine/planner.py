@@ -83,7 +83,6 @@ class Planner:
 		mylib.disable_lux()
 
 	def disable_full(self):
-		print("Disabling full for real this time")
 		mylib.disable_fulls()
 
 	def disable_half(self):

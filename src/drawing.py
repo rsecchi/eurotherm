@@ -84,6 +84,9 @@ class Preview:
 			if room.color == Config.color_bathroom:
 				col = "green"
 
+			if room.color == Config.color_disabled_room:
+				col = "magenta"
+
 			self.picture.text(room.pos, "%d" % room.pindex, color=col)	
 			self.picture.add(room.points, color=col)
 
