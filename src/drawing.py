@@ -708,7 +708,6 @@ class DxfDrawing:
 		return sd0 or (0,0)
 
 
-
 	def draw_probes(self, room: Room):
 
 		if not isinstance(room.collector, Room):
