@@ -13,10 +13,12 @@ void set_one_direction(int one_direction)
 }
 
 
-void set_debug(int debug)
-{
-	config.debug = debug;
-}
+void set_debug(int debug) { config.debug = debug; }
+void disable_fulls() { config.enable_fulls = 0; printf("from engine\n");}
+void disable_lux() { config.enable_lux = 0; }
+void disable_splits() { config.enable_splits = 0; }
+void disable_halves() { config.enable_halves = 0; }
+void disable_quarters() { config.enable_quarters = 0; }
 
 
 pnl_t* planner(room_t* room)

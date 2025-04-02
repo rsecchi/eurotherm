@@ -39,6 +39,10 @@
 extern uint32_t __score;
 
 typedef struct {
+	int enable_fulls;
+	int enable_lux;
+	int enable_splits;
+	int enable_halves;
 	int enable_quarters;
 	int debug;
 	int max_row_debug;

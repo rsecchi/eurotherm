@@ -29,6 +29,18 @@ mylib.set_debug.argtypes = [c_int]
 mylib.set_debug.restype = None
 
 
+mylib.disable_fulls.argtypes = [] 
+mylib.disable_fulls.restype = None
+mylib.disable_lux.argtypes = []
+mylib.disable_lux.restype = None
+mylib.disable_splits.argtypes = []
+mylib.disable_splits.restype = None
+mylib.disable_halves.argtypes = []
+mylib.disable_halves.restype = None
+mylib.disable_quarters.argtypes = []
+mylib.disable_quarters.restype = None
+
+
 class Planner:
 	def __init__(self, room_outline):
 
@@ -63,6 +75,22 @@ class Planner:
 
 	def set_debug(self, debug):
 		mylib.set_debug(debug)
+
+	def disable_quarter(self):
+		mylib.disable_quarters()
+
+	def disable_lux(self):
+		mylib.disable_lux()
+
+	def disable_full(self):
+		print("Disabling full for real this time")
+		mylib.disable_fulls()
+
+	def disable_half(self):
+		mylib.disable_halves()
+
+	def disable_split(self):
+		mylib.disable_splits()
 
 
 ######### TESTING #########################

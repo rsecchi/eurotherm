@@ -379,3 +379,14 @@ table {
   border-collapse: collapse;
 }
 
+.nome_menu li {
+	background-color: #f9f9f9;
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-size: 14px;
+	padding: 2px;
+}
+
+.nome_menu {
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-size: 14px;
+}

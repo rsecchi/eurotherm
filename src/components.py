@@ -45,6 +45,21 @@ class Components:
 		self.data = model.data
 
 
+	def config_planner(self, planner: Planner):
+
+		if "full" in self.data:
+			print("Disabling full")
+			planner.disable_full()
+		if "lux" in self.data:
+			planner.disable_lux()
+		if "split" in self.data:
+			planner.disable_split()
+		if "half" in self.data:
+			planner.disable_half()
+		if "quarter" in self.data:
+			planner.disable_quarter()
+
+
 	def get_panels(self):
 
 		for room in self.model.processed:
@@ -55,6 +70,7 @@ class Components:
 			room_outline = room.frame.room_outline()
 
 			planner = Planner(room_outline)
+			self.config_planner(planner)
 			if room.vector:
 				planner.set_one_direction(1)
 			else:

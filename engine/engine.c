@@ -21,6 +21,10 @@ panel_desc_t panel_desc[] =
 
 config_t config = {
 	.debug = 0,
+	.enable_fulls = 1,
+	.enable_lux = 1,
+	.enable_splits = 1,
+	.enable_halves = 1,
 	.enable_quarters = 1,
 	.max_row_debug = 10000,
 	.debug_animation = 0,
@@ -273,8 +277,15 @@ int level;
 
 		for(type=0; type<NUM_PANEL_T; type++){
 
-			if (!config.enable_quarters && type==QUARTER)
-				continue;
+			if ((!config.enable_fulls && type==FULL) ||
+				(!config.enable_lux && type==LUX) ||
+				(!config.enable_splits && type==SPLIT) ||
+				(!config.enable_halves && type==HALF) ||
+				(!config.enable_quarters && type==QUARTER)) {
+					panel_fail >>= 2;
+					panel_done >>= 2;
+					continue;
+			}
 
 			/* skip panel type if dorsal does not support panel*/
 			if (width==NARROW && 
