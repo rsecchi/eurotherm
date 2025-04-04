@@ -190,7 +190,7 @@ class DxfDrawing:
 			dxfattribs={"style": "Arial"})
 		text.dxf.insert = position
 		text.dxf.attachment_point = align
-		text.dxf.char_height = Config.font_size/self.model.scale*zoom
+		text.dxf.char_height = Config.font_size*zoom/self.model.scale
 		text.dxf.layer = layer
 		text.dxf.color = col
 
@@ -223,7 +223,7 @@ class DxfDrawing:
 
 			# Box zones
 			if not clt.user_zone:
-				margin = 2*Config.min_dist/scale
+				margin = 2*Config.boxzone_padding/scale
 				ax = min([c.ax for c in clt.zone_rooms]) - margin
 				ay = min([c.ay for c in clt.zone_rooms]) - margin
 				bx = max([c.bx for c in clt.zone_rooms]) + margin
@@ -243,7 +243,7 @@ class DxfDrawing:
 						ax = p[0]; by = p[1]
 
 			self.write_text("Zone %d" % clt.zone_num, 
-			  (ax, by + Config.min_dist/scale), 
+			  (ax, by + Config.boxzone_padding/scale), 
 				const.MTEXT_BOTTOM_LEFT, zoom=0.6)
 
 

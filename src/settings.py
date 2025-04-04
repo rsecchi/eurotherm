@@ -497,11 +497,19 @@ def dist(point1, point2):
 debug = False
 
 class Config:
+
+	tolerance = 1.
+	collector_size = 60.
+	min_dist = 20.
+	min_dist2 = min_dist*min_dist
+	wall_depth = 101.
+	max_clt_distance = 3000.
+
 	input_layer = 'AREE LEONARDO'
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
-	font_size = 10 
+	font_size = 10.
 	line_coverage_m2 = 12.001 
-	min_dist = 10
+	boxzone_padding = 10.
 
 	layer_text      = 'Eurotherm_text'
 	layer_box       = 'Eurotherm_box'
@@ -530,7 +538,6 @@ class Config:
 	error_shade = "orange"
 
 	max_room_area = 500
-	collector_size = 60
 	target_eff = 0.7
 	
 	xlsx_template_ita = 'leo_template.xlsx'
