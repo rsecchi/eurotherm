@@ -96,6 +96,12 @@
             ta.disabled = false
         }
     </script>
+
+<style>
+
+</style>
+
+
 </head>
 
 <body>
@@ -181,6 +187,12 @@
                         <option value="none">Senza trattamento aria</option>
                     </select>
                 </p>
+
+				<p id="target" class="nome_menu">
+                    <label for="target" class="label" id="air_label">Percentuale copertura: </label>
+					<input id="spinner" name="target" 
+							type="number" min="0" max="100" step="0.1" value="100" class="box">
+				</p>
 
 				<div id="panels" class="nome_menu"><b>Escludi:</b>
 					<ul class="nome_menu">

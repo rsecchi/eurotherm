@@ -83,7 +83,6 @@ class App:
 			for layer in layers:
 				self.dxf.import_layer(self.model.input_file, layer)
 
-
 		# count components and save
 		self.components.count_components(self.dxf.doc)
 		self.dxf.save()

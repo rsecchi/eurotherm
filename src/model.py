@@ -248,6 +248,8 @@ class Room:
 
 		# self.arrangement = PanelArrangement(self)
 		self.panels: list[Panel] = list()
+		self.panel_register: list[int] = []
+		self.quarters = 0
 		self.lines_manager = LinesManager()
 		self.bounding_box()
 		self.area = self._area()

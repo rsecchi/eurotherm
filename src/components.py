@@ -19,6 +19,12 @@ def point_in_box(pos: tuple, box: tuple) -> bool:
 	return x0 <= x <= x1 and y0 <= y <= y1
 
 
+def get_nonzero(register: list[int]) -> int:
+	for i in range(4,-1,-1):
+		if register[i] > 0:
+			return i 
+	return -1
+
 class Components:
 	
 	def __init__(self, model: Model):
@@ -89,6 +95,10 @@ class Components:
 
 	def get_components(self):
 		self.get_panels()
+
+		if self.data["target"] != "100":
+			self.drop_excess_panels()
+
 		self.get_lines()
 
 
@@ -321,4 +331,61 @@ class Components:
 			}
 			self.air_handlers.append(item)
 
+
+	def drop_panel_from_room(self, room: Room, ptype: int):
+
+		for panel in room.panels:
+			if panel.type == ptype:
+				panel.dorsal_row
+				room.panels.remove(panel)
+				break
+
+		self.num_panels -= 1
+
+
+	def drop_excess_panels(self):
+
+		q = [4, 4, 2, 2, 1]
+		rooms = self.model.processed
+		target = float(self.data["target"])/100.0
+		target_in_quarters = ceil(target*self.model.area/0.6)
+
+		# Build a register for room panels
+		alloc_quarters = 0
+		for room in rooms:
+			pr = room.panel_register = [0, 0, 0, 0, 0]
+			for panel in room.panels:
+				pr[panel.type] += 1
+
+			room.quarters = 0
+			for i in range(5):
+				room.quarters += pr[i]*q[i]
+
+			alloc_quarters += room.quarters
+
+		excess_quarters = alloc_quarters - target_in_quarters
+
+		if excess_quarters <= 0:
+			return
+
+		for room in rooms:
+			i = get_nonzero(room.panel_register)
+			if i == -1:
+				continue
+			room.ratio = 0.6*(room.quarters-q[i]) / room.area_m2()
+
+
+		while excess_quarters > 0:
+			rooms.sort(key=lambda x: x.ratio, reverse=True)
+			selected = rooms[0]
+			pr = selected.panel_register
+			i = get_nonzero(pr)
+			if i == -1:
+				break
+			self.drop_panel_from_room(selected, i)
+			pr[i] -= 1
+			selected.quarters -= q[i]
+			selected.ratio = 0.6*selected.quarters / selected.area_m2()
+			excess_quarters -= q[i]
+		
 

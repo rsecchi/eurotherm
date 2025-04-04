@@ -10,6 +10,7 @@ RUN apt-get update && apt-get -y install curl
 
 RUN apt-get update && apt-get -y install python3-full python3-ezdxf python3-openpyxl python3-docx python3-numpy python3-matplotlib python3-pyclipper
 RUN apt-get -y install libcairo2-dev
+RUN apt-get -y install python3-flask 
 
 WORKDIR /usr/local/src/eurotherm
 ENTRYPOINT ["/bin/bash","/usr/local/src/eurotherm/Docker/config.sh"] 

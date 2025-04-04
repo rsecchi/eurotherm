@@ -12,35 +12,40 @@ panel_map = {
 		"width_cm":  200,
 		"height_cm": 120,
 		"area_m2":   2.4,
-		"tracks":    5
+		"tracks":    5,
+		"in_quarters": 4
 	}, 
 
 	"lux": {
 		"width_cm":  200,
 		"height_cm": 120,
 		"area_m2":   2.4,
-		"tracks":    5
+		"tracks":    5,
+		"in_quarters": 4
 	}, 
 
 	"split": { 
 		"width_cm": 200,
 		"height_cm": 60,
 		"area_m2":  1.2,
-		"tracks":    5
+		"tracks":    5,
+		"in_quarters": 2
 	},
 
 	"half": {
 		"width_cm":  100,
 		"height_cm": 120,
 		"area_m2":   1.2,
-		"tracks":    3
+		"tracks":    3,
+		"in_quarters": 2
 	}, 
 
 	"quarter": {
 		"width_cm":  100,
 		"height_cm":  60,
 		"area_m2":   0.6,
-		"tracks":    3
+		"tracks":    3,
+		"in_quarters": 1
 	}, 
 }
 

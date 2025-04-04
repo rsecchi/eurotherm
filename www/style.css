@@ -390,3 +390,20 @@ table {
 	font-family: 'IBM Plex Sans', sans-serif;
 	font-size: 14px;
 }
+
+#spinner::-webkit-outer-spin-button,
+	#spinner::-webkit-inner-spin-button {
+	-webkit-appearance: inner-spin-button;
+	appearance: inner-spin-button;
+	opacity: 1;
+	display: block;
+}
+ #spinner {
+	-moz-appearance: textfield;
+	width: 70px;
+	text-align: center;
+	height: 30px;
+	padding: 5px;
+	border-radius: 5px;
+	border: 1px solid light-dark;
+}
