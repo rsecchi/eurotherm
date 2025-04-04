@@ -109,7 +109,11 @@ class Panel:
 		self.rot = panel.contents.iso_flgs
 		self.dorsal_row = panel.contents.dorsal_row
 		self.type = panel.contents.type
-		self.name = name = panel_names[self.type]
+		self.name = panel_names[self.type]	
+		self.size_panel(self.name)
+
+
+	def size_panel(self, name: str):
 		self.width = panel_map[name]["width_cm"]
 		self.height = panel_map[name]["height_cm"]
 		self.area_m2 = panel_map[name]["area_m2"]
@@ -124,6 +128,19 @@ class Panel:
 			self.rear_side = self.panel_to_local((-self.width, -self.height))
 			self.front_corner = self.pos
 			self.front_side = self.panel_to_local((0, -self.height))
+
+
+	def halve_panel(self):
+
+		if self.name == "full":
+			self.name = "split"
+			self.type = 2
+			self.size_panel(self.name)
+
+		if self.name =="half":
+			self.name = "quarter"
+			self.type = 4
+			self.size_panel(self.name)
 
 
 	def panel_to_local(self, point):

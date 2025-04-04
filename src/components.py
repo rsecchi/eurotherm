@@ -336,8 +336,10 @@ class Components:
 
 		for panel in room.panels:
 			if panel.type == ptype:
-				panel.dorsal_row
-				room.panels.remove(panel)
+				if panel.type in [1,2,4]:
+					room.panels.remove(panel)
+				else:
+					panel.halve_panel()
 				break
 
 		self.num_panels -= 1
@@ -372,20 +374,41 @@ class Components:
 			i = get_nonzero(room.panel_register)
 			if i == -1:
 				continue
-			room.ratio = 0.6*(room.quarters-q[i]) / room.area_m2()
-
+			if i in [1,2,4]:
+				room.ratio = 0.6*(room.quarters-q[i]) / room.area_m2()
+			else:
+				room.ratio = 0.6*(room.quarters-q[i]/2) / room.area_m2()
 
 		while excess_quarters > 0:
 			rooms.sort(key=lambda x: x.ratio, reverse=True)
-			selected = rooms[0]
-			pr = selected.panel_register
+			sel = rooms[0]
+			pr = sel.panel_register
 			i = get_nonzero(pr)
 			if i == -1:
 				break
-			self.drop_panel_from_room(selected, i)
-			pr[i] -= 1
-			selected.quarters -= q[i]
-			selected.ratio = 0.6*selected.quarters / selected.area_m2()
-			excess_quarters -= q[i]
-		
+			self.drop_panel_from_room(sel, i)
+
+			# update room register
+			if i in [1,2,4]:
+				pr[i] -= 1
+				sel.quarters -= q[i]
+				excess_quarters -= q[i]
+			else:
+				if i == 0:
+					pr[0] -= 1
+					pr[2] += 1
+					sel.quarters -= 2
+					excess_quarters -= 2
+				elif i == 3:
+					pr[3] -= 1
+					pr[4] += 1
+					sel.quarters -= 1
+					excess_quarters -= 1
+			
+			# update room ratio
+			j = get_nonzero(sel.panel_register)
+			if j in [1,2,4]:
+				sel.ratio = 0.6*(sel.quarters-q[j]) / sel.area_m2()
+			else:
+				sel.ratio = 0.6*(sel.quarters-q[j]/2) / sel.area_m2()
 

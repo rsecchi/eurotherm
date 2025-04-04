@@ -173,10 +173,7 @@ class LinesManager():
 
 		self.line_coverage_m2 = 2.4 * leo_types[ptype]["panels"] + 0.01
 
-		dorsal_row = 0
-		dorsal = Dorsal()
-		self.dorsals.append(dorsal)
-
+		dorsal_row = -1
 		for panel in panels:
 
 			if (panel.dorsal_row != dorsal_row or
