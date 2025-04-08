@@ -12,7 +12,7 @@ from room import Room
 
 collector_margin_factor = 1.5
 
-flow_per_collector = 2200
+flow_per_collector = 2200.
 feeds_per_collector = 13
 
 min_room_area = 1
@@ -550,7 +550,7 @@ class Model():
 				
 
 				# Add a final point to closed polylines
-				if (e.dxf.flags & LWPOLYLINE_CLOSED):
+				if (not e.dxf.flags & LWPOLYLINE_CLOSED):
 
 					points = list(e.vertices())
 					# Check if the polyline is open with large final gap
@@ -587,7 +587,6 @@ class Model():
 		# check if the room is too small to be processed
 		for room in self.valid_rooms:
 			area = self.scale * self.scale * room.area
-			print("Area: ", area)
 			if  (area < min_room_area):
 				wstr = "WARNING: area less than %d m2: " % min_room_area
 				wstr += "Consider changing scale! @\n"
@@ -600,15 +599,13 @@ class Model():
 		# renumber rooms	
 		self.processed.sort(reverse=True, key=lambda room: (room.ay, -room.ax))	
 		for pindex, room in enumerate(self.processed):
-			room.pindex = pindex
+			room.pindex = pindex + 1
 
 
 		# check if every collector is in a room
 		for collector in self.collectors:
 
-			collector.contained_in = False
 			for room in self.processed:
-
 				if (room.contains(collector)):
 					collector.contained_in = room
 					room.obstacles.append(collector)
@@ -621,7 +618,8 @@ class Model():
 					if dist_from_room < min_dist_from_room:
 						min_dist_from_room = dist_from_room
 						collector.contained_in = room
-			
+
+
 		# assings collectors to user zone
 		for collector in self.collectors:
 			collector.user_zone = None
@@ -633,6 +631,8 @@ class Model():
 						return False
 					else:
 						collector.user_zone = zone
+
+		
 
 		# add margins to collector boundaries
 		cmf = collector_margin_factor
@@ -671,6 +671,9 @@ class Model():
 				if (obs.collides_with(room)):
 					room.obstacles.append(obs)
 					obs.contained_in = room
+
+		for room in self.processed:
+			print("Room %d: obstacles %d" % (room.pindex, len(room.obstacles)))
 
 		# check if two rooms collide
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -879,9 +882,10 @@ class Model():
 			return False
 
 
-		# flipping rooms based on collector position
+		# rotate room frase based on collector position
 		for room in self.processed:
-			room.frame.rotate_frame(room.collector.pos)
+			if room.collector:
+				room.frame.rotate_frame(room.collector.pos)
 
 		return True
 
