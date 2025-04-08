@@ -1,4 +1,5 @@
 from ezdxf.entities.lwpolyline import LWPolyline
+from element import Element
 from geometry import dist
 from reference_frame import ReferenceFrame
 from settings import Config
@@ -71,16 +72,12 @@ def is_gate(line, target):
 
 
 
-class Room:
+class Room(Element):
 
-	index = 1
+	def __init__(self, poly:LWPolyline, output):
 
-	def __init__(self, poly, output):
-
-		self.poly = poly
-		self.index = Room.index
+		Element.__init__(self, poly)
 		self.pindex = 0
-		Room.index = Room.index + 1
 		self.output = output
 		self.ignore = False
 		self.error = False
@@ -97,7 +94,6 @@ class Room:
 		self.fixed_collector = None
 		self.vector = False
 
-		self.is_collector = False
 		self.leader = None
 		self.zone = None
 		self.user_zone = None
