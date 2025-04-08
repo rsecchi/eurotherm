@@ -4,6 +4,7 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from element import Element
 from engine.panels import panel_names, panel_map
 
 from lines import Dorsal, Line 
@@ -838,7 +839,7 @@ class DxfDrawing:
 		frame = room.frame
 		for panel in room.panels:
 			contour = frame.real_coord(panel.contour())
-			panel_obs = Room(contour, None)
+			panel_obs = Element.from_points(contour)
 			panel_obs.color = Config.color_panel_contour
 			room.obstacles.append(panel_obs)
 

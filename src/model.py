@@ -1,3 +1,6 @@
+from ezdxf.entities.lwpolyline import LWPolyline
+from ezdxf.lldxf.const import LWPOLYLINE_CLOSED
+from collector import Collector
 from settings import Config, dist
 from math import sqrt, ceil, log10, atan2, pi
 from copy import copy
@@ -9,7 +12,7 @@ from room import Room
 
 collector_margin_factor = 1.5
 
-flow_per_collector = 2200
+flow_per_collector = 2200.
 feeds_per_collector = 13
 
 min_room_area = 1
@@ -80,14 +83,27 @@ panel_types = [
 
 
 class Model():
-	def __init__(self, data):
 
+	@classmethod
+	def polyline_area(cls, poly:LWPolyline):
+		area = 0.
+		p = list(poly.vertices())
+		if poly.dxf.flags & LWPOLYLINE_CLOSED:
+			p.append(p[0])
+		for i in range(0, len(p)-1): 
+			area += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
+
+		return abs(area/10000)
+
+
+	def __init__(self, data):
 
 		super(Model, self).__init__()
 		self.data = data
+		self.polylines = list()
 		self.rooms = list()
 		self.vectors = list()
-		self.collectors = list()
+		self.collectors: list[Collector] = list()
 		self.valid_rooms = list()
 		self.processed: list[Room] = list()
 		self.obstacles = list()
@@ -339,37 +355,14 @@ class Model():
 
 	def autoscale(self):
 
-		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
-			if (e.dxftype() == 'LINE'):
-				continue
-			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains elements not allowed: %s @\n"\
-				   % e.dxftype()
-				self.output.print(wstr)
+		total_area = 0.
+		for poly in self.polylines:
+			total_area += Model.polyline_area(poly)
 
-		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
-		query = self.msp.query(searchstr)
-		if (len(query) == 0):
-			wstr = "WARNING: layer %s does not contain polylines @\n" \
-					% self.inputlayer
-			self.output.print(wstr)
-
-		n = 0
-		tot = 0
-		# Create list of rooms
-		for poly in query:
-			rm = Room(poly, self.output)
-			if rm.ignore:
-				wstr = "ABORT: Open polyline in layer %s @\n" \
-						% self.inputlayer
-				self.output.print(wstr)
-				return False
-			tot += rm.area
-			n += 1
-
-		self.scale = pow(10, ceil(log10(sqrt(n/tot))))
+		n = len(self.polylines)	
+		self.scale = pow(10, ceil(log10(sqrt(n/total_area))))
 		print("Autoscale: 1 unit = %g cm\n" % self.scale)
-		return True
+
 
 	def check_polyline_color(self, poly):
 
@@ -481,6 +474,62 @@ class Model():
 				collector.freespace += room.feeds
 				collector.freeflow += room.flow
 
+
+	def catalogue_polylines(self):
+
+		# Create lists of rooms, obstacles, zones and collectors
+		# from polylines in the input layer
+
+		pindex = 1
+		for poly in self.polylines:
+
+			# check if poly color is allowed
+			if (not self.check_polyline_color(poly)):
+				wstr = "ABORT: Polyline color %d not allowed @" % poly.dxf.color
+				self.output.print(wstr)
+				return False
+
+			color = poly.dxf.color
+			area = self.scale * self.scale * Model.polyline_area(poly)
+			if (area > Config.max_room_area and
+				(color == Config.color_valid_room or
+				 color == Config.color_bathroom)):
+				wstr = "ABORT: Zone %d larger than %d m2 @\n" % (pindex, 
+					Config.max_room_area)
+				wstr += "Consider splitting area \n\n"
+				self.output.print(wstr)
+				continue
+
+			if (color == Config.color_collector):
+				collector = Collector(poly)
+				self.collectors.append(collector)
+				continue
+
+			if (color == Config.color_valid_room or
+			   color == Config.color_bathroom):
+				room = Room(poly, self.output)
+				self.valid_rooms.append(room)
+				continue
+
+			if (color == Config.color_obstacle or
+				color == Config.color_neutral):
+				obstacle = Room(poly, self.output)
+				self.obstacles.append(obstacle)
+				continue
+
+			if (color == Config.color_disabled_room):
+				room = Room(poly, self.output)
+				self.processed.append(room)
+				continue
+
+			if (color == Config.color_zone):
+				room = Room(poly, self.output)
+				self.user_zones.append(room)
+				room.leader = None
+				continue
+
+
+
 	def build_model(self):
 
 		global tot_iterations, max_iterations
@@ -491,89 +540,49 @@ class Model():
 			self.output.print("******************************************\n");
 
 
-		if (self.data['units'] == "auto"):
-			self.rescale_model()
-			if not self.autoscale():
-				return False
-		else:
-			self.scale = float(self.data['units'])
-
-		self.rescale_model()
-
-		Room.index = 1
-		
+		# classify input layer elements
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
 				self.vectors.append(e)
 				continue
 
-			if (e.dxftype() != 'LWPOLYLINE'):
-				wstr = "WARNING: layer contains non-polyline: %s @\n" \
-					% e.dxftype()
-				self.output.print(wstr)
+			if (e.dxftype() == 'LWPOLYLINE'):
+				
 
-		searchstr = 'LWPOLYLINE[layer=="'+self.inputlayer+'"]'
-		self.query = self.msp.query(searchstr)
-		if (len(self.query) == 0):
+				# Add a final point to closed polylines
+				if (not e.dxf.flags & LWPOLYLINE_CLOSED):
+
+					points = list(e.vertices())
+					# Check if the polyline is open with large final gap
+					tol = Config.tolerance
+					n = len(points)-1
+					if (dist(points[0], points[n]) > tol):
+						wstr = "WARNING: open polyline in layer %s @\n" \
+							% self.inputlayer
+						self.output.print(wstr)
+						continue
+
+				self.polylines.append(e)
+				continue
+
+			wstr = "WARNING: layer contains non-polyline: %s @\n" \
+				% e.dxftype()
+			self.output.print(wstr)
+
+		if (len(self.polylines) == 0):
 			wstr = "WARNING: layer %s does not contain polylines @\n" \
 				% self.inputlayer
 			self.output.print(wstr)
 
-		pindex = 1
-		# Create list of rooms, obstacles and collectors
-		for poly in self.query:
 
-			# check if poly color is allowed
-			if (not self.check_polyline_color(poly)):
-				wstr = "ABORT: Polyline color %d not allowed @" % poly.dxf.color
-				self.output.print(wstr)
-				return False
+		if (self.data['units'] == "auto"):
+			self.autoscale()
+		else:
+			self.scale = float(self.data['units'])
+		self.rescale_model()
 
-			room = Room(poly, self.output)
-			self.rooms.append(room)
 
-			if (len(room.errorstr)>0):
-				# Invalid polyline
-				room.error = True
-				self.output.print(room.errorstr)
-			else:
-
-				# Valid polyline, classify room
-				room.error = False
-				area = self.scale * self.scale * room.area
-				if (area > Config.max_room_area and
-				    (room.color == Config.color_valid_room or
-				     room.color == Config.color_bathroom)):
-					wstr = "ABORT: Zone %d larger than %d m2 @\n" % (room.index, 
-						Config.max_room_area)
-					wstr += "Consider splitting area \n\n"
-					self.output.print(wstr)
-					room.errorstr = wstr
-					room.error = True
-					continue
-
-				if (room.color == Config.color_collector):
-					self.collectors.append(room)
-					room.is_collector = True
-					continue
-
-				if (room.color == Config.color_valid_room or
-				   room.color == Config.color_bathroom):
-					self.valid_rooms.append(room)
-
-				if (room.color == Config.color_obstacle or
-				    room.color == Config.color_neutral):
-					self.obstacles.append(room)
-
-				if (room.color == Config.color_disabled_room):
-					room.pindex = pindex
-					pindex += 1
-					self.processed.append(room)
-
-				if (room.color == Config.color_zone):
-					self.user_zones.append(room)
-					room.leader = None
-
+		self.catalogue_polylines()
 
 		# check if the room is too small to be processed
 		for room in self.valid_rooms:
@@ -585,24 +594,18 @@ class Model():
 				room.errorstr = wstr
 				room.error = True
 			else:
-				room.pindex = pindex
-				pindex += 1
 				self.processed.append(room)
 
 		# renumber rooms	
 		self.processed.sort(reverse=True, key=lambda room: (room.ay, -room.ax))	
-		pindex = 1
-		for room in self.processed:
-			room.pindex = pindex
-			pindex += 1
+		for pindex, room in enumerate(self.processed):
+			room.pindex = pindex + 1
 
 
 		# check if every collector is in a room
 		for collector in self.collectors:
 
-			collector.contained_in = False
 			for room in self.processed:
-
 				if (room.contains(collector)):
 					collector.contained_in = room
 					room.obstacles.append(collector)
@@ -615,7 +618,8 @@ class Model():
 					if dist_from_room < min_dist_from_room:
 						min_dist_from_room = dist_from_room
 						collector.contained_in = room
-			
+
+
 		# assings collectors to user zone
 		for collector in self.collectors:
 			collector.user_zone = None
@@ -627,6 +631,8 @@ class Model():
 						return False
 					else:
 						collector.user_zone = zone
+
+		
 
 		# add margins to collector boundaries
 		cmf = collector_margin_factor
@@ -665,6 +671,9 @@ class Model():
 				if (obs.collides_with(room)):
 					room.obstacles.append(obs)
 					obs.contained_in = room
+
+		for room in self.processed:
+			print("Room %d: obstacles %d" % (room.pindex, len(room.obstacles)))
 
 		# check if two rooms collide
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -873,9 +882,10 @@ class Model():
 			return False
 
 
-		# flipping rooms based on collector position
+		# rotate room frase based on collector position
 		for room in self.processed:
-			room.frame.rotate_frame(room.collector.pos)
+			if room.collector:
+				room.frame.rotate_frame(room.collector.pos)
 
 		return True
 
