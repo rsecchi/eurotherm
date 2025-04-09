@@ -8,6 +8,7 @@ from ezdxf.math import Vec2, intersection_line_line_2d
 from geometry import poly_t
 from reference_frame import ReferenceFrame
 from settings import Config
+from zone import Zone
 
 
 class Element:
@@ -50,7 +51,7 @@ class Element:
 		self.bounding_box
 
 		self.user_zone: Optional["Element"] = None
-		self.zone: Optional["Element"] = None
+		self.zone: Optional["Zone"] = None
 
 	@cached_property
 	def area(self):

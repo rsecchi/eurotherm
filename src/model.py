@@ -10,8 +10,6 @@ import conf
 from room import Room
 
 
-collector_margin_factor = 1.5
-
 flow_per_collector = 2200.
 feeds_per_collector = 13
 
@@ -633,23 +631,16 @@ class Model():
 						collector.user_zone = zone
 
 		
-
-		# add margins to collector boundaries
-		cmf = collector_margin_factor
+		# add guard box to collector
 		for collector in self.collectors:
-			cx, cy = collector.pos
-			points = list()
-			poly = collector.poly
-			for p in poly:
-				points.append((cx+cmf*(p[0]-cx), cy+cmf*(p[1]-cy)))
-			points.append((cx+cmf*(poly[0][0]-cx), cy+cmf*(poly[0][1]-cy)))
-			
+			points = collector.guard_box
 			polyline = self.msp.add_lwpolyline(points)
 			polyline.dxf.layer = self.inputlayer
 			polyline.dxf.color = Config.color_obstacle	
-			collector_box = Room(polyline, self.output)
-			collector.box = collector_box
-			collector.contained_in.obstacles.append(collector_box)
+			if type(collector.contained_in) == Room:
+				collector_box = Room(polyline, self.output)
+				collector.contained_in.obstacles.append(collector_box)
+
 
 
 		# assign rooms to user zones
@@ -672,8 +663,6 @@ class Model():
 					room.obstacles.append(obs)
 					obs.contained_in = room
 
-		for room in self.processed:
-			print("Room %d: obstacles %d" % (room.pindex, len(room.obstacles)))
 
 		# check if two rooms collide
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -706,54 +695,10 @@ class Model():
 					self.collectors[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
 					return False
-	
-		# check if vector is in room or 
-		# across collector and room
-		for v in self.vectors:
 
-			p1 = (v.dxf.start[0], v.dxf.start[1])
-			p2 = (v.dxf.end[0], v.dxf.end[1])
 
-			p1_clt = p2_clt = None
-			for clt in self.collectors:
-				if clt.is_point_inside(p1):
-					p1_clt = clt
-					break;
+		self.process_vectors()
 
-				if clt.is_point_inside(p2):
-					p2_clt = clt
-					break
-
-			for room in self.processed:
-
-				if p1_clt and room.is_point_inside(p2):
-					room.fixed_collector = p1_clt
-					self.msp.delete_entity(v)
-					break
-
-				if p2_clt and room.is_point_inside(p1):
-					room.fixed_collector = p2_clt
-					self.msp.delete_entity(v)
-					break
-
-				if (room.contains_vector(v) and
-					not (p1_clt or p2_clt)):
-					# Allocate vector
-					norm = dist(p1, p2)
-					uv = room.frame.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
-					room.frame.rot_orig = p1
-					room.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
-					room.vector = True
-					break
-			else:
-				# Check if vector is vector fixes to collector
-
-				wstr = "ABORT: Vector outside room @\n"
-				wstr += ("Check %s layer" % Config.layer_error + 
-					" to visualize errors @")
-				v.dxf.layer = Config.layer_error
-				self.output.print(wstr)
-				return False
 	
 		for room in self.processed:
 			room.frame.scale = self.scale
@@ -888,4 +833,91 @@ class Model():
 				room.frame.rotate_frame(room.collector.pos)
 
 		return True
+
+
+
+	def between_collectors(self, vector) -> tuple[Collector,Collector]|None:
+		p1 = (vector.dxf.start[0], vector.dxf.start[1])
+		p2 = (vector.dxf.end[0], vector.dxf.end[1])
+		for collector1 in self.collectors:
+			for collector2 in self.collectors:
+				if (collector1 != collector2 and
+					collector1.is_point_inside(p1) and
+					collector2.is_point_inside(p2)):
+					return (collector1, collector2)
+		return None
+
+
+	def between_rooms(self, vector) -> bool:
+		p1 = (vector.dxf.start[0], vector.dxf.start[1])
+		p2 = (vector.dxf.end[0], vector.dxf.end[1])
+		for room1 in self.processed:
+			for room2 in self.processed:
+				if (room1 != room2 and
+					room1.is_point_inside(p1) and
+					room2.is_point_inside(p2)):
+					return True
+		return False
+
+
+	def process_vectors(self):
+
+		for vector in self.vectors:
+
+			p1 = (vector.dxf.start[0], vector.dxf.start[1])
+			p2 = (vector.dxf.end[0], vector.dxf.end[1])
+
+			if self.between_collectors(vector):
+				print("vector between collectors")
+
+				continue
+
+
+			# vector between room and collector
+			p1_clt = p2_clt = None
+			for collector in self.collectors:
+
+				if collector.is_point_inside(p1):
+					p1_clt = collector
+					break;
+
+				if collector.is_point_inside(p2):
+					p2_clt = collector
+					break
+
+			for room in self.processed:
+
+				if p1_clt and room.is_point_inside(p2):
+					room.fixed_collector = p1_clt
+					self.msp.delete_entity(vector)
+					break
+
+				if p2_clt and room.is_point_inside(p1):
+					room.fixed_collector = p2_clt
+					self.msp.delete_entity(vector)
+					break
+
+				if (room.contains_vector(vector) and
+					not (p1_clt or p2_clt)):
+					# Allocate vector
+					norm = dist(p1, p2)
+					uv = room.frame.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
+					room.frame.rot_orig = p1
+					room.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
+					room.vector = True
+					break
+			else:
+
+				# vector between rooms
+				if self.between_rooms(vector):
+					print("vector between rooms")
+					continue
+
+
+				wstr = "ABORT: Vector outside room @\n"
+				wstr += ("Check %s layer" % Config.layer_error + 
+					" to visualize errors @")
+				vector.dxf.layer = Config.layer_error
+				self.output.print(wstr)
+				return False
 
