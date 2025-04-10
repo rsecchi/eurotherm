@@ -94,5 +94,9 @@ class App:
 		self.bill.make_bill()
 		self.bill.save()
 
+		# remove input file
+		if not os.getenv("MODE") == "testing":
+			os.remove(self.model.input_file)
+
 
 App()
