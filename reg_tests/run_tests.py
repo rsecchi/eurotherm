@@ -1,6 +1,7 @@
 import os, json
 from subprocess import Popen
 import subprocess
+import shutil
 
 cfg = {
     "ptype": "55",
@@ -10,15 +11,16 @@ cfg = {
     "caddr": "",
     "cname": "",
     "ccomp": "",
-    "file": "",
+    "file": "test.dxf",
+    "infile": "test.dxf",
     "control": "reg",
 	"lang": "eng",
     "height": "2.7",
     "laid": "without",
     "head": "air",
     "outfile": "",
+	"target": "100",
     "cfgfile": "config.cfg",
-    "infile": "",
     "lock_name": "/var/spool/eurotherm/eurotherm.lock"
 }
 
@@ -27,8 +29,10 @@ for file in sorted(os.listdir("reg_tests")):
 	filename = file[:-4]
 	extension = file[-4:]
 	if file[:4] == "test"  and extension == ".dxf":
-		cfg["file"] = file
-		cfg["infile"] = file
+
+		#copy to spool directory
+		shutil.copy("reg_tests/" + file, "/var/spool/eurotherm/test.dxf")
+
 		cfg["outfile"] = "LEO_" + file
 		print(file)
 		data = json.dumps(cfg, indent=4)

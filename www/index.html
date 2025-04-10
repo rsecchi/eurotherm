@@ -23,6 +23,17 @@
             mydiv.style.display = 'block';
         }
 
+		function toggle_target_div() {
+			input = document.getElementsByName("enable_target")[0];
+            var mydiv = document.getElementById("target_div");
+			if (input.checked == false) {
+            	mydiv.style.display = 'none';
+			} else {
+				mydiv.style.display = 'block';
+			}
+		}
+
+
         function validate_form() {
             fname = document.forms["leodata"]["filename"].value
             if (fname == "") {
@@ -190,9 +201,17 @@
 
 				<p id="target" class="nome_menu">
                     <label for="target" class="label" id="air_label">Percentuale copertura: </label>
-					<input id="spinner" name="target" 
-							type="number" min="0" max="100" step="0.1" value="100" class="box">
+					<input type="checkbox" name="enable_target"  value="1" 
+						onchange="toggle_target_div()"> Personalizzata
 				</p>
+
+				<div id="target_div" style="display:none">
+				<p id="target" class="nome_menu">
+					<label for="target" class="label" id="air_label">Inserire target percentuale: </label>
+						<input id="spinner" name="target" 
+							type="number" min="0" max="100" step="0.1" value="70" class="box">&nbsp; %
+				</p>
+				</div>
 
 				<div id="panels" class="nome_menu"><b>Escludi:</b>
 					<ul class="nome_menu">
@@ -247,10 +266,8 @@
                 <h4><img src="posa.png" alt="" width="50" height="50"
                         class="icona img-fluid" />&nbsp;&nbsp;<strong>Servizio di posa in opera
                         Eurass</strong></h4>
-                <p id="ra"><input name="laid" type="radio" class="spunta" onchange="show_client()"
-                        value="without" checked="yes" />Senza Posa</p>
-                <p id="ra1"><input name="laid" type="radio" class="spunta" onchange="hide_client()"
-                        value="with" />Con Posa</p>
+                <p id="ra"><input name="laid" type="radio" class="spunta" value="without" checked="yes" />Senza Posa</p>
+                <p id="ra1"><input name="laid" type="radio" class="spunta" value="with" />Con Posa</p>
 
                 <div id="client" style="display:none">
                     <p><label for="cli_name" class="label">Cliente:</label>
