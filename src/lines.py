@@ -1,5 +1,6 @@
-from typing import Tuple
+from typing import Optional, Tuple
 from planner import Panel
+from collector import Collector
 from settings import Config, dist, MAX_DIST
 from geometry import trim, poly_t
 from settings import leo_types
@@ -32,6 +33,13 @@ class Dorsal:
 		self.x_axis = (0., 0.)
 		self.y_axis = (0., 0.)
 		self.rot = 0
+
+
+	def flow(self) -> float:
+		flow = 0.
+		for panel in self.panels:
+			print(panel)	
+		return flow
 
 
 	def dorsal_to_local(self, point: Tuple, orig: Tuple):
@@ -109,6 +117,7 @@ class Line:
 		self.area_m2 = 0.
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
+		self.collector: Optional[Collector] = None
 
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
@@ -159,6 +168,13 @@ class LinesManager():
 		self.pipe_length = 0.
 		self.lines: list[Line] = []
 		self.line_coverage_m2: float = Config.line_coverage_m2
+
+
+	def area_m2(self) -> float:
+		area = 0.
+		for line in self.lines:
+			area += line.area_m2
+		return area
 
 
 	def append(self, line: Line):
@@ -294,8 +310,6 @@ class LinesManager():
 			for group in self.partitions(others, level+1):
 				yield [first, *group]
 		
-
-
 
 	def eval(self, lines) -> float:
 		

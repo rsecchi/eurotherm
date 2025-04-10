@@ -16,6 +16,7 @@ do
 done | sort | uniq >> $temp
 
 echo "@enduml" >> $temp
+cat $temp
 
 plantuml $temp 
 

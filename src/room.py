@@ -90,6 +90,7 @@ class Room(Element):
 		self.sup = 0
 		self.inf = 0
 		self.fixed_collector: Optional[Collector] = None
+		self.prefer_collector: Optional[Collector] = None
 		self.vector = False
 
 		self.leader = None

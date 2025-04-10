@@ -6,6 +6,7 @@ from engine.panels import panel_map
 from engine.planner import Planner
 
 from ezdxf.document import Drawing
+from leo_object import LeoObject
 from model import Model
 from settings import Config, panel_sizes
 from geometry import dist
@@ -25,9 +26,11 @@ def get_nonzero(register: list[int]) -> int:
 			return i 
 	return -1
 
-class Components:
+
+class Components(LeoObject):
 	
 	def __init__(self, model: Model):
+		LeoObject.__init__(self)
 		self.num_panels = 0
 		self.panels = list()
 		self.panel_counters = dict()
@@ -93,6 +96,63 @@ class Components:
 			room.lines_manager.get_lines(ptype)
 
 
+	def redistribute_lines(self):
+		flow_m2 = self.model.flow_per_m2
+
+		for collector in self.model.collectors:
+
+			if collector != collector.backup[0]:
+				continue
+
+			backup = collector.backup
+			num_clt = len(backup)
+			cap = Config.flow_per_collector * num_clt
+			
+			# select room in collector group
+			room_group = []
+			for room in self.model.processed:
+				if room.collector == collector:
+					room_group.append(room)
+					if room.prefer_collector == None:
+						room.prefer_collector = collector
+
+			# calculate required flow
+			required_flow = 0.
+			for room in room_group:
+				room.flow = room.lines_manager.area_m2() * flow_m2
+				required_flow += room.flow
+
+			# assign the same flow to all collectors in the group
+			for clt in backup:
+				clt.freeflow = Config.feeds_per_collector
+
+			if required_flow > cap:
+				# distribute excess to all collectors
+				excess = (required_flow - cap) / num_clt
+				for clt in backup:
+					clt.overflow = True
+					clt.freeflow += excess
+
+			room_group.sort(key=lambda x: x.flow, reverse=True)
+			for room in room_group:
+			
+				for line in room.lines_manager.lines:
+					line_flow = line.area_m2 * flow_m2
+					k = backup.index(room.prefer_collector)
+					i = k - num_clt 
+					while i < k:
+						if backup[i].freeflow > 0:
+							backup[i].freeflow -= line_flow
+							line.collector = backup[i]
+							break
+						i += 1
+					# if no collector is available, assign to the last one
+					if i == k:
+						backup[k].freeflow -= line_flow
+						line.collector = backup[k]
+
+
+
 	def get_components(self):
 		self.get_panels()
 
@@ -100,6 +160,7 @@ class Components:
 			self.drop_excess_panels()
 
 		self.get_lines()
+		self.redistribute_lines()
 
 
 	def count_panels(self, doc: Drawing):
