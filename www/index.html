@@ -337,17 +337,13 @@
             const control = document.forms["leodata"]["control"].value;
             const head = document.forms["leodata"]["head"].value;
             const height = document.forms["leodata"]["height"].value;
-            const cname = document.forms["leodata"]["cname"].value;
-            const caddr = document.forms["leodata"]["caddr"].value;
-            const ccomp = document.forms["leodata"]["ccomp"].value;
+
 
             const isFormComplete = filename !== "" &&
                 ptype !== "" &&
                 control !== "" &&
                 (control === "noreg" || head !== "") &&
-                (head === "none" || (head === "air" && height !== "")) &&
-                (document.forms["leodata"]["laid"].value === "without" || (cname !== "" && caddr !==
-                    "" && ccomp !== ""));
+                (head === "none" || (head === "air" && height !== "")) 
 
             const calcolaButton = document.querySelector(".btn-calcola");
             calcolaButton.disabled = !isFormComplete;

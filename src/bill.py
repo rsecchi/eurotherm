@@ -350,7 +350,13 @@ class Bill:
 		if self.model.control == "reg":
 			self.probe_bill()
 
-
+		if self.model.data['laid'] == "with":
+			code = 'LEOPAD'
+			desc = ''
+			qnt = self.report.area
+			self.nav_item(qnt, code, desc)
+			code = 'LEO_PANNELLI'
+			self.nav_item(qnt, code, desc)
 						
 
 	def save(self):
