@@ -156,7 +156,7 @@ class Components(LeoObject):
 	def get_components(self):
 		self.get_panels()
 
-		if self.data["target"] != "100":
+		if "enable_target" in self.data.keys():
 			self.drop_excess_panels()
 
 		self.get_lines()
