@@ -89,7 +89,8 @@ class Room(Element):
 		self.total_lines = 0
 		self.sup = 0
 		self.inf = 0
-		self.fixed_collector = None
+		self.fixed_collector: Optional[Collector] = None
+		self.prefer_collector: Optional[Collector] = None
 		self.vector = False
 
 		self.leader = None

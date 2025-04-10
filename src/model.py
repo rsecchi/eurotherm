@@ -1,6 +1,7 @@
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.lldxf.const import LWPOLYLINE_CLOSED
 from collector import Collector
+from leo_object import LeoObject
 from settings import Config, dist
 from math import sqrt, ceil, log10, atan2, pi
 from copy import copy
@@ -10,10 +11,6 @@ import conf
 from room import Room
 
 
-collector_margin_factor = 1.5
-
-flow_per_collector = 2200.
-feeds_per_collector = 13
 
 min_room_area = 1
 max_steps = 20
@@ -82,7 +79,7 @@ panel_types = [
 
 
 
-class Model():
+class Model(LeoObject):
 
 	@classmethod
 	def polyline_area(cls, poly:LWPolyline):
@@ -179,10 +176,6 @@ class Model():
 				print('Flow_per_m2 = %g l/m2' % self.flow_per_m2)
 
 
-	def print(self, text):
-		self.text += text
-		#print(text, end='')
-
 
 	def find_gates(self):
 		
@@ -190,8 +183,6 @@ class Model():
 			for room2 in self.processed:
 				if (room1 != room2):
 					room1.add_gates(room2)
-
-
 
 
 	def merge_rooms(self, collector):
@@ -299,9 +290,7 @@ class Model():
 
 		self.best_dist = MAX_DIST
 		for collector in self.collectors:
-			collector.freespace = feeds_per_collector 
-			collector.freeflow = flow_per_collector
-			collector.items = list()
+			collector.reset()
 
 		self.processed.sort(key=lambda x: x.links[0][1], reverse=True)
 
@@ -342,26 +331,15 @@ class Model():
 		return True
 
 
-	def rescale_model(self):
-
-		scale = self.scale
-
-		Config.tolerance /= scale
-		Config.min_dist /= scale
-		Config.min_dist2 /= scale
-		Config.wall_depth /= scale
-		Config.max_clt_distance /= scale
-
-
-	def autoscale(self):
+	def autoscale(self) -> float:
 
 		total_area = 0.
 		for poly in self.polylines:
 			total_area += Model.polyline_area(poly)
 
 		n = len(self.polylines)	
-		self.scale = pow(10, ceil(log10(sqrt(n/total_area))))
-		print("Autoscale: 1 unit = %g cm\n" % self.scale)
+
+		return pow(10, ceil(log10(sqrt(n/total_area))))
 
 
 	def check_polyline_color(self, poly):
@@ -529,18 +507,7 @@ class Model():
 				continue
 
 
-
-	def build_model(self):
-
-		global tot_iterations, max_iterations
-
-		if self.refit:
-			self.output.print("******************************************\n");
-			self.output.print("Detected existing plan, disable allocation\n");
-			self.output.print("******************************************\n");
-
-
-		# classify input layer elements
+	def classify_entities(self):
 		for e in self.msp.query('*[layer=="%s"]' % self.inputlayer):
 			if (e.dxftype() == 'LINE'):
 				self.vectors.append(e)
@@ -575,13 +542,33 @@ class Model():
 			self.output.print(wstr)
 
 
+	def determine_scale(self):
+
 		if (self.data['units'] == "auto"):
-			self.autoscale()
+			self.scale = self.autoscale()
+			print("Autoscale: 1 unit = %g cm\n" % self.scale)
 		else:
 			self.scale = float(self.data['units'])
-		self.rescale_model()
+
+		Config.tolerance /= self.scale
+		Config.min_dist /= self.scale
+		Config.min_dist2 /= self.scale
+		Config.wall_depth /= self.scale
+		Config.max_clt_distance /= self.scale
 
 
+	def build_model(self):
+
+		global tot_iterations, max_iterations
+
+		if self.refit:
+			self.output.print("******************************************\n");
+			self.output.print("Detected existing plan, disable allocation\n");
+			self.output.print("******************************************\n");
+
+
+		self.classify_entities()
+		self.determine_scale()
 		self.catalogue_polylines()
 
 		# check if the room is too small to be processed
@@ -633,23 +620,16 @@ class Model():
 						collector.user_zone = zone
 
 		
-
-		# add margins to collector boundaries
-		cmf = collector_margin_factor
+		# add guard box to collector
 		for collector in self.collectors:
-			cx, cy = collector.pos
-			points = list()
-			poly = collector.poly
-			for p in poly:
-				points.append((cx+cmf*(p[0]-cx), cy+cmf*(p[1]-cy)))
-			points.append((cx+cmf*(poly[0][0]-cx), cy+cmf*(poly[0][1]-cy)))
-			
+			points = collector.guard_box
 			polyline = self.msp.add_lwpolyline(points)
 			polyline.dxf.layer = self.inputlayer
 			polyline.dxf.color = Config.color_obstacle	
-			collector_box = Room(polyline, self.output)
-			collector.box = collector_box
-			collector.contained_in.obstacles.append(collector_box)
+			if type(collector.contained_in) == Room:
+				collector_box = Room(polyline, self.output)
+				collector.contained_in.obstacles.append(collector_box)
+
 
 
 		# assign rooms to user zones
@@ -672,8 +652,6 @@ class Model():
 					room.obstacles.append(obs)
 					obs.contained_in = room
 
-		for room in self.processed:
-			print("Room %d: obstacles %d" % (room.pindex, len(room.obstacles)))
 
 		# check if two rooms collide
 		self.valid_rooms.sort(key=lambda room: room.ax)	
@@ -706,55 +684,10 @@ class Model():
 					self.collectors[j].poly.dxf.layer = Config.layer_error
 					self.output.print(wstr)
 					return False
-	
-		# check if vector is in room or 
-		# across collector and room
-		for v in self.vectors:
 
-			p1 = (v.dxf.start[0], v.dxf.start[1])
-			p2 = (v.dxf.end[0], v.dxf.end[1])
 
-			p1_clt = p2_clt = None
-			for clt in self.collectors:
-				if clt.is_point_inside(p1):
-					p1_clt = clt
-					break;
+		self.classify_vectors()
 
-				if clt.is_point_inside(p2):
-					p2_clt = clt
-					break
-
-			for room in self.processed:
-
-				if p1_clt and room.is_point_inside(p2):
-					room.fixed_collector = p1_clt
-					self.msp.delete_entity(v)
-					break
-
-				if p2_clt and room.is_point_inside(p1):
-					room.fixed_collector = p2_clt
-					self.msp.delete_entity(v)
-					break
-
-				if (room.contains_vector(v) and
-					not (p1_clt or p2_clt)):
-					# Allocate vector
-					norm = dist(p1, p2)
-					uv = room.frame.vector = (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
-					room.frame.rot_orig = p1
-					room.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
-					room.vector = True
-					break
-			else:
-				# Check if vector is vector fixes to collector
-
-				wstr = "ABORT: Vector outside room @\n"
-				wstr += ("Check %s layer" % Config.layer_error + 
-					" to visualize errors @")
-				v.dxf.layer = Config.layer_error
-				self.output.print(wstr)
-				return False
-	
 		for room in self.processed:
 			room.frame.scale = self.scale
 			# orient room without vector
@@ -778,7 +711,12 @@ class Model():
 				area -= obstacle.area*self.scale*self.scale
 			# flow = area*self.flow_per_m2*Config.target_eff
 			flow = area*self.flow_per_m2
-			if flow > flow_per_collector:
+
+			group_size = 1
+			if room.fixed_collector:
+				group_size = len(room.fixed_collector.backup)
+
+			if flow > group_size*Config.flow_per_collector:
 				wstr = "ABORT: Room %d larger than collector capacity @\n" %\
 						room.pindex
 				wstr += ("Check %s layer" % Config.layer_error + 
@@ -786,6 +724,7 @@ class Model():
 				room.poly.dxf.layer = Config.layer_error
 				room.error = True
 				self.output.print(wstr)
+				print(wstr)
 
 				return False
 
@@ -819,8 +758,8 @@ class Model():
 			#	(room.pindex, room.feeds, room.flow_eff))
 			self.area += area
 
-		available_feeds = feeds_per_collector * len(self.collectors)
-		available_flow  = flow_per_collector * len(self.collectors)
+		available_feeds = Config.feeds_per_collector * len(self.collectors)
+		available_flow  = Config.flow_per_collector * len(self.collectors)
 		self.output.print("Available lines .......................... %3d\n" 
 				% available_feeds)
 		self.output.print("Estimated lines for %2d%% cover ............ %3d\n" 
@@ -845,38 +784,9 @@ class Model():
 				and not room.collector):
 					room.collector = room.zone	
 
-		# for collector in self.collectors:
-		#self.draw_trees(self.collectors[5])
 
-		#self.draw_gates()	
-		#return
-
-		################################################################
 		#  Mapping rooms to collectors
-
-
-		for k in range(max_steps):
-
-			extra_flow = extra_flow_probe * k
-			extra_feeds = k//2
-
-			self.best_dist = MAX_DIST
-			for collector in self.collectors:
-				collector.freespace = feeds_per_collector + extra_feeds 
-				collector.freeflow = flow_per_collector + extra_flow
-				collector.items = list()
-
-			self.processed.append(None)    ;# Add sentinel
-			room_iter = iter(self.processed)
-			tot_iterations = 0
-			self.found_one = False
-			print("Linking Rooms (flow=%d l/h): " %
-				(flow_per_collector + extra_flow))
-			self.connect_rooms(room_iter, 0)
-			self.processed.pop()           ;# Remove sentinel
-			if  (self.found_one):
-				break
-
+		self.mapping_rooms()
 		if (not self.found_one):
 			self.output.print("CRITICAL: Could not connect rooms @\n")
 			return False
@@ -889,3 +799,93 @@ class Model():
 
 		return True
 
+
+	def mapping_rooms(self):
+		global tot_iterations, max_iterations
+
+		for k in range(max_steps):
+
+			extra_flow = extra_flow_probe * k
+			extra_feeds = k//2
+
+			self.best_dist = MAX_DIST
+			for collector in self.collectors:
+				collector.reset(extra_feeds, extra_flow)
+
+			self.processed.append(None)    ;# Add sentinel
+			room_iter = iter(self.processed)
+			tot_iterations = 0
+			self.found_one = False
+			print("Linking Rooms (flow=%d l/h): " %
+				(Config.flow_per_collector + extra_flow))
+			self.connect_rooms(room_iter, 0)
+			self.processed.pop()           ;# Remove sentinel
+			if  (self.found_one):
+				break
+
+
+	def classify_vectors(self):
+
+		for vector in self.vectors:
+
+			p1 = (vector.dxf.start[0], vector.dxf.start[1])
+			p2 = (vector.dxf.end[0], vector.dxf.end[1])
+
+			elem1 = elem2 = None
+			for elem in self.collectors + self.processed:
+				if elem.is_point_inside(p1):
+					elem1 = elem
+					break
+			
+			for elem in self.collectors + self.processed:
+				if elem.is_point_inside(p2):
+					elem2 = elem
+					break
+
+			if (type(elem1) == Collector and 
+				type(elem2) == Collector and
+				elem1 != elem2):
+				for elem in elem1.backup:
+					if not elem in elem2.backup:
+						elem2.backup.append(elem)
+				elem1.backup = elem2.backup
+				continue
+
+			if (type(elem1) == Collector and type(elem2) == Room):
+				elem2.fixed_collector = elem1
+				continue
+
+			if (type(elem1) == Room and	type(elem2) == Collector):
+				elem1.fixed_collector = elem2
+				continue
+
+			if (type(elem1) == Room and type(elem2) == Room and 
+				 elem1 == elem2):
+				norm = dist(p1, p2)
+				uv = elem1.frame.vector = \
+				    (p2[0]-p1[0])/norm, (p2[1]-p1[1])/norm
+				elem1.frame.rot_orig = p1
+				elem1.frame.rot_angle = -atan2(uv[1], -uv[0])*180/pi
+				elem1.vector = True
+				continue
+
+			if (type(elem1) == Room and 
+				type(elem2) == Room and
+				elem1 != elem2):
+				print("VECTOR between rooms")
+				continue
+			
+			wstr = "WARNING: Vector outside room @\n"
+			wstr += ("Check %s layer" % Config.layer_error + 
+				" to visualize errors @")
+			vector.dxf.layer = Config.layer_error
+			self.output.print(wstr)
+
+
+		# Move fixed collector to preferred collector 
+		# if it is not the main collector of the group
+		for room in self.processed:
+			if (room.fixed_collector and 
+				room.fixed_collector.backup[0] != room.fixed_collector):
+				room.prefer_collector = room.fixed_collector
+				room.fixed_collector = room.fixed_collector.backup[0]

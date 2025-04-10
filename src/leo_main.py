@@ -59,8 +59,6 @@ class App:
 		if not self.model.refit:
 			self.dxf.import_blocks(self.data["ptype"])
 
-		self.report.set_text(self.model.text)
-
 		if not self.model.refit:
 			self.components.get_components()
 			self.dxf.draw_model()
@@ -90,8 +88,11 @@ class App:
 		self.xls.save_in_xls()
 
 		self.components.air_handling()
-		self.report.make_report()
+		self.report.set_text(self.model.text)
+		self.report.insert_allocation_report()
+		self.report.append_text(self.components.text)
 		self.report.save_report()
+
 		self.bill.make_bill()
 		self.bill.save()
 

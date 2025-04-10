@@ -625,7 +625,10 @@ class DxfDrawing:
 		if room.collector:
 			redfront = list(reversed(redfront))
 			bluefront = list(reversed(bluefront))
-			pos = room.collector.pos
+			if line.collector:
+				pos = line.collector.pos
+			else:
+				pos = room.collector.pos
 			lw = Config.leeway/room.frame.scale
 			extend_pipes(redfront, bluefront, pos, leeway=lw)
 

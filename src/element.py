@@ -1,5 +1,3 @@
-
-
 from functools import cached_property
 from math import sqrt
 from typing import Optional
@@ -50,7 +48,7 @@ class Element:
 		self.bounding_box
 
 		self.user_zone: Optional["Element"] = None
-		self.zone: Optional["Element"] = None
+		self.zone: Optional["Zone"] = None
 
 	@cached_property
 	def area(self):

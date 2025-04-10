@@ -41,6 +41,10 @@ class Report:
 		self.text = text
 
 
+	def append_text(self, text):
+		self.text += text
+
+
 	def output_section(self):
 
 		ind = "&nbsp;&nbsp;&nbsp;"
@@ -251,7 +255,7 @@ class Report:
 		self.text += txt
 
 
-	def make_report(self):
+	def insert_allocation_report(self):
 
 		model = self.model
 
