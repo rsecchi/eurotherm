@@ -9,7 +9,7 @@ docker exec -it devel /bin/bash
 # Running regression test
 
 ```
-docker exec -it devel /bin/bash🚡
+docker exec -it devel /bin/bash
 python3 regtests/run_tests.py
 ```
 
