@@ -4,6 +4,7 @@ from ezdxf.addons.importer import Importer
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
+from collector import Collector
 from element import Element
 from engine.panels import panel_names, panel_map
 
@@ -658,7 +659,7 @@ class DxfDrawing:
 		scale = room.frame.scale
 		step = Config.search_step/scale
 
-		if not isinstance(room.collector, Room):
+		if not isinstance(room.collector, Collector):
 			return (0,0)
 
 		v = -u[1], u[0]
@@ -714,7 +715,7 @@ class DxfDrawing:
 
 	def draw_probes(self, room: Room):
 
-		if not isinstance(room.collector, Room):
+		if not isinstance(room.collector, Collector):
 			return
 
 		scale = room.frame.scale
