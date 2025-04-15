@@ -63,7 +63,8 @@ else:
 	ff = open(done_page, "r")
 	print(ff.read())
 
-	ftypes = [".dxf", ".txt", ".xlsx", ".dat", ".doc", ".rep", ".png"]
+	ftypes = [".dxf", ".txt", ".xlsx", ".dat", ".doc", ".rep", ".png", ".pdf",
+		   ".asc"]
 	if os.environ.get("MODE") == "testing":
 		ftypes.append(".cfg")
 		ftypes.append("__in__.dxf")
@@ -105,7 +106,7 @@ else:
 	fname = {}
 	for ftype in ftypes:
 
-		if ftype == ".rep":
+		if ftype == ".rep" or ftype == ".asc":
 			continue
 
 		if not os.path.exists(output[ftype]):
@@ -140,8 +141,8 @@ else:
 		fin = open(output[".rep"], "r")
 		print(fin.read())
 
-	if os.path.exists(output[".txt"]):
-		fin = open(output[".txt"], "r")
+	if os.path.exists(output[".asc"]):
+		fin = open(output[".asc"], "r")
 		print("<div class='section'>")
 		if lang=="ita":
 			print('<h4>Relazione Calcolo</h4>')

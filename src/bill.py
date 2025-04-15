@@ -360,7 +360,7 @@ class Bill:
 						
 
 	def save(self):
-		filename = self.model.outfile[:-3] + "dat"
+		filename = self.model.outfile[:-3] + "txt"
 		with open(filename, "w") as file:
 			file.write(self.text)
 

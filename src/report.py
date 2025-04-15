@@ -3,6 +3,9 @@ from settings import Config
 from model import Room
 import conf
 from page import Section
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
 
 
 def print_line(a: int) -> str:
@@ -32,7 +35,8 @@ class Report:
 		self.components = components
 		self.model = components.model
 		data = self.model.data
-		self.outfile = conf.spool + data['outfile'][:-4] + ".txt"
+		self.outfile = conf.spool + data['outfile'][:-4] + ".pdf"
+		self.outtxt = conf.spool + data['outfile'][:-4] + ".asc"
 		self.text = ""
 		self.perimeter = 0
 
@@ -111,8 +115,26 @@ class Report:
 
 	def save_report(self):
 		self.output_section()
-		f = open(self.outfile, "w")
-		print(self.text, file = f)
+		print(self.text, file = open(self.outtxt, "w"))
+
+		report_canvas = canvas.Canvas(self.outfile, pagesize=A4)
+		report_canvas.setTitle("Report")
+		report_canvas.setFont("Courier", 12)
+
+		_ , height = A4
+		margin = 40
+		y = height - margin
+		line_height = 14
+
+		for line in self.text.splitlines():
+			if y < margin:
+				report_canvas.showPage()
+				y = height - margin
+			report_canvas.drawString(margin, y, line)
+			y -= line_height
+
+		report_canvas.save()
+
 
 
 	def room_summary(self, room: Room):
