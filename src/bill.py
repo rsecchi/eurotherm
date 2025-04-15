@@ -351,11 +351,16 @@ class Bill:
 			self.probe_bill()
 
 		if self.model.data['laid'] == "with":
+
 			code = 'LEOPAD'
-			desc = ''
+			desc = 'COLLEGAMENTI IDRAULICI LEONARDO AL COLLETTORE'
 			qnt = self.report.area
 			self.nav_item(qnt, code, desc)
-			code = 'LEO_PANNELLI'
+
+			code = 'LEOSOFF'
+			desc = 'LEONARDO POSA IN OPERA PANNELLI ATTIVO E PASSIVO' +\
+				   ' COMPRESA STRUTTURA E STUCCATURA'
+			qnt = self.report.area
 			self.nav_item(qnt, code, desc)
 						
 
