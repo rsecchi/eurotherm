@@ -718,6 +718,9 @@ class DxfDrawing:
 		if not isinstance(room.collector, Collector):
 			return
 
+		if (room.color == Config.color_disabled_room or
+			len(room.panels) == 0):
+			return
 		scale = room.frame.scale
 		col = room.collector.pos
 		vers = versor(col, room.pos)
