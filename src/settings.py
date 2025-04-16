@@ -593,8 +593,8 @@ class Config:
 	attach_red_right = 3.40875
 	attach_blue_right = 7.40875
 
-	lux_hole_width = 145
-	lux_hole_height = 18	
+	lux_hole_width = 147
+	lux_hole_height = 24
 
 	supply_out = 9.18099
 	supply_in  = 5.18099
