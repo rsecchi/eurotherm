@@ -56,6 +56,9 @@ class Components(LeoObject):
 
 	def config_planner(self, planner: Planner):
 
+		planner.set_lux_width(Config.lux_hole_width)
+		planner.set_lux_height(Config.lux_hole_height)
+
 		if "full" in self.data:
 			planner.disable_full()
 		if "lux" in self.data:

@@ -6,8 +6,8 @@
 #define PANEL_HEIGHT         60
 #define PANEL_WIDTH         100
 
-#define LUX_WIDTH           100.
-#define LUX_HEIGHT           20.
+#define LUX_WIDTH           147
+#define LUX_HEIGHT           24
 #define EDGE                 10.
 #define MAX_RAILS           256
 #define MAX_LINES          2048
@@ -48,6 +48,8 @@ typedef struct {
 	int max_row_debug;
 	int debug_animation;
 	int one_direction;
+	int lux_width;
+	int lux_height;
 } config_t;
 
 extern config_t config;

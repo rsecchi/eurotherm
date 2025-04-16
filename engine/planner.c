@@ -19,6 +19,8 @@ void disable_lux() { config.enable_lux = 0; }
 void disable_splits() { config.enable_splits = 0; }
 void disable_halves() { config.enable_halves = 0; }
 void disable_quarters() { config.enable_quarters = 0; }
+void set_lux_width(int width) { config.lux_width = width; }
+void set_lux_height(int height) { config.lux_height = height; }
 
 
 pnl_t* planner(room_t* room)

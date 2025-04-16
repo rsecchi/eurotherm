@@ -28,7 +28,9 @@ config_t config = {
 	.enable_quarters = 1,
 	.max_row_debug = 10000,
 	.debug_animation = 0,
-	.one_direction = 0
+	.one_direction = 0,
+	.lux_width = LUX_WIDTH,
+	.lux_height = LUX_HEIGHT
 };
 
 int count_panels(panel_t* head)
@@ -121,10 +123,10 @@ polygon_t *pgon;
 			if (!(p->type == LUX)) 
 				goto fail;
 
-			lux_box.xmin = (box.xmin + box.xmax - LUX_WIDTH)/2;
-			lux_box.xmax = (box.xmin + box.xmax + LUX_WIDTH)/2;
-			lux_box.ymin = (box.ymin + box.ymax - LUX_HEIGHT)/2;
-			lux_box.ymax = (box.ymin + box.ymax + LUX_HEIGHT)/2;
+			lux_box.xmin = (box.xmin + box.xmax - config.lux_width)/2;
+			lux_box.xmax = (box.xmin + box.xmax + config.lux_width)/2;
+			lux_box.ymin = (box.ymin + box.ymax - config.lux_height)/2;
+			lux_box.ymax = (box.ymin + box.ymax + config.lux_height)/2;
 
 			for(int j=0; j<pgon->len-1; j++) 
 				if (!point_inside_box(&pgon->poly[j], &lux_box))

@@ -39,7 +39,10 @@ mylib.disable_halves.argtypes = []
 mylib.disable_halves.restype = None
 mylib.disable_quarters.argtypes = []
 mylib.disable_quarters.restype = None
-
+mylib.set_lux_width.argtypes = [c_int]
+mylib.set_lux_width.restype = None
+mylib.set_lux_height.argtypes = [c_int]
+mylib.set_lux_height.restype = None
 
 class Planner:
 	def __init__(self, room_outline):
@@ -91,6 +94,11 @@ class Planner:
 	def disable_split(self):
 		mylib.disable_splits()
 
+	def set_lux_width(self, width):
+		mylib.set_lux_width(width)
+	
+	def set_lux_height(self, height):
+		mylib.set_lux_height(height)
 
 ######### TESTING #########################
 
