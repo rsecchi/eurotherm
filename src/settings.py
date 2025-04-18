@@ -501,7 +501,7 @@ class Config:
 	tolerance = 1.
 	collector_size = 60.
 	collector_margin_factor = 1.5
-	flow_per_collector = 2200.
+	flow_per_collector = 1700.
 	feeds_per_collector = 13
 
 	min_dist = 20.
