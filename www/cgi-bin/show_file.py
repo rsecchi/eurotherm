@@ -123,10 +123,8 @@ else:
 
 
 	if os.path.exists(output[".png"]):
-		fimage = open(output[".txt"], "r")
 		ff = os.path.basename(os.readlink(output[".png"]))
 		print('<div class="florplan" >')
-		# <img src="img_girl.jpg" alt="Girl in a jacket">
 		if lang=="ita":
 			print('<h4>Pianta</h4>')
 		else:

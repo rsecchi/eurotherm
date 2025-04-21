@@ -15,4 +15,4 @@ docker build --no-cache --network=host -t raffauser/leonardoplanner:ver2 -f Dock
 #docker push raffauser/leonardoplanner:devel
 #docker push raffauser/leonardoplanner:prod
 
-echo "docker push raffauser/leonardoplanner:ver2"
+docker push raffauser/leonardoplanner:ver2

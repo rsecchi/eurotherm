@@ -717,8 +717,9 @@ class Model(LeoObject):
 				group_size = len(room.fixed_collector.backup)
 
 			if flow > group_size*Config.flow_per_collector:
-				wstr = "ABORT: Room %d larger than collector capacity @\n" %\
+				wstr = "ABORT: Room %d larger than a single collector @\n" %\
 						room.pindex
+				wstr += "capacity and not linked to any collector group. @\n"
 				wstr += ("Check %s layer" % Config.layer_error + 
 					" to visualize errors @\n")
 				room.poly.dxf.layer = Config.layer_error
