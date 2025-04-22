@@ -44,16 +44,16 @@ class Collector(Element):
 
 	def reset(self, extra_feeds=0, extra_flow=0.):
 
-		self.freespace = 0
-		self.freeflow = 0.
-		self.items = []
-	
 		if self != self.backup[0]:
+			self.freespace = 0
+			self.freeflow = 0.
+			self.items = []
 			return
 
-		for collector in self.backup:
-			collector.freespace = Config.feeds_per_collector + extra_feeds 
-			collector.freeflow = Config.flow_per_collector + extra_flow
-			collector.items = []
+		group_size = len(self.backup)
+
+		self.freespace = group_size*(Config.feeds_per_collector+extra_feeds)
+		self.freeflow = group_size*(Config.flow_per_collector+extra_flow)
+		self.items = []
 
 
