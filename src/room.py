@@ -1,4 +1,5 @@
 from typing import Optional
+from ezdxf.entities.insert import Insert
 from ezdxf.entities.lwpolyline import LWPolyline
 from collector import Collector
 from element import Element
@@ -102,6 +103,7 @@ class Room(Element):
 		self.boxes = list()
 		self.coord = list()
 		self.collector: Optional[Collector] = None
+		self.collectors: set[Collector] = set()
 
 
 		self.straighten_walls()
@@ -117,6 +119,7 @@ class Room(Element):
 
 		# self.arrangement = PanelArrangement(self)
 		self.panels: list[Panel] = list()
+		self.panel_dxf: list[Insert] = list()
 		self.panel_register: list[int] = []
 		self.quarters = 0
 		self.lines_manager = LinesManager()

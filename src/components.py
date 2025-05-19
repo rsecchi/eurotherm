@@ -1,7 +1,9 @@
 from math import ceil
 from typing import Dict, List
 from ezdxf.entities import lwpolyline
+from ezdxf.entities.insert import Insert
 from ezdxf.entities.mtext import MText
+from collector import Collector
 from engine.panels import panel_map
 from engine.planner import Planner
 
@@ -9,7 +11,7 @@ from ezdxf.document import Drawing
 from leo_object import LeoObject
 from model import Model
 from settings import Config, panel_sizes
-from geometry import dist
+from geometry import Picture, dist
 import settings
 from model import Room
 
@@ -25,6 +27,19 @@ def get_nonzero(register: list[int]) -> int:
 		if register[i] > 0:
 			return i 
 	return -1
+
+
+class DxfDorsal():
+	"""This class is used to identify the panels on the DXF drawing
+	which belong to the same dorsal. """
+
+	def __init__(self, pos: float, panel: Insert):
+		self.pos = pos
+		self.panels = [panel]
+
+	def add_panel(self, panel: Insert):
+		self.panels.append(panel)
+
 
 
 class Components(LeoObject):
@@ -46,6 +61,7 @@ class Components(LeoObject):
 		self.smartbases = 0
 		self.smartcomforts = 0
 		self.air_handlers = []
+		self.dxfdorsals: List[DxfDorsal] = []
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
@@ -193,7 +209,8 @@ class Components(LeoObject):
 			for room in self.model.processed:
 				if not room.is_point_inside(block_pos):
 					continue
-
+				if type(insert) == Insert:
+					room.panel_dxf.append(insert)
 				handler = blocks[name]
 				room.panel_record[handler] += 1
 				room.active_m2 += panel_sizes[handler]
@@ -319,21 +336,73 @@ class Components(LeoObject):
 		msp = doc.modelspace()
 		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
 
+		for poly in polylines:
+
+			if (not (isinstance(poly, lwpolyline.LWPolyline) and
+					poly.dxf.color == Config.color_supply_red)):
+				continue
+			points = list(poly.vertices())
+
+			endpoint1 = endpoint2 = None
+			for room in self.model.processed:
+				if room.is_point_inside(points[0]):
+					endpoint1 = room
+					break
+
+			for collector in self.model.collectors:
+				if collector.is_point_inside(points[-1]):
+					endpoint2 = collector
+					break
+
+			if type(endpoint1) == Room and type(endpoint2) == Collector:
+				endpoint1.collectors.add(endpoint2)
+				endpoint1.total_lines += 1
+
 		for room in self.model.processed:
-			if not isinstance(room.collector, Room):
+			if len(room.collectors) > 1:
+				for collector in room.collectors:
+					print(room.pindex, collector.name, collector.number)
+
+
+	def muliple_collector_rooms(self):
+
+		self.model.scale
+
+		for room in self.model.processed:
+			if len(room.collectors) <= 1:
 				continue
 
-			count = 0
-			for poly in polylines:
-				if not isinstance(poly, lwpolyline.LWPolyline):
-					continue
-				points = list(poly.vertices())
+			if len(room.panel_dxf) == 0:
+				continue
 
-				if (room.is_point_inside(points[0]) and 
-						room.collector.is_point_inside(points[-1])):
-					count += 1
+			print("Multiple collectors for room %d" % room.pindex)
+			if room.pindex == 7:
+				picture = Picture()
 
-			room.total_lines += count//2
+			frame = room.frame
+			for panel in room.panel_dxf:
+				pos = panel.dxf.insert
+				pos = (pos[0], pos[1])
+				pos = frame.local_from_real(pos)
+
+				if room.pindex == 7:
+					picture.add(pos)
+				print(pos)
+
+				for dorsal in self.dxfdorsals:
+					if abs(dorsal.pos - pos[1]) < 0.1:
+						dorsal.add_panel(panel)
+						break
+				else:
+					self.dxfdorsals.append(DxfDorsal(pos[1], panel))
+
+			for dorsal in self.dxfdorsals:
+				print("Dorsal at", dorsal.pos, "len", len(dorsal.panels))
+
+			if room.pindex == 7:
+				picture.set_frame()
+				picture.draw("multiple_collector_rooms.png")
+
 
 
 	def count_components(self, doc:Drawing):
@@ -343,6 +412,7 @@ class Components(LeoObject):
 		self.size_collectors(doc)
 		self.count_probes(doc)
 		self.count_lines_from_room(doc)
+		self.muliple_collector_rooms()
 
 
 	def air_handling(self):

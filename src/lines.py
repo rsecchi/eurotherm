@@ -5,7 +5,7 @@ from settings import Config, dist, MAX_DIST
 from geometry import trim, poly_t
 from settings import leo_types
 
-class Dorsal:
+class Dorsal():
 	def __init__(self):
 		self.panels: list[Panel] = []
 		self.front = (0., 0.)

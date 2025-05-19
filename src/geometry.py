@@ -1,8 +1,9 @@
 from PIL import Image, ImageDraw
-from math import sqrt
+from math import cos, sin, sqrt
 
 from PIL.ImageFont import truetype
 from pyclipper import PyclipperOffset, JT_MITER, ET_CLOSEDPOLYGON
+
 
 
 MAX_DIST = 1e20
@@ -30,6 +31,22 @@ def dist(point1, point2):
 	dx = point1[0] - point2[0]
 	dy = point1[1] - point2[1]
 	return sqrt(dx*dx+dy*dy)
+
+
+	
+
+def perpendicular_coord(point: point_t, line: poly_t) -> float:
+
+	a = line[0]
+	b = line[1]
+
+	if a == b:
+		return dist(point, a)
+
+	ux, uy = norm((b[0]-a[0], b[1]-a[1]))
+	dx, dy = point[0]-a[0], point[1] - a[1]
+
+	return ux*dy - uy*dx
 
 
 def central_symm(centre, point):
@@ -380,6 +397,32 @@ def trim(polyline: poly_t, line: poly_t, from_tail:bool=False) -> poly_t:
 	return opoly
 
 
+
+class CoordSystem:
+	def __init__(self, origin: point_t, angle: float, scale: float):
+		self.origin = origin
+		self.angle = angle
+		self.scale = scale
+		self.ux = cos(angle)/scale
+		self.uy = sin(angle)/scale
+
+	
+	def local_to_real(self, point: point_t) -> point_t:
+		xl, yl = point	
+		ox, oy = self.origin
+		xr = self.ux*xl - self.uy*yl + ox
+		yr = self.uy*xl + self.ux*yl + oy
+		return (xr, yr)
+
+
+	def real_to_local(self, point: point_t) -> point_t:
+		xr, yr = point
+		ox, oy = self.origin
+		xl =  self.ux*(xr - ox) + self.uy*(yr - oy)
+		yl = -self.uy*(xr - ox) + self.ux*(yr - oy)
+		return (xl, yl)
+
+
 class Picture:
 
 	width_px = 600
@@ -555,5 +598,8 @@ def offset_poly(poly: poly_t, offset: float) -> list[poly_t]:
 		polygons.append(off_path+[off_path[0]])
 
 	return polygons
+
+
+
 
 
