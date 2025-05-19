@@ -11,7 +11,7 @@ from ezdxf.document import Drawing
 from leo_object import LeoObject
 from model import Model
 from settings import Config, panel_sizes
-from geometry import Picture, dist
+from geometry import dist
 import settings
 from model import Room
 
@@ -358,11 +358,6 @@ class Components(LeoObject):
 				endpoint1.collectors.add(endpoint2)
 				endpoint1.total_lines += 1
 
-		for room in self.model.processed:
-			if len(room.collectors) > 1:
-				for collector in room.collectors:
-					print(room.pindex, collector.name, collector.number)
-
 
 	def muliple_collector_rooms(self):
 
@@ -375,19 +370,11 @@ class Components(LeoObject):
 			if len(room.panel_dxf) == 0:
 				continue
 
-			print("Multiple collectors for room %d" % room.pindex)
-			if room.pindex == 7:
-				picture = Picture()
-
 			frame = room.frame
 			for panel in room.panel_dxf:
 				pos = panel.dxf.insert
 				pos = (pos[0], pos[1])
 				pos = frame.local_from_real(pos)
-
-				if room.pindex == 7:
-					picture.add(pos)
-				print(pos)
 
 				for dorsal in self.dxfdorsals:
 					if abs(dorsal.pos - pos[1]) < 0.1:
@@ -395,14 +382,6 @@ class Components(LeoObject):
 						break
 				else:
 					self.dxfdorsals.append(DxfDorsal(pos[1], panel))
-
-			for dorsal in self.dxfdorsals:
-				print("Dorsal at", dorsal.pos, "len", len(dorsal.panels))
-
-			if room.pindex == 7:
-				picture.set_frame()
-				picture.draw("multiple_collector_rooms.png")
-
 
 
 	def count_components(self, doc:Drawing):
@@ -412,7 +391,7 @@ class Components(LeoObject):
 		self.size_collectors(doc)
 		self.count_probes(doc)
 		self.count_lines_from_room(doc)
-		self.muliple_collector_rooms()
+		# self.muliple_collector_rooms()
 
 
 	def air_handling(self):
