@@ -118,10 +118,14 @@ class XlsDocument:
 		model.processed.sort(key=lambda x: 
 			(x.collector.zone_num, x.collector.number, x.pindex))
 
+		model.locales.sort(key=lambda x:
+			(x.zone, x.collector, x.pindex))
+
+
 		zone = 0
 		index = 24
 		number = -1
-		for room in model.processed:
+		for locale in model.locales:
 
 			ws['A'+str(index)].border = XlsDocument.thin_left
 			ws['B'+str(index)].border = XlsDocument.thin_left
@@ -143,14 +147,14 @@ class XlsDocument:
 				ws[pos].fill = PatternFill(start_color=color, 
 						fill_type = "solid")
 
-			while (room.collector.zone_num>zone):
+			while (locale.zone>zone):
 				zone += 1
 				pos = 'A' + str(index)
 				ws[pos] = "Zona %d" % zone
 				set_border(ws,str(index), 'B')
 			
-			if (room.collector.number != number):
-				number = room.collector.number
+			if (locale.collector != number):
+				number = locale.collector
 				set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
 				ws['A'+str(index)].border = XlsDocument.thin_left_top
 				ws['B'+str(index)].border = XlsDocument.thin_left_top
@@ -161,64 +165,64 @@ class XlsDocument:
 
 
 			pos = 'B' + str(index)
-			ws[pos] = room.collector.name
+			ws[pos] = locale.collector
 			ws[pos].alignment = Alignment(horizontal='center')
 			
 			pos = 'C' + str(index)
-			ws[pos] = room.pindex
+			ws[pos] = locale.pindex
 			ws[pos].alignment = Alignment(horizontal='center')
 
 			pos = 'E' + str(index)
-			ws[pos] = room.area_m2()
+			ws[pos] = locale.room.area_m2()
 			ws[pos].number_format = "0.0"
 
-			if (room.active_m2==0):
+			if (locale.room.active_m2==0):
 				index += 1
 				continue
 
 			pos = 'D' + str(index)
-			ws[pos] = room.active_m2
+			ws[pos] = locale.active_m2
 			ws[pos].number_format = "0.0"
 
 			pos = 'F' + str(index)
-			ws[pos] = room.ratio
+			ws[pos] = locale.room.ratio
 			ws[pos].number_format = "0.0"
 
 			pos = 'G' + str(index)
-			ws[pos] = room.total_lines
+			ws[pos] = locale.room.total_lines
 				
-			if (room.panel_record["full_classic"] +
-				room.panel_record["lux_classic"] +
-				room.panel_record["full_hydro"]   +
-				room.panel_record["lux_hydro"]	>0):
+			if (locale.panel_record["full_classic"] +
+				locale.panel_record["lux_classic"] +
+				locale.panel_record["full_hydro"]   +
+				locale.panel_record["lux_hydro"]	>0):
 				pos = 'H' + str(index)
-				ws[pos] = (room.panel_record["full_classic"] +
-						   room.panel_record["lux_classic"] +
-						   room.panel_record["full_hydro"]  +
-						   room.panel_record["lux_hydro"])
+				ws[pos] = (locale.panel_record["full_classic"] +
+						   locale.panel_record["lux_classic"] +
+						   locale.panel_record["full_hydro"]  +
+						   locale.panel_record["lux_hydro"])
 
-			if (room.panel_record["split_classic"]+
-				room.panel_record["split_hydro"]>0):
+			if (locale.panel_record["split_classic"]+
+				locale.panel_record["split_hydro"]>0):
 				pos = 'I' + str(index)
-				ws[pos] = (room.panel_record["split_classic"] + 
-						   room.panel_record["split_hydro"])
+				ws[pos] = (locale.panel_record["split_classic"] + 
+						   locale.panel_record["split_hydro"])
 
-			if (room.panel_record["half_classic"]+
-				room.panel_record["half_hydro"]>0):
+			if (locale.panel_record["half_classic"]+
+				locale.panel_record["half_hydro"]>0):
 				pos = 'J' + str(index)
-				ws[pos] = (room.panel_record["half_classic"] + 
-						   room.panel_record["half_hydro"])
+				ws[pos] = (locale.panel_record["half_classic"] + 
+						   locale.panel_record["half_hydro"])
 
-			if (room.panel_record["quarter_classic"]+
-				room.panel_record["quarter_hydro"]>0):
+			if (locale.panel_record["quarter_classic"]+
+				locale.panel_record["quarter_hydro"]>0):
 				pos = 'K' + str(index)
-				ws[pos] = (room.panel_record["half_classic"] + 
-						   room.panel_record["half_hydro"])
+				ws[pos] = (locale.panel_record["half_classic"] + 
+						   locale.panel_record["half_hydro"])
 
 
 			# heating 
 			pos = 'L' + str(index)
-			ws[pos] = radiated = room.active_m2 * warm_coef
+			ws[pos] = radiated = locale.active_m2 * warm_coef
 			ws[pos].number_format = "0"
 
 			pos = 'M' + str(index)
@@ -231,7 +235,7 @@ class XlsDocument:
 
 			# cooling
 			pos = 'O' + str(index)
-			ws[pos] = absorbed = room.active_m2 * cool_coef
+			ws[pos] = absorbed = locale.active_m2 * cool_coef
 			ws[pos].number_format = "0"
 
 			pos = 'P' + str(index)

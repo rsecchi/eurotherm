@@ -209,6 +209,15 @@ class Components(LeoObject):
 				room.ratio = room.active_m2/room.area_m2()
 				room.flow = self.model.flow_per_m2 * room.active_m2
 				self.panel_record[handler] += 1
+				
+				collector = get_attrib(insert, "collector")
+				locale = self.model.get_locale(room, collector)
+				locale.flow_per_m2 = self.model.flow_per_m2
+				locale.add_panel(handler)
+
+				if room.collector:
+					locale.zone = room.collector.zone_num 
+				
 				break
 
 		for room in self.model.processed:

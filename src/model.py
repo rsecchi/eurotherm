@@ -1,3 +1,4 @@
+from typing import List
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.lldxf.const import LWPOLYLINE_CLOSED
 from collector import Collector
@@ -8,7 +9,7 @@ from copy import copy
 from ezdxf.filemanagement import readfile
 
 import conf
-from room import Room
+from room import Locale, Room
 
 
 
@@ -99,6 +100,7 @@ class Model(LeoObject):
 		self.data = data
 		self.polylines = list()
 		self.rooms = list()
+		self.locales: List[Locale] = []
 		self.vectors = list()
 		self.collectors: list[Collector] = list()
 		self.valid_rooms = list()
@@ -890,3 +892,15 @@ class Model(LeoObject):
 				room.fixed_collector.backup[0] != room.fixed_collector):
 				room.prefer_collector = room.fixed_collector
 				room.fixed_collector = room.fixed_collector.backup[0]
+
+
+
+	def get_locale(self, room: Room, collector: str) -> Locale:
+		
+		for locale in self.locales:
+			if (locale.room == room and locale.collector == collector):
+				return locale
+		else:
+			locale = Locale(room, collector)
+			self.locales.append(locale)
+			return locale
