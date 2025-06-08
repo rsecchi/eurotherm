@@ -6,6 +6,7 @@ from engine.panels import panel_map
 from engine.planner import Planner
 
 from ezdxf.document import Drawing
+from ezdxf.entities.insert import Insert
 from leo_object import LeoObject
 from model import Model
 from settings import Config, panel_sizes
@@ -25,6 +26,14 @@ def get_nonzero(register: list[int]) -> int:
 		if register[i] > 0:
 			return i 
 	return -1
+
+
+def get_attrib(insert: Insert, tag: str) -> str:
+	"""Get the value of an attribute by its tag from an INSERT entity."""
+	for attrib in insert.attribs:
+		if attrib.dxf.tag == tag:
+			return attrib.dxf.text
+	return ""
 
 
 class Components(LeoObject):

@@ -288,7 +288,7 @@ class DxfDrawing:
 				   layer=Config.layer_collector)
 
 
-	def draw_panel(self, room: Room, panel: Panel):
+	def draw_panel(self, room: Room, panel: Panel) -> Insert:
 
 		if (room.color==Config.color_valid_room):
 			block_names = self.blocks["classic"]
@@ -310,6 +310,8 @@ class DxfDrawing:
 					}
 		)
 		block.dxf.layer = Config.layer_panel
+
+		return block
 
 
 	def draw_end_caps(self, room: Room, dorsal: Dorsal):
@@ -836,8 +838,19 @@ class DxfDrawing:
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
-		for panel in room.panels:
-			self.draw_panel(room, panel)
+		for line in room.lines_manager.lines:
+			if not line.collector:
+				continue
+			
+			for dorsal in line.dorsals:
+				for panel in dorsal.panels:
+					insert = self.draw_panel(room, panel)
+					insert.add_attrib(
+						tag='collector',
+						text=line.collector.name,
+						insert=insert.dxf.insert,
+					)
+
 
 		self.draw_lines(room)
 		# self.draw_airlines(room)
