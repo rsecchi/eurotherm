@@ -219,10 +219,31 @@ class Components(LeoObject):
 					locale.zone = room.collector.zone_num 
 				
 				break
+		
+		# assign names to locales
+		self.model.locales.sort(key=lambda x: x.pindex)
+
+		loc = self.model.locales
+		for pindex in range(1,loc[-1].pindex+1):
+			list_locales = []
+			for locale in loc:
+				if locale.pindex == pindex:
+					list_locales.append(locale)
+
+			if len(list_locales) == 0:
+				continue
+
+			if len(list_locales) == 1:
+				locale = list_locales[0]
+				locale.name = str(locale.room.pindex)
+				continue
+
+			for i, locale in enumerate(list_locales):
+				locale.name = str(locale.room.pindex) + "." + chr(65+i)
+
 
 		for room in self.model.processed:
 			self.model.active_area += room.active_m2
-
 
 	def zone_flow(self):
 		

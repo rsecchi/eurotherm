@@ -151,12 +151,11 @@ class XlsDocument:
 				zone += 1
 				pos = 'A' + str(index)
 				ws[pos] = "Zona %d" % zone
-				set_border(ws,str(index), 'B')
+				set_border(ws,str(index), 'A')
 			
 			if (locale.collector != number):
 				number = locale.collector
-				set_border(ws, str(index), "ABCDEFGHIJKLMNOPQ")
-				ws['A'+str(index)].border = XlsDocument.thin_left_top
+				set_border(ws, str(index), "BCDEFGHIJKLMNOPQ")
 				ws['B'+str(index)].border = XlsDocument.thin_left_top
 				ws['G'+str(index)].border = XlsDocument.thin_left_top
 				ws['L'+str(index)].border = XlsDocument.thin_left_top
@@ -169,7 +168,8 @@ class XlsDocument:
 			ws[pos].alignment = Alignment(horizontal='center')
 			
 			pos = 'C' + str(index)
-			ws[pos] = locale.pindex
+			ws[pos] = locale.name
+			ws[pos].number_format = "@"
 			ws[pos].alignment = Alignment(horizontal='center')
 
 			pos = 'E' + str(index)
