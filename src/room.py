@@ -207,6 +207,7 @@ class Locale:
 		self.active_m2 = 0.0
 		self.flow_per_m2 = 0.0
 		self.name = str()
+		self.lines = 0
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0

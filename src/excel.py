@@ -186,10 +186,10 @@ class XlsDocument:
 
 			pos = 'F' + str(index)
 			ws[pos] = locale.room.ratio
-			ws[pos].number_format = "0.0"
+			ws[pos].number_format = "0.0%"
 
 			pos = 'G' + str(index)
-			ws[pos] = locale.room.total_lines
+			ws[pos] = locale.lines
 				
 			if (locale.panel_record["full_classic"] +
 				locale.panel_record["lux_classic"] +

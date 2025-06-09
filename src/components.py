@@ -375,6 +375,34 @@ class Components(LeoObject):
 			room.total_lines += count//2
 
 
+	def count_locale_lines(self, doc: Drawing):
+		msp = doc.modelspace()
+		fittings = msp.query(f'INSERT[layer=="{Config.layer_fittings}"]')
+		for fitting in fittings:
+
+			name = fitting.dxf.name
+			leo_icons = settings.leo_icons
+			if not (name == leo_icons["cap"]["name"] or
+							name == leo_icons["tlink"]["name"]):
+				continue
+
+			x, y, _ = fitting.dxf.insert
+			pos = x, y
+			collector = get_attrib(fitting, "collector")
+
+			for room in self.model.processed:
+				if room.is_point_inside(pos):
+					locale = self.model.get_locale(room, collector)
+
+					if name == leo_icons["cap"]["name"]:
+						locale.lines += 1
+					else:
+						locale.lines -= 1
+
+		for locale in self.model.locales:
+			locale.lines //= 2  # each line is counted twice
+
+
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
 		self.zone_flow()
@@ -382,6 +410,7 @@ class Components(LeoObject):
 		self.size_collectors(doc)
 		self.count_probes(doc)
 		self.count_lines_from_room(doc)
+		self.count_locale_lines(doc)
 
 
 	def air_handling(self):
