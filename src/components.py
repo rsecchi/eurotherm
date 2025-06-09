@@ -456,11 +456,7 @@ class Components(LeoObject):
 		self.size_collectors(doc)
 		self.count_probes(doc)
 		self.count_lines_from_room(doc)
-<<<<<<< HEAD
-		# self.muliple_collector_rooms()
-=======
 		self.count_locale_lines(doc)
->>>>>>> 02556bfb1b05660b26a57276caf88ce6e9b6dd33
 
 
 	def air_handling(self):
