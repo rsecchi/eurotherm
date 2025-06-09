@@ -26,6 +26,14 @@ from geometry import poly_t
 
 MAX_DIST  = 1e20
 
+
+def add_attrib(insert: Insert, tag: str, value: str):
+	insert.add_attrib(
+			tag=tag,
+			text=value,
+			insert=insert.dxf.insert)
+
+
 def panel_tracks(panel: Insert, u: point_t, scale: float) -> list[float]:
 
 	uscale = (u[0]/scale, u[1]/scale)
@@ -288,7 +296,7 @@ class DxfDrawing:
 				   layer=Config.layer_collector)
 
 
-	def draw_panel(self, room: Room, panel: Panel) -> Insert:
+	def draw_panel(self, room: Room, panel: Panel, ref: str):
 
 		if (room.color==Config.color_valid_room):
 			block_names = self.blocks["classic"]
@@ -310,11 +318,11 @@ class DxfDrawing:
 					}
 		)
 		block.dxf.layer = Config.layer_panel
+		add_attrib(block, 'collector', ref)
 
-		return block
 
 
-	def draw_end_caps(self, room: Room, dorsal: Dorsal):
+	def draw_end_caps(self, room: Room, dorsal: Dorsal, ref: str):
 
 		name = leo_icons["cap"]["name"]
 		frame = room.frame
@@ -342,13 +350,15 @@ class DxfDrawing:
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
 
 
-	def draw_panel_links(self, room: Room, dorsal: Dorsal):
+	def draw_panel_links(self, room: Room, dorsal: Dorsal, ref: str):
 
 		frame = room.frame
 		rot = (dorsal.rot + 2) % 4
@@ -378,24 +388,28 @@ class DxfDrawing:
 				pos = frame.real_from_local(pos)
 				block = self.msp.add_blockref(name, pos, attribs)
 				block.dxf.layer = Config.layer_fittings
+				add_attrib(block, 'collector', ref)
 
 				pos = dorsal.dorsal_to_local(ofs_blue, b)
 				pos = frame.real_from_local(pos)
 				block = self.msp.add_blockref(name, pos, attribs)
 				block.dxf.layer = Config.layer_fittings
+				add_attrib(block, 'collector', ref)
 
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
 			block.dxf.layer = Config.layer_fittings
+			add_attrib(block, 'collector', ref)
 
 			pos = dorsal.dorsal_to_local(ofs_blue, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
 			block.dxf.layer = Config.layer_fittings
+			add_attrib(block, 'collector', ref)
 
 
-	def draw_tlink(self, room: Room, dorsal: Dorsal):
+	def draw_tlink(self, room: Room, dorsal: Dorsal, ref: str):
 
 		name = leo_icons["tlink"]["name"]
 		frame = room.frame
@@ -422,11 +436,12 @@ class DxfDrawing:
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-
+		add_attrib(block, 'collector', ref)
 
 	def draw_bend(self, room: Room, dorsal: Dorsal):
 
@@ -559,7 +574,7 @@ class DxfDrawing:
 		block.dxf.layer = Config.layer_fittings
 
 	
-	def draw_head_link(self, room: Room, dorsal: Dorsal):
+	def draw_head_link(self, room: Room, dorsal: Dorsal, ref: str):
 		frame = room.frame
 		rot = (dorsal.rot + 2) % 4
 		rot = frame.block_rotation(rot)
@@ -580,21 +595,23 @@ class DxfDrawing:
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
 
 		pos = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
 
 
-	def draw_dorsal(self, room: Room, dorsal: Dorsal):
+	def draw_dorsal(self, room: Room, dorsal: Dorsal, ref: str):
 	
 		if not dorsal.panels:
 			return
 
 		# dorsal.local_attachments()
-		self.draw_end_caps(room, dorsal)
-		self.draw_panel_links(room, dorsal)
+		self.draw_end_caps(room, dorsal, ref)
+		self.draw_panel_links(room, dorsal, ref)
 
 		if dorsal.terminal:
 
@@ -612,9 +629,9 @@ class DxfDrawing:
 			else:
 				self.draw_bend(room, dorsal)
 		else:
-			self.draw_tlink(room, dorsal)
+			self.draw_tlink(room, dorsal, ref)
 
-		self.draw_head_link(room, dorsal)
+		self.draw_head_link(room, dorsal, ref)
 
 
 	def draw_frontline(self, room: Room, line: Line):
@@ -653,7 +670,8 @@ class DxfDrawing:
 			self.draw_frontline(room, line)
 
 			for dorsal in line.dorsals:
-				self.draw_dorsal(room, dorsal)
+				ref = line.collector.name if line.collector else ""
+				self.draw_dorsal(room, dorsal, ref)
 
 
 	def find_free_box(self, room: Room, u: point_t) -> point_t:
@@ -844,12 +862,7 @@ class DxfDrawing:
 			
 			for dorsal in line.dorsals:
 				for panel in dorsal.panels:
-					insert = self.draw_panel(room, panel)
-					insert.add_attrib(
-						tag='collector',
-						text=line.collector.name,
-						insert=insert.dxf.insert,
-					)
+					self.draw_panel(room, panel, line.collector.name)
 
 
 		self.draw_lines(room)
