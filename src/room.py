@@ -8,6 +8,8 @@ from settings import Config
 from lines import Panel, LinesManager
 from engine.panels import panel_map
 from math import sqrt
+from settings import Config, panel_sizes
+from engine.panels import panel_map
 
 MAX_DIST  = 1e20
 
@@ -195,4 +197,28 @@ class Room(Element):
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
+
+
+class Locale:
+	def __init__(self, room: Room, collector: str):
+		self.room = room
+		self.pindex = room.pindex
+		self.collector = collector
+		self.flow = 0.0
+		self.zone = 0
+		self.panel_record = dict()
+		self.active_m2 = 0.0
+		self.flow_per_m2 = 0.0
+		self.name = str()
+		self.lines = 0
+
+		for panel in panel_map:
+			self.panel_record[panel+"_classic"] = 0
+			self.panel_record[panel+"_hydro"] = 0
+
+	def add_panel(self, handler: str):
+		self.flow += panel_sizes[handler] * self.flow_per_m2
+		self.panel_record[handler] = self.panel_record.get(handler, 0) + 1
+		self.active_m2 += panel_sizes[handler]
+	
 

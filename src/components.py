@@ -8,6 +8,7 @@ from engine.panels import panel_map
 from engine.planner import Planner
 
 from ezdxf.document import Drawing
+from ezdxf.entities.insert import Insert
 from leo_object import LeoObject
 from model import Model
 from settings import Config, panel_sizes
@@ -40,6 +41,12 @@ class DxfDorsal():
 	def add_panel(self, panel: Insert):
 		self.panels.append(panel)
 
+def get_attrib(insert: Insert, tag: str) -> str:
+	"""Get the value of an attribute by its tag from an INSERT entity."""
+	for attrib in insert.attribs:
+		if attrib.dxf.tag == tag:
+			return attrib.dxf.text
+	return ""
 
 
 class Components(LeoObject):
@@ -217,11 +224,41 @@ class Components(LeoObject):
 				room.ratio = room.active_m2/room.area_m2()
 				room.flow = self.model.flow_per_m2 * room.active_m2
 				self.panel_record[handler] += 1
+				
+				collector = get_attrib(insert, "collector")
+				locale = self.model.get_locale(room, collector)
+				locale.flow_per_m2 = self.model.flow_per_m2
+				locale.add_panel(handler)
+
+				if room.collector:
+					locale.zone = room.collector.zone_num 
+				
 				break
+		
+		# assign names to locales
+		self.model.locales.sort(key=lambda x: x.pindex)
+
+		loc = self.model.locales
+		for pindex in range(1,loc[-1].pindex+1):
+			list_locales = []
+			for locale in loc:
+				if locale.pindex == pindex:
+					list_locales.append(locale)
+
+			if len(list_locales) == 0:
+				continue
+
+			if len(list_locales) == 1:
+				locale = list_locales[0]
+				locale.name = str(locale.room.pindex)
+				continue
+
+			for i, locale in enumerate(list_locales):
+				locale.name = str(locale.room.pindex) + "." + chr(65+i)
+
 
 		for room in self.model.processed:
 			self.model.active_area += room.active_m2
-
 
 	def zone_flow(self):
 		
@@ -384,6 +421,34 @@ class Components(LeoObject):
 					self.dxfdorsals.append(DxfDorsal(pos[1], panel))
 
 
+	def count_locale_lines(self, doc: Drawing):
+		msp = doc.modelspace()
+		fittings = msp.query(f'INSERT[layer=="{Config.layer_fittings}"]')
+		for fitting in fittings:
+
+			name = fitting.dxf.name
+			leo_icons = settings.leo_icons
+			if not (name == leo_icons["cap"]["name"] or
+							name == leo_icons["tlink"]["name"]):
+				continue
+
+			x, y, _ = fitting.dxf.insert
+			pos = x, y
+			collector = get_attrib(fitting, "collector")
+
+			for room in self.model.processed:
+				if room.is_point_inside(pos):
+					locale = self.model.get_locale(room, collector)
+
+					if name == leo_icons["cap"]["name"]:
+						locale.lines += 1
+					else:
+						locale.lines -= 1
+
+		for locale in self.model.locales:
+			locale.lines //= 2  # each line is counted twice
+
+
 	def count_components(self, doc:Drawing):
 		self.count_panels(doc)
 		self.zone_flow()
@@ -391,7 +456,11 @@ class Components(LeoObject):
 		self.size_collectors(doc)
 		self.count_probes(doc)
 		self.count_lines_from_room(doc)
+<<<<<<< HEAD
 		# self.muliple_collector_rooms()
+=======
+		self.count_locale_lines(doc)
+>>>>>>> 02556bfb1b05660b26a57276caf88ce6e9b6dd33
 
 
 	def air_handling(self):
