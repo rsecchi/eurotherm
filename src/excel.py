@@ -216,8 +216,8 @@ class XlsDocument:
 			if (locale.panel_record["quarter_classic"]+
 				locale.panel_record["quarter_hydro"]>0):
 				pos = 'K' + str(index)
-				ws[pos] = (locale.panel_record["half_classic"] + 
-						   locale.panel_record["half_hydro"])
+				ws[pos] = (locale.panel_record["quarter_classic"] + 
+						   locale.panel_record["quarter_hydro"])
 
 
 			# heating 
