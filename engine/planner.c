@@ -23,8 +23,16 @@ void set_lux_width(int width) { config.lux_width = width; }
 void set_lux_height(int height) { config.lux_height = height; }
 
 
-pnl_t* planner(room_t* room)
+pnl_t* planner(room_t* room, config_t* pconf)
 {
+
+	if (pconf == NULL) {
+		printf("Using default configuration\n");
+	} else {
+		printf("Using provided configuration\n");
+	}	
+	
+
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
 	transform_t trsf;

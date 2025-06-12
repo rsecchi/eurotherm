@@ -1,5 +1,5 @@
 import os
-from ctypes import POINTER, CDLL, pointer
+from ctypes import POINTER, CDLL, Structure, pointer
 
 from panels import EngineRoom, EnginePolygon, EnginePoint, EnginePanel
 from panels import Panel
@@ -11,10 +11,27 @@ current_path = os.path.dirname(current_file)
 libname = current_path + '/libplanner.so'
 
 
+class EngineConfig(Structure):
+	_fields_ = [
+		("debug", c_int),
+		("enable_fulls", c_int),
+		("enable_lux", c_int),
+		("enable_splits", c_int),
+		("enable_halves", c_int),
+		("enable_quarters", c_int),
+		("max_row_debug", c_int),
+		("debug_animation", c_int),
+		("one_direction", c_int),
+		("lux_width", c_int),
+		("lux_height", c_int)
+	]
+
+
 mylib = CDLL(libname)
 
 # Define the functions
-mylib.planner.argtypes = [POINTER(EngineRoom)]
+null_config = POINTER(EngineConfig)()
+mylib.planner.argtypes = [POINTER(EngineRoom), POINTER(EngineConfig)]
 mylib.planner.restype = POINTER(EnginePanel) 
 
 mylib.free_list.argtypes = [POINTER(EnginePanel)]
@@ -62,7 +79,7 @@ class Planner:
 
 	def get_panels(self):
 
-		_panels = mylib.planner(pointer(self.room))
+		_panels = mylib.planner(pointer(self.room), null_config)
 
 		current = _panels 
 		while current:
