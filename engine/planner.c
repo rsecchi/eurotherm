@@ -7,29 +7,36 @@
 #include "cairo_drawing.h"
 
 
-void set_one_direction(int one_direction)
-{
-	config.one_direction = one_direction;
-}
-
-
-void set_debug(int debug) { config.debug = debug; }
-void disable_fulls() { config.enable_fulls = 0; }
-void disable_lux() { config.enable_lux = 0; }
-void disable_splits() { config.enable_splits = 0; }
-void disable_halves() { config.enable_halves = 0; }
-void disable_quarters() { config.enable_quarters = 0; }
-void set_lux_width(int width) { config.lux_width = width; }
-void set_lux_height(int height) { config.lux_height = height; }
-
 
 pnl_t* planner(room_t* room, config_t* pconf)
 {
 
-	if (pconf == NULL) {
-		printf("Using default configuration\n");
-	} else {
-		printf("Using provided configuration\n");
+	if (pconf) {
+		config.debug = pconf->debug;
+		config.enable_fulls = pconf->enable_fulls;
+		config.enable_lux = pconf->enable_lux;
+		config.enable_splits = pconf->enable_splits;
+		config.enable_halves = pconf->enable_halves;
+		config.enable_quarters = pconf->enable_quarters;
+		config.max_row_debug = pconf->max_row_debug;
+		config.debug_animation = pconf->debug_animation;
+		config.one_direction = pconf->one_direction;
+		config.lux_width = pconf->lux_width;
+		config.lux_height = pconf->lux_height;
+
+		printf("Planner configuration:\n");
+		printf("  debug: %d\n", config.debug);
+		printf("  enable_fulls: %d\n", config.enable_fulls);
+		printf("  enable_lux: %d\n", config.enable_lux);
+		printf("  enable_splits: %d\n", config.enable_splits);
+		printf("  enable_halves: %d\n", config.enable_halves);
+		printf("  enable_quarters: %d\n", config.enable_quarters);
+		printf("  max_row_debug: %d\n", config.max_row_debug);
+		printf("  debug_animation: %d\n", config.debug_animation);
+		printf("  one_direction: %d\n", config.one_direction);
+		printf("  lux_width: %d\n", config.lux_width);
+		printf("  lux_height: %d\n", config.lux_height);
+
 	}	
 	
 

@@ -5,7 +5,7 @@ from ezdxf.entities.insert import Insert
 from ezdxf.entities.mtext import MText
 from collector import Collector
 from engine.panels import panel_map
-from engine.planner import Planner
+from engine.planner import EngineConfig, Planner
 
 from ezdxf.document import Drawing
 from ezdxf.entities.insert import Insert
@@ -77,21 +77,28 @@ class Components(LeoObject):
 		self.data = model.data
 
 
-	def config_planner(self, planner: Planner):
+	def config_planner(self, room: Room, config: EngineConfig):
 
-		planner.set_lux_width(Config.lux_hole_width)
-		planner.set_lux_height(Config.lux_hole_height)
+		config.lux_width = Config.lux_hole_width
+		config.lux_height = Config.lux_hole_height
 
 		if "full" in self.data:
-			planner.disable_full()
+			config.enable_fulls = 0
+			
 		if "lux" in self.data:
-			planner.disable_lux()
+			config.enable_lux = 0
+
 		if "split" in self.data:
-			planner.disable_split()
+			config.enable_splits = 0
+
 		if "half" in self.data:
-			planner.disable_half()
+			config.enable_halves = 0
+
 		if "quarter" in self.data:
-			planner.disable_quarter()
+			config.enable_quarters = 0
+
+		if room.vector:
+			config.one_direction = 1
 
 
 	def get_panels(self):
@@ -103,12 +110,11 @@ class Components(LeoObject):
 
 			room_outline = room.frame.room_outline()
 
-			planner = Planner(room_outline)
-			self.config_planner(planner)
-			if room.vector:
-				planner.set_one_direction(1)
-			else:
-				planner.set_one_direction(0)
+			engine_config = EngineConfig()
+			self.config_planner(room, engine_config)
+
+
+			planner = Planner(room_outline, engine_config)
 			room.panels = planner.get_panels()
 
 			self.panels += room.panels
