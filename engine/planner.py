@@ -5,12 +5,15 @@ from panels import EngineRoom, EnginePolygon, EnginePoint, EnginePanel
 from panels import Panel
 from ctypes import pointer, c_int
 
+from settings import Config
+
 # Load the shared library
 current_file = os.path.abspath(__file__) 
 current_path = os.path.dirname(current_file)
 libname = current_path + '/libplanner.so'
 
 
+# Enginee configuration interface
 class EngineConfig(Structure):
 	_fields_ = [
 		("debug", c_int),
@@ -25,6 +28,19 @@ class EngineConfig(Structure):
 		("lux_width", c_int),
 		("lux_height", c_int)
 	]
+
+engine_config = EngineConfig()
+engine_config.debug = 0
+engine_config.enable_fulls = 1
+engine_config.enable_lux = 1
+engine_config.enable_splits = 1
+engine_config.enable_halves = 1
+engine_config.enable_quarters = 1
+engine_config.max_row_debug = 10000
+engine_config.debug_animation = 0
+engine_config.one_direction = 0
+engine_config.lux_width = 147
+engine_config.lux_height = 24
 
 
 mylib = CDLL(libname)
@@ -79,7 +95,7 @@ class Planner:
 
 	def get_panels(self):
 
-		_panels = mylib.planner(pointer(self.room), null_config)
+		_panels = mylib.planner(pointer(self.room), pointer(engine_config))
 
 		current = _panels 
 		while current:
