@@ -98,7 +98,10 @@ class Components(LeoObject):
 			config.enable_quarters = 0
 
 		if room.vector:
-			config.one_direction = 1
+			if room.frame.rotation in [0,2]:
+				config.one_direction = 1
+			else:
+				config.one_direction = 2
 
 
 	def get_panels(self):

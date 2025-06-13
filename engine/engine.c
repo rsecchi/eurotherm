@@ -617,7 +617,7 @@ point_t point;
 	panels_flat = panel_room(room, &flat_score);
 	set_orient_flags(panels_flat);
 
-	if (config.one_direction) 
+	if (config.one_direction==1) 
 		return panels_flat;
 
 
@@ -663,7 +663,7 @@ point_t point;
 
 	free_room(&trial_room);
 
-	pnls_sel = (upright_score > flat_score) ?
+	pnls_sel = (upright_score > flat_score || config.one_direction==2) ?
 		panels_upright:panels_flat;
 
 
