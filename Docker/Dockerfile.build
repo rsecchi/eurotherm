@@ -1,0 +1,10 @@
+FROM debian:12 AS builder
+
+RUN apt-get update && apt-get install -y build-essential
+
+RUN apt-get install -y libcairo2-dev
+
+WORKDIR /mnt
+
+
+
