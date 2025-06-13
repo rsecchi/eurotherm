@@ -255,6 +255,8 @@ class XlsDocument:
 
 	def rooms_header(self, ws):
 
+		ws.row_dimensions[23].height = 32
+
 		if self.data["lang"] == "ita":
 			ws['A23'] = "Zona"
 			ws['B23'] = "Collettore"
