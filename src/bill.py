@@ -164,8 +164,8 @@ class Bill:
 		code = '4910020112'
 		desc = 'MANOMETRO 50 1/2" 10 BAR'
 		self.nav_item(tot_clts, code, desc)
-		code = '4710020306'
-		desc = 'COPPIA VALVOLE SFERA SL SQ/DR.1"1/4 F - 1"F'
+		code = '4710020307'
+		desc = 'COPPIA VALVOLE SFERA SL SQ/DR.1"1/4 - F-F manuale - L 60MM' 
 		self.nav_item(tot_clts, code, desc)
 		code = '4713010301'
 		desc = 'ISOLAZIONE VALVOLA SFERA SL (coppia)'
