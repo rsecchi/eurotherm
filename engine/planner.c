@@ -7,7 +7,6 @@
 #include "cairo_drawing.h"
 
 
-
 pnl_t* planner(room_t* room, config_t* pconf)
 {
 
@@ -23,22 +22,7 @@ pnl_t* planner(room_t* room, config_t* pconf)
 		config.one_direction = pconf->one_direction;
 		config.lux_width = pconf->lux_width;
 		config.lux_height = pconf->lux_height;
-
-		printf("Planner configuration:\n");
-		printf("  debug: %d\n", config.debug);
-		printf("  enable_fulls: %d\n", config.enable_fulls);
-		printf("  enable_lux: %d\n", config.enable_lux);
-		printf("  enable_splits: %d\n", config.enable_splits);
-		printf("  enable_halves: %d\n", config.enable_halves);
-		printf("  enable_quarters: %d\n", config.enable_quarters);
-		printf("  max_row_debug: %d\n", config.max_row_debug);
-		printf("  debug_animation: %d\n", config.debug_animation);
-		printf("  one_direction: %d\n", config.one_direction);
-		printf("  lux_width: %d\n", config.lux_width);
-		printf("  lux_height: %d\n", config.lux_height);
-
 	}	
-	
 
 	pnl_t *pnls=NULL, *pnl;
 	panel_t *panels, *p;
