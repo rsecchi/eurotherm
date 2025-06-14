@@ -19,8 +19,8 @@ def dist(point1, point2):
 	
 
 def versor(point1, point2):
-	dx = point1[0] - point2[0]
-	dy = point1[1] - point2[1]
+	dx = point2[0] - point1[0]
+	dy = point2[1] - point1[1]
 	size = sqrt(dx*dx+dy*dy)
 	return (dx/size, dy/size)
 	

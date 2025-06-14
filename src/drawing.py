@@ -700,7 +700,7 @@ class DxfDrawing:
 			for seg in segs:
 				if dist(seg[0], seg[1]) < step:
 					continue
-				ss = versor(seg[1], seg[0])
+				ss = versor(seg[0], seg[1])
 				d = dist(seg[0], seg[1]) - step
 				sd = adv(mul(d,ss), seg[0])
 
