@@ -118,9 +118,12 @@ class XlsDocument:
 		model.processed.sort(key=lambda x: 
 			(x.collector.zone_num, x.collector.number, x.pindex))
 
+		for locale in model.locales:
+			if (locale.collector == "" and locale.room.collector):
+				locale.collector = locale.room.collector.name
+
 		model.locales.sort(key=lambda x:
 			(x.zone, x.collector, x.pindex))
-
 
 		zone = 0
 		index = 24
@@ -162,14 +165,16 @@ class XlsDocument:
 				ws['O'+str(index)].border = XlsDocument.thin_left_top
 				ws['Q'+str(index)].border = XlsDocument.thin_right_top
 
-
 			pos = 'B' + str(index)
 			ws[pos] = locale.collector
 			ws[pos].alignment = Alignment(horizontal='center')
 			
 			pos = 'C' + str(index)
 			ws[pos] = locale.name
-			ws[pos].number_format = "@"
+			if not locale.name.isnumeric():
+				ws[pos].number_format = "@"
+			else:
+				ws[pos] = int(locale.name)
 			ws[pos].alignment = Alignment(horizontal='center')
 
 			pos = 'E' + str(index)
