@@ -136,7 +136,10 @@ class DxfDrawing:
 		input_doc = readfile(filename)
 		importer = Importer(input_doc, self.doc)
 
-		floorplan = input_doc.query('*[layer=="%s"]' % layer_name)
+		if layer_name == Config.layer_fittings:
+			floorplan = input_doc.query('INSERT[layer=="%s"]' % layer_name)
+		else:
+			floorplan = input_doc.query('*[layer=="%s"]' % layer_name)
 
 		importer.import_entities(floorplan)
 		importer.finalize()
