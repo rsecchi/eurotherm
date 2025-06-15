@@ -1,9 +1,9 @@
 from functools import cached_property
-from math import sqrt
+from math import ceil, cos, pi, sin, sqrt
 from typing import Optional
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.math import Vec2, intersection_line_line_2d
-from geometry import poly_t
+from geometry import dist, poly_t
 from reference_frame import ReferenceFrame
 from settings import Config
 
@@ -14,7 +14,46 @@ class Element:
 		self.color = poly.dxf.color
 		self.poly = poly
 
-		p = self.points = list(poly.vertices())	
+		if poly.has_arc:
+			p = self.points = []
+			next_point = next(poly.vertices())
+
+			for entity in poly.virtual_entities():
+
+				if entity.dxftype() == "LINE":
+					point = entity.dxf.start[0], entity.dxf.start[1]
+					p.append(point)
+					next_point = entity.dxf.end[0], entity.dxf.end[1]
+
+				if entity.dxftype() == "ARC":
+
+					angle1 = entity.dxf.start_angle
+					angle2 = entity.dxf.end_angle
+					radius = entity.dxf.radius
+					cx, cy = entity.dxf.center.x, entity.dxf.center.y
+					arc = angle2 - angle1
+					while arc < 0:
+						arc += 360
+					arc = arc % 360
+					num_points = ceil(arc/Config.arc_step_deg) + 1
+
+					start = entity.start_point[0], entity.start_point[1]
+					end = entity.end_point[0], entity.end_point[1]
+
+					angles = list(entity.angles(num_points))
+
+					if dist(next_point, start) > dist(next_point, end):
+						angles.reverse()
+					
+					for angle in angles[:-1]:
+						x = radius*cos(angle/180*pi) + cx
+						y = radius*sin(angle/180*pi) + cy
+						point = (x, y)
+						p.append((x, y))
+						next_point = point
+
+		else:
+			p = self.points = list(poly.vertices())	
 
 		if (poly.is_closed):
 			self.points.append((p[0][0], p[0][1]))

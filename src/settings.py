@@ -613,6 +613,7 @@ class Config:
 
 	min_area_probe_th_m2 = 9.0
 	step_retract = 5.0
+	arc_step_deg = 2.0
 
 	_handlers = dict() 
 
