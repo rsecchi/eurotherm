@@ -457,6 +457,10 @@ class DxfDrawing:
 		sign = 1 if dorsal.upright else -1
 		rot = 3 if dorsal.upright else 0
 		rot = frame.block_rotation(rot)
+		
+		if (dorsal.boxed and 
+			not (dorsal.reversed ^ dorsal.upright)):
+			sign = -sign
 
 		attribs={
 			'xscale': 0.1/room.frame.scale,
