@@ -128,6 +128,58 @@ def meeting_point(line0, line1):
 	return (b0x + s*(b1x-b0x), b0y + s*(b1y-b0y))
 
 
+def vertical_distance(poly: poly_t, point: point_t) -> float:
+
+	if len(poly)<1:
+		return MAX_DIST
+
+	d = MAX_DIST
+	
+	for i in range(len(poly)-1):
+		ax, ay = poly[i]
+		bx, by = poly[i+1]
+		x0, y0 = point
+
+		if (ax > x0 and bx > x0) or (ax < x0 and bx < x0):
+			continue
+
+		if ax == bx == x0:
+			d = min(min(abs(ay - y0), abs(by - y0)), d)
+			continue
+
+		yp = ((ay-by)*x0 + ax*by - bx*ay)/(ax-bx)
+
+		d = min(abs(yp - y0), d)
+
+	return d
+
+
+
+def horizontal_distance(poly: poly_t, point: point_t) -> float:
+
+	if len(poly)<1:
+		return MAX_DIST
+
+	d = MAX_DIST
+	
+	for i in range(len(poly)-1):
+		ax, ay = poly[i]
+		bx, by = poly[i+1]
+		x0, y0 = point
+
+		if (ay > y0 and by > y0) or (ay < y0 and by < y0):
+			continue
+
+		if ay == by == y0:
+			d = min(min(abs(ax - x0), abs(ay - x0)), d)
+			continue
+
+		xp = ((ax-bx)*y0 + ay*bx - by*ax)/(ay-by)
+
+		d = min(abs(xp - x0), d)
+
+	return d
+
 
 def project_hor(poly, point) -> tuple[float,float]:
 
@@ -430,6 +482,8 @@ class Picture:
 	margin = 10
 	radius = 5
 
+	id = 0
+
 	def __init__(self):
 		self.polylines = []
 		self.messages = []
@@ -515,7 +569,12 @@ class Picture:
 						   "text": text,
 					       "color": color})
 
-	def draw(self, filename: str):
+	def draw(self, filename: str = ""):
+
+		if filename == "":
+			self.set_frame()
+			Picture.id += 1
+			filename = f"picture_{Picture.id}.png"
 
 		for shade in self.shades:
 			color = shade["color"]

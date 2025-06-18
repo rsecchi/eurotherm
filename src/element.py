@@ -231,3 +231,12 @@ class Element:
 					return True
 
 		return False
+
+
+	def local_points(self) -> poly_t:
+		"""Returns the points of the element in local coordinates."""
+		p = self.points
+		if (self.frame is None):
+			return p
+
+		return self.frame.local_coord(self.points)

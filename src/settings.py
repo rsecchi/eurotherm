@@ -615,6 +615,8 @@ class Config:
 	step_retract = 5.0
 	arc_step_deg = 2.0
 
+	lateral_margin_cm = 40
+
 	_handlers = dict() 
 
 	@classmethod

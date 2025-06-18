@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 from planner import Panel
 from collector import Collector
 from settings import Config, dist, MAX_DIST
+from geometry import Picture, horizontal_distance, vertical_distance
 from geometry import trim, poly_t
 from settings import leo_types
 
@@ -19,6 +20,7 @@ class Dorsal():
 		self.terminal = False 
 		self.detached = False
 		self.reversed = False
+		self.boxed = False
 		self.water_from_left = False
 		self.indented = False
 		self.indent_front = (0., 0.)
@@ -205,6 +207,56 @@ class LinesManager():
 			dorsal.insert(panel)
 
 
+	def mark_boxed_dorsals(self, poly: poly_t):
+		
+		if not self.dorsals:
+			return
+
+		prev = self.dorsals[0]
+		if not prev.upright:
+			for i, dorsal in enumerate(self.dorsals):
+
+
+				if (dorsal.front[0] > prev.front[0] and
+					prev.bottom - dorsal.front[1] < 
+						Config.lateral_margin_cm):
+						dorsal.boxed = True
+
+				if i<len(self.dorsals)-1:
+					next = self.dorsals[i+1]
+					if (dorsal.front[0] > next.front[0] and
+						dorsal.front[1] - next.top < 
+							Config.lateral_margin_cm):
+						dorsal.boxed = True
+
+				gap = vertical_distance(poly, dorsal.front)
+				if (gap < Config.lateral_margin_cm):
+					dorsal.boxed = True
+
+				prev = dorsal
+
+		else:
+			for i, dorsal in enumerate(self.dorsals):
+
+				if (dorsal.front[1] < prev.front[1] and
+					dorsal.front[0] - prev.bottom < 
+						Config.lateral_margin_cm):
+						dorsal.boxed = True
+
+				if i<len(self.dorsals)-1:
+					next = self.dorsals[i+1]
+					if (dorsal.front[1] < next.front[1] and
+						next.top - dorsal.front[0]  < 
+							Config.lateral_margin_cm):
+						dorsal.boxed = True
+
+				gap = horizontal_distance(poly, dorsal.front)
+				if (gap < Config.lateral_margin_cm):
+					dorsal.boxed = True
+
+				prev = dorsal
+
+
 	def make_frontline(self, line: Line):
 
 		# if len(line.dorsals) <= 1:
@@ -381,4 +433,22 @@ class LinesManager():
 
 		self.make_lines()
 
+
+	def lines_picture(self, poly: poly_t) -> Picture:
+
+		picture = Picture()
+		picture.add(poly, color="blue")
+
+		for line in self.lines:
+			for dorsal in line.dorsals:
+				picture.add([dorsal.front, dorsal.side])
+				picture.add([dorsal.side, dorsal.back_side])
+				picture.add([dorsal.back_side, dorsal.back])
+				picture.add([dorsal.back, dorsal.front])
+
+				center = [(dorsal.front[0] + dorsal.back_side[0]) / 2,
+						  (dorsal.front[1] + dorsal.back_side[1]) / 2]
+				picture.text(center, str(dorsal.dorsal_row), color="red")
+
+		return	picture
 

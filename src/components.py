@@ -130,6 +130,8 @@ class Components(LeoObject):
 			room.lines_manager.get_dorsals(room.panels, ptype)
 			room.lines_manager.get_lines(ptype)
 
+			room.lines_manager.mark_boxed_dorsals(room.local_points())
+
 
 	def redistribute_lines(self):
 		flow_m2 = self.model.flow_per_m2

@@ -622,7 +622,7 @@ class DxfDrawing:
 			u = norm(room.frame.real_coord(u))
 
 			s = (0., 0.)
-			if isinstance(room.collector, Room):
+			if room.collector:
 				front = room.frame.real_from_local(dorsal.front)
 				s = norm([front, room.collector.pos]) 
 
@@ -632,7 +632,10 @@ class DxfDrawing:
 			else:
 				self.draw_bend(room, dorsal)
 		else:
-			self.draw_tlink(room, dorsal, ref)
+			if dorsal.boxed:
+				self.draw_bend(room, dorsal)
+			else:
+				self.draw_tlink(room, dorsal, ref)
 
 		self.draw_head_link(room, dorsal, ref)
 
