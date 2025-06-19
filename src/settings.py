@@ -616,6 +616,8 @@ class Config:
 	arc_step_deg = 2.0
 
 	lateral_margin_cm = 40
+	tfit_offset = 30.0
+	indent_tfit = -2.0
 
 	_handlers = dict() 
 

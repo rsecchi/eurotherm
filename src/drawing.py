@@ -416,13 +416,6 @@ class DxfDrawing:
 
 		name = leo_icons["tlink"]["name"]
 		frame = room.frame
-		rot = (dorsal.rot + 2) % 4
-		rot = frame.block_rotation(rot)
-		attribs={
-			'xscale': 0.1/room.frame.scale,
-			'yscale': 0.1/room.frame.scale,
-			'rotation': rot
-		}
 
 		local_red = dorsal.red_attach
 		local_blue = dorsal.blue_attach
@@ -445,6 +438,39 @@ class DxfDrawing:
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
 		add_attrib(block, 'collector', ref)
+
+
+	def draw_tfits(self, room: Room, dorsal: Dorsal, ref: str):
+
+		name = leo_icons["tfit"]["name"]
+		frame = room.frame
+
+		u = versor(dorsal.front, dorsal.side)
+		v = versor(dorsal.front, dorsal.back)
+
+		vector = mul(Config.tfit_offset, u)
+		vector = adv(vector, mul(Config.indent_tfit, v))
+		local_red = adv(dorsal.red_attach, vector)
+		local_blue = adv(dorsal.blue_attach, vector)
+
+		rot = 0 if dorsal.upright else 1
+		rot = frame.block_rotation(rot)
+
+		attribs={
+			'xscale': 0.1/room.frame.scale,
+			'yscale': 0.1/room.frame.scale,
+			'rotation': rot
+		}
+		pos = frame.real_from_local(local_red)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
+
+		pos = frame.real_from_local(local_blue)
+		block = self.msp.add_blockref(name, pos, attribs)
+		block.dxf.layer = Config.layer_fittings
+		add_attrib(block, 'collector', ref)
+
 
 	def draw_bend(self, room: Room, dorsal: Dorsal):
 
@@ -638,6 +664,7 @@ class DxfDrawing:
 		else:
 			if dorsal.boxed:
 				self.draw_bend(room, dorsal)
+				self.draw_tfits(room, dorsal, ref)
 			else:
 				self.draw_tlink(room, dorsal, ref)
 
