@@ -618,6 +618,7 @@ class Config:
 	lateral_margin_cm = 40
 	tfit_offset = 30.0
 	indent_tfit = -2.0
+	tag_height_cm = 2.5
 
 	_handlers = dict() 
 

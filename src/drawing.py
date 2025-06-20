@@ -27,11 +27,6 @@ from geometry import poly_t
 MAX_DIST  = 1e20
 
 
-def add_attrib(insert: Insert, tag: str, value: str):
-	insert.add_attrib(
-			tag=tag,
-			text=value,
-			insert=insert.dxf.insert)
 
 
 def panel_tracks(panel: Insert, u: point_t, scale: float) -> list[float]:
@@ -131,6 +126,15 @@ class DxfDrawing:
 
 		self.blocks = {}
 
+
+	def add_attrib(self, insert: Insert, tag: str, value: str):
+		insert.add_attrib(
+				tag=tag,
+				text=value,
+				insert=insert.dxf.insert,
+				dxfattribs={
+					'height': Config.tag_height_cm/self.model.scale,
+				})
 
 	def import_layer(self, filename:str, layer_name:str):
 		input_doc = readfile(filename)
@@ -321,7 +325,7 @@ class DxfDrawing:
 					}
 		)
 		block.dxf.layer = Config.layer_panel
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 
 
@@ -353,12 +357,12 @@ class DxfDrawing:
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 
 	def draw_panel_links(self, room: Room, dorsal: Dorsal, ref: str):
@@ -391,25 +395,25 @@ class DxfDrawing:
 				pos = frame.real_from_local(pos)
 				block = self.msp.add_blockref(name, pos, attribs)
 				block.dxf.layer = Config.layer_fittings
-				add_attrib(block, 'collector', ref)
+				self.add_attrib(block, 'collector', ref)
 
 				pos = dorsal.dorsal_to_local(ofs_blue, b)
 				pos = frame.real_from_local(pos)
 				block = self.msp.add_blockref(name, pos, attribs)
 				block.dxf.layer = Config.layer_fittings
-				add_attrib(block, 'collector', ref)
+				self.add_attrib(block, 'collector', ref)
 
 			pos = dorsal.dorsal_to_local(ofs_red, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
 			block.dxf.layer = Config.layer_fittings
-			add_attrib(block, 'collector', ref)
+			self.add_attrib(block, 'collector', ref)
 
 			pos = dorsal.dorsal_to_local(ofs_blue, a)
 			pos = frame.real_from_local(pos)
 			block = self.msp.add_blockref(name, pos, attribs)
 			block.dxf.layer = Config.layer_fittings
-			add_attrib(block, 'collector', ref)
+			self.add_attrib(block, 'collector', ref)
 
 
 	def draw_tlink(self, room: Room, dorsal: Dorsal, ref: str):
@@ -432,12 +436,12 @@ class DxfDrawing:
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 
 	def draw_tfits(self, room: Room, dorsal: Dorsal, ref: str):
@@ -464,12 +468,12 @@ class DxfDrawing:
 		pos = frame.real_from_local(local_red)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 		pos = frame.real_from_local(local_blue)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 
 	def draw_bend(self, room: Room, dorsal: Dorsal):
@@ -628,13 +632,13 @@ class DxfDrawing:
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 		pos = dorsal.dorsal_to_local(ofs_blue, dorsal.front)
 		pos = frame.real_from_local(pos)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
-		add_attrib(block, 'collector', ref)
+		self.add_attrib(block, 'collector', ref)
 
 
 	def draw_dorsal(self, room: Room, dorsal: Dorsal, ref: str):
