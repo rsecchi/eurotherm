@@ -128,9 +128,8 @@ class Components(LeoObject):
 		for room in self.model.processed:
 			ptype = self.model.data["ptype"]
 			room.lines_manager.get_dorsals(room.panels, ptype)
-			room.lines_manager.get_lines(ptype)
-
 			room.lines_manager.mark_boxed_dorsals(room.local_points())
+			room.lines_manager.get_lines(ptype)
 
 
 	def redistribute_lines(self):

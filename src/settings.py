@@ -592,6 +592,7 @@ class Config:
 	attach_blue_left = 3.48974
 	attach_red_right = 3.40875
 	attach_blue_right = 7.40875
+	offset_front_cm = 2.0
 
 	lux_hole_width = 147
 	lux_hole_height = 24
@@ -615,10 +616,15 @@ class Config:
 	step_retract = 5.0
 	arc_step_deg = 2.0
 
-	lateral_margin_cm = 40
+	lateral_margin_cm = 15
 	tfit_offset = 30.0
-	indent_tfit = -2.0
 	tag_height_cm = 2.5
+
+	# T-fit bridge settings
+	bridge_indent = 2.0
+	bridge_centre_offset_wide_cm = 30.0
+	bridge_centre_offset_narrow_cm = 30.0
+	bridge_stub_length_cm = 20.0
 
 	_handlers = dict() 
 

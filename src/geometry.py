@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw
 from math import cos, sin, sqrt
 
+import numpy as np
 from PIL.ImageFont import truetype
 from pyclipper import PyclipperOffset, JT_MITER, ET_CLOSEDPOLYGON
 
@@ -609,7 +610,7 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t, leeway:float):
 	end2 = pipe2[-1]
 
 	side = (pipe1[-2][0]-end1[0], pipe1[-2][1]-end1[1])
-	w = dist(end1, end2)/2
+	w = dist(end1, end2)/4
 
 	vx, vy = norm((end2[0]-end1[0], end2[1]-end1[1]))
 	ux, uy = vy, -vx
@@ -660,5 +661,39 @@ def offset_poly(poly: poly_t, offset: float) -> list[poly_t]:
 
 
 
+def offset_segment(p1, p2, distance):
+    # Compute direction and normal
+    dx, dy = np.array(p2) - np.array(p1)
+    length = np.hypot(dx, dy)
+    nx, ny = -dy / length, dx / length  # normal vector (left-hand)
+    offset_p1 = (p1[0] + nx * distance, p1[1] + ny * distance)
+    offset_p2 = (p2[0] + nx * distance, p2[1] + ny * distance)
+    return offset_p1, offset_p2
 
 
+def line_intersection(p1, p2, q1, q2):
+    """Return intersection point of line segments (p1,p2) and (q1,q2)"""
+    a1, b1 = np.array(p1), np.array(p2)
+    a2, b2 = np.array(q1), np.array(q2)
+    da, db = b1 - a1, b2 - a2
+    dp = a1 - a2
+    dap = np.array([-da[1], da[0]])
+    denom = np.dot(dap, db)
+    if np.abs(denom) < 1e-10:
+        return None  # parallel
+    num = np.dot(dap, dp)
+    return tuple(a2 + (num / denom) * db)
+
+
+def non_uniform_offset(polyline, offsets):
+    assert len(polyline) >= 2 and len(offsets) == len(polyline) - 1
+    segments = []
+    for (p1, p2), d in zip(zip(polyline[:-1], polyline[1:]), offsets):
+        segments.append(offset_segment(p1, p2, d))
+
+    offset_points = [segments[0][0]]  # first point of first segment
+    for (p1, p2), (q1, q2) in zip(segments[:-1], segments[1:]):
+        ipt = line_intersection(p1, p2, q1, q2)
+        offset_points.append(ipt if ipt else p2)  # fallback to end of segment
+    offset_points.append(segments[-1][1])  # last point of last segment
+    return offset_points

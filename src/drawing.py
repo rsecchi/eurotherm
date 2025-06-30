@@ -12,6 +12,7 @@ from lines import Dorsal, Line
 from model import Model, Room
 from planner import Panel
 
+import nonuniform_offset
 from settings import Config
 from settings import debug
 from settings import leo_types 
@@ -25,7 +26,6 @@ from geometry import poly_t
 
 
 MAX_DIST  = 1e20
-
 
 
 
@@ -444,18 +444,29 @@ class DxfDrawing:
 		self.add_attrib(block, 'collector', ref)
 
 
-	def draw_tfits(self, room: Room, dorsal: Dorsal, ref: str):
+	def draw_bridge(self, room: Room, dorsal: Dorsal, ref: str):
 
 		name = leo_icons["tfit"]["name"]
 		frame = room.frame
 
 		u = versor(dorsal.front, dorsal.side)
-		v = versor(dorsal.front, dorsal.back)
+		if dorsal.wide_size:
+			centre = Config.bridge_centre_offset_wide_cm
+			u_red = mul(centre, u) 
+			u_blue = mul(centre, u)
+		else:
+			centre = Config.bridge_centre_offset_narrow_cm
+			u_red = mul(centre, u) 
+			u_blue = mul(centre, u)
 
-		vector = mul(Config.tfit_offset, u)
-		vector = adv(vector, mul(Config.indent_tfit, v))
-		local_red = adv(dorsal.red_attach, vector)
-		local_blue = adv(dorsal.blue_attach, vector)
+		v = versor(dorsal.back, dorsal.front)
+		v = mul(Config.bridge_indent, v)
+		u_red = adv(u_red, v)
+		u_blue = adv(u_blue, v) 
+
+		local_red = adv(dorsal.red_attach, u_red)
+		local_blue = adv(dorsal.blue_attach, u_blue)
+
 
 		rot = 0 if dorsal.upright else 1
 		rot = frame.block_rotation(rot)
@@ -668,7 +679,7 @@ class DxfDrawing:
 		else:
 			if dorsal.boxed:
 				self.draw_bend(room, dorsal)
-				self.draw_tfits(room, dorsal, ref)
+				self.draw_bridge(room, dorsal, ref)
 			else:
 				self.draw_tlink(room, dorsal, ref)
 
@@ -683,32 +694,66 @@ class DxfDrawing:
 		redfront = room.frame.real_coord(line.red_frontline)
 		bluefront = room.frame.real_coord(line.blue_frontline)
 
-		if room.collector:
-			redfront = list(reversed(redfront))
-			bluefront = list(reversed(bluefront))
-			if line.collector:
-				pos = line.collector.pos
-			else:
-				pos = room.collector.pos
-			lw = Config.leeway/room.frame.scale
-			extend_pipes(redfront, bluefront, pos, leeway=lw)
 
+		scale = self.model.scale
 
 		pline = self.msp.add_lwpolyline(redfront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_red
-		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
+		pline.dxf.const_width = Config.supply_thick_mm/scale
 
 		pline = self.msp.add_lwpolyline(bluefront)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
-		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
+		pline.dxf.const_width = Config.supply_thick_mm/scale
+
+		for dorsal in line.dorsals:
+			if dorsal.bridged:
+				bridge_red = room.frame.real_coord(dorsal.red_bridge)
+				pline = self.msp.add_lwpolyline(bridge_red)
+				pline.dxf.layer = Config.layer_link
+				pline.dxf.color = Config.color_supply_red
+				pline.dxf.const_width = Config.supply_thick_mm/scale
+
+				bridge_blue = room.frame.real_coord(dorsal.blue_bridge)
+				pline = self.msp.add_lwpolyline(bridge_blue)
+				pline.dxf.layer = Config.layer_link
+				pline.dxf.color = Config.color_supply_blue
+				pline.dxf.const_width = Config.supply_thick_mm/scale
+
+
+	def draw_collector_link(self, room: Room, line: Line):
+
+		if not room.collector:
+			return
+
+		if line.collector:
+			pos = line.collector.pos
+		else:
+			pos = room.collector.pos
+		lw = Config.leeway/room.frame.scale
+		scale = self.model.scale
+
+		red_link = room.frame.real_coord(line.uplink_red)
+		blue_link = room.frame.real_coord(line.uplink_blue)
+		extend_pipes(red_link, blue_link, pos, leeway=lw)	
+
+		pline = self.msp.add_lwpolyline(red_link)
+		pline.dxf.layer = Config.layer_link
+		pline.dxf.color = Config.color_supply_red
+		pline.dxf.const_width = Config.supply_thick_mm/scale
+
+		pline = self.msp.add_lwpolyline(blue_link)
+		pline.dxf.layer = Config.layer_link
+		pline.dxf.color = Config.color_supply_blue
+		pline.dxf.const_width = Config.supply_thick_mm/scale	
 
 
 	def draw_lines(self, room: Room):
 
 		for line in room.lines_manager.lines:
 			self.draw_frontline(room, line)
+			self.draw_collector_link(room, line)
 
 			for dorsal in line.dorsals:
 				ref = line.collector.name if line.collector else ""

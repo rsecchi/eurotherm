@@ -1,6 +1,8 @@
+from pprint import pprint
 from typing import Optional, Tuple
 from planner import Panel
 from collector import Collector
+from reference_frame import adv, mul, versor
 from settings import Config, dist, MAX_DIST
 from geometry import Picture, horizontal_distance, vertical_distance
 from geometry import trim, poly_t
@@ -28,9 +30,13 @@ class Dorsal():
 
 		self.red_attach = (0., 0.)
 		self.blue_attach = (0., 0.)
+		self.bridged = False
+		self.red_bridge: poly_t = []
+		self.blue_bridge: poly_t = []
 		self.top = 0.
 		self.bottom = 0.
 		self.level = 0.
+		self.wide_size = False
 
 		self.x_axis = (0., 0.)
 		self.y_axis = (0., 0.)
@@ -77,6 +83,8 @@ class Dorsal():
 		self.front = panel.front_corner
 		self.side = panel.front_side
 
+		self.wide_size = True if panel.type in [0, 1, 3] else False
+
 		if not self.panels:
 			self.rot = panel.rot
 			self.water_from_left = (self.rot==0 or self.rot==3)
@@ -120,6 +128,11 @@ class Line:
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
 		self.collector: Optional[Collector] = None
+		self.red_attach = (0., 0.)
+		self.blue_attach = (0., 0.)
+
+		self.uplink_red: poly_t = []
+		self.uplink_blue: poly_t = []
 
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
@@ -259,50 +272,72 @@ class LinesManager():
 
 	def make_frontline(self, line: Line):
 
-		# if len(line.dorsals) <= 1:
-		# 	return
+		if not line.dorsals:
+			return
 
-		dorsal = line.dorsals[-1]
+		r_line = line.red_frontline
+		b_line = line.blue_frontline
 
-		if dorsal.reversed:
-			line.red_frontline = line.front_line(Config.supply_out)
-			line.blue_frontline = line.front_line(Config.supply_in)
-		else:
-			line.red_frontline = line.front_line(Config.supply_in)
-			line.blue_frontline = line.front_line(Config.supply_out)
+		for dorsal in reversed(line.dorsals):
+			v = versor(dorsal.back, dorsal.front)
+			u = versor(dorsal.front, dorsal.side)
 
-		# trim back of frontlines
-		red  = [(0., Config.offset_red), (-100., Config.offset_red)]
-		blue = [(0., Config.offset_blue), (-100., Config.offset_blue)]
+			us = mul(Config.tfit_offset,u)
+			vs = mul(Config.offset_front_cm,v)
+			red_end = adv(dorsal.red_attach, vs)
+			blue_end = adv(dorsal.blue_attach, vs)
 
-		r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
-					   dorsal.dorsal_to_local(red[1], dorsal.front)]
+			if dorsal.boxed and not dorsal.terminal:
+				red_bridge_end = adv(red_end, us)
+				blue_bridge_end = adv(blue_end, us)
+				dorsal.bridged = True
+				dorsal.red_bridge = [red_end, red_bridge_end]
+				dorsal.blue_bridge = [blue_end, blue_bridge_end]
+				red_end = red_bridge_end
+				blue_end = blue_bridge_end
 
-		b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
-					   dorsal.dorsal_to_local(blue[1], dorsal.front)]
+			r_line.append(red_end)
+			b_line.append(blue_end)
 
-		r_line = trim(line.red_frontline, r_trim, from_tail=False)
-		b_line = trim(line.blue_frontline, b_trim, from_tail=False)
+		line.red_attach = r_line[-1]
+		line.blue_attach = b_line[-1]
 
-		# Project indented fronts
-		if dorsal.indented:
-			r_line.append(dorsal.red_attach)
-			b_line.append(dorsal.blue_attach)
-
-		line.red_frontline = r_line
-		line.blue_frontline = b_line
+		stub = mul(Config.bridge_stub_length_cm, v)
+		red_stub = adv(line.red_attach, stub)
+		blue_stub = adv(line.blue_attach, stub)
+		line.uplink_red = [r_line[-1], red_stub]
+		line.uplink_blue = [b_line[-1], blue_stub]
 
 
-		# trim head of frontlines
-		# dorsal = line.dorsals[0]
+		# dorsal = line.dorsals[-1]
+
+		# if dorsal.reversed:
+		# 	line.red_frontline = line.front_line(Config.supply_out)
+		# 	line.blue_frontline = line.front_line(Config.supply_in)
+		# else:
+		# 	line.red_frontline = line.front_line(Config.supply_in)
+		# 	line.blue_frontline = line.front_line(Config.supply_out)
+
+		# # trim back of frontlines
+		# red  = [(0., Config.offset_red), (-100., Config.offset_red)]
+		# blue = [(0., Config.offset_blue), (-100., Config.offset_blue)]
+
 		# r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
 		# 			   dorsal.dorsal_to_local(red[1], dorsal.front)]
 
 		# b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
 		# 			   dorsal.dorsal_to_local(blue[1], dorsal.front)]
 
-		# line.red_frontline = trim(r_line, r_trim, from_tail=True)
-		# line.blue_frontline = trim(b_line, b_trim, from_tail=True)
+		# r_line = trim(line.red_frontline, r_trim, from_tail=False)
+		# b_line = trim(line.blue_frontline, b_trim, from_tail=False)
+
+		# # Project indented fronts
+		# if dorsal.indented:
+		# 	r_line.append(dorsal.red_attach)
+		# 	b_line.append(dorsal.blue_attach)
+
+		# line.red_frontline = r_line
+		# line.blue_frontline = b_line
 
 
 
