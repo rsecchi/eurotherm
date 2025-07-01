@@ -12,7 +12,6 @@ from lines import Dorsal, Line
 from model import Model, Room
 from planner import Panel
 
-import nonuniform_offset
 from settings import Config
 from settings import debug
 from settings import leo_types 

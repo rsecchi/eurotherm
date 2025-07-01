@@ -626,6 +626,9 @@ class Config:
 	bridge_centre_offset_narrow_cm = 30.0
 	bridge_stub_length_cm = 20.0
 
+	stub_length_cm = 10.0
+	link_width_cm = 2.0
+
 	_handlers = dict() 
 
 	@classmethod

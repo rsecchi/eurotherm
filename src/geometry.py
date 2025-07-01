@@ -17,6 +17,19 @@ def xprod(a: point_t, b: point_t):
 	return a[0]*b[0]+a[1]*b[1]
 
 
+def midpoint(a: point_t, b: point_t) -> point_t:
+	return ((a[0]+b[0])/2, (a[1]+b[1])/2)
+
+
+def ortho(a: point_t, b: point_t):
+	return a[0]*b[1]-a[1]*b[0]
+	
+
+def parallel_proj(vector: point_t, vers: point_t):
+	proj = vector[0]*vers[0] + vector[1]*vers[1]
+	return (proj*vers[0], proj*vers[1])
+
+
 def norm(vector) -> point_t:
 
 	if isinstance(vector, list):
