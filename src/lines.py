@@ -1,11 +1,11 @@
-from pprint import pprint
 from typing import Optional, Tuple
 from planner import Panel
 from collector import Collector
+from connector import Connector
 from reference_frame import adv, mul, versor
 from settings import Config, dist, MAX_DIST
 from geometry import Picture, horizontal_distance, vertical_distance
-from geometry import trim, poly_t
+from geometry import poly_t
 from settings import leo_types
 
 class Dorsal():
@@ -309,36 +309,44 @@ class LinesManager():
 		line.uplink_blue = [b_line[-1], blue_stub]
 
 
-		# dorsal = line.dorsals[-1]
+	def make_frontline2(self, line: Line):
+		
+		if not line.dorsals:
+			return
 
-		# if dorsal.reversed:
-		# 	line.red_frontline = line.front_line(Config.supply_out)
-		# 	line.blue_frontline = line.front_line(Config.supply_in)
-		# else:
-		# 	line.red_frontline = line.front_line(Config.supply_in)
-		# 	line.blue_frontline = line.front_line(Config.supply_out)
+		connector = Connector()
+		for dorsal in reversed(line.dorsals):
+			v = versor(dorsal.back, dorsal.front)
+			u = versor(dorsal.front, dorsal.side)
 
-		# # trim back of frontlines
-		# red  = [(0., Config.offset_red), (-100., Config.offset_red)]
-		# blue = [(0., Config.offset_blue), (-100., Config.offset_blue)]
+			us = mul(Config.tfit_offset,u)
+			vs = mul(Config.offset_front_cm,v)
+			red_end = adv(dorsal.red_attach, vs)
+			blue_end = adv(dorsal.blue_attach, vs)
 
-		# r_trim = [dorsal.dorsal_to_local(red[0], dorsal.front),
-		# 			   dorsal.dorsal_to_local(red[1], dorsal.front)]
+			if dorsal.boxed and not dorsal.terminal:
+				red_bridge_end = adv(red_end, us)
+				blue_bridge_end = adv(blue_end, us)
+				dorsal.bridged = True
+				dorsal.red_bridge = [red_end, red_bridge_end]
+				dorsal.blue_bridge = [blue_end, blue_bridge_end]
+				red_end = red_bridge_end
+				blue_end = blue_bridge_end
+				connector.attach(red_end, blue_end, u)
+			else:
+				connector.attach(red_end, blue_end, v)
 
-		# b_trim = [dorsal.dorsal_to_local(blue[0], dorsal.front),
-		# 			   dorsal.dorsal_to_local(blue[1], dorsal.front)]
+		connector.paths()
+		line.red_frontline = connector.red_path
+		line.blue_frontline = connector.blue_path
+		line.red_attach = connector.red_path[-1]
+		line.blue_attach = connector.blue_path[-1]
 
-		# r_line = trim(line.red_frontline, r_trim, from_tail=False)
-		# b_line = trim(line.blue_frontline, b_trim, from_tail=False)
-
-		# # Project indented fronts
-		# if dorsal.indented:
-		# 	r_line.append(dorsal.red_attach)
-		# 	b_line.append(dorsal.blue_attach)
-
-		# line.red_frontline = r_line
-		# line.blue_frontline = b_line
-
+		stub = mul(Config.bridge_stub_length_cm, v)
+		red_stub = adv(line.red_attach, stub)
+		blue_stub = adv(line.blue_attach, stub)
+		line.uplink_red = [line.red_frontline[-1], red_stub]
+		line.uplink_blue = [line.blue_frontline[-1], blue_stub]
 
 
 	def print_partition(self, partition):
@@ -363,6 +371,7 @@ class LinesManager():
 
 		for line in self.lines:
 			self.make_frontline(line)
+			# self.make_frontline2(line)
 
 
 	def partitions(self, l: list[Dorsal], level: int):
