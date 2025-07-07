@@ -30,6 +30,8 @@ class Dorsal():
 
 		self.red_attach = (0., 0.)
 		self.blue_attach = (0., 0.)
+		self.red_end = (0., 0.)
+		self.blue_end = (0., 0.)
 		self.bridged = False
 		self.red_bridge: poly_t = []
 		self.blue_bridge: poly_t = []
@@ -128,8 +130,7 @@ class Line:
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
 		self.collector: Optional[Collector] = None
-		self.red_attach = (0., 0.)
-		self.blue_attach = (0., 0.)
+		self.connector = Connector()
 
 		self.uplink_red: poly_t = []
 		self.uplink_blue: poly_t = []
@@ -272,46 +273,56 @@ class LinesManager():
 
 	def make_frontline(self, line: Line):
 
-		if not line.dorsals:
+		dorsals = line.dorsals
+
+		if len(dorsals) < 2:
 			return
 
-		r_line = line.red_frontline
-		b_line = line.blue_frontline
-
-		for dorsal in reversed(line.dorsals):
+		for dorsal in reversed(dorsals):
 			v = versor(dorsal.back, dorsal.front)
 			u = versor(dorsal.front, dorsal.side)
 
-			us = mul(Config.tfit_offset,u)
-			vs = mul(Config.offset_front_cm,v)
-			red_end = adv(dorsal.red_attach, vs)
-			blue_end = adv(dorsal.blue_attach, vs)
+			us = mul(Config.tfit_offset, u)
+			vs = mul(Config.offset_front_cm, v)
+			dorsal.red_end = adv(dorsal.red_attach, vs)
+			dorsal.blue_end = adv(dorsal.blue_attach, vs)
 
 			if dorsal.boxed and not dorsal.terminal:
-				red_bridge_end = adv(red_end, us)
-				blue_bridge_end = adv(blue_end, us)
+				red_bridge_end = adv(dorsal.red_end, us)
+				blue_bridge_end = adv(dorsal.blue_end, us)
 				dorsal.bridged = True
-				dorsal.red_bridge = [red_end, red_bridge_end]
-				dorsal.blue_bridge = [blue_end, blue_bridge_end]
-				red_end = red_bridge_end
-				blue_end = blue_bridge_end
+				dorsal.red_bridge = [dorsal.red_end, red_bridge_end]
+				dorsal.blue_bridge = [dorsal.blue_end, blue_bridge_end]
+				dorsal.red_end = red_bridge_end
+				dorsal.blue_end = blue_bridge_end
 
-			r_line.append(red_end)
-			b_line.append(blue_end)
 
-		line.red_attach = r_line[-1]
-		line.blue_attach = b_line[-1]
+		for i in range(len(line.dorsals)-1, 0, -1):
+			connector = Connector()
+			d0 = dorsals[i]
+			d1 = dorsals[i-1]
+			u0 = versor(dorsal.front, dorsal.side)
+			u1 = (-u0[0], -u0[1])
 
-		stub = mul(Config.bridge_stub_length_cm, v)
-		red_stub = adv(line.red_attach, stub)
-		blue_stub = adv(line.blue_attach, stub)
-		line.uplink_red = [r_line[-1], red_stub]
-		line.uplink_blue = [b_line[-1], blue_stub]
+			dir0 = versor(d0.red_end, d1.red_end)	
+			if u0[0]*dir0[0] + u0[1]*dir0[1] < 0:
+				u1 = u0
+				u0 = (-u0[0], -u0[1])
+
+			if d0.bridged:
+				u0 = versor(d0.back, d0.front)
+
+			connector.attach(d0.red_end, d0.blue_end, u0)
+			connector.attach(d1.red_end, d1.blue_end, u1)
+			connector.point_to_point()
+			line.red_frontline += connector.red_path
+			line.blue_frontline += connector.blue_path
+
 
 
 	def make_frontline2(self, line: Line):
 		
-		if not line.dorsals:
+		if len(line.dorsals) < 2:
 			return
 
 		connector = Connector()
@@ -332,9 +343,10 @@ class LinesManager():
 				dorsal.blue_bridge = [blue_end, blue_bridge_end]
 				red_end = red_bridge_end
 				blue_end = blue_bridge_end
-				connector.attach(red_end, blue_end, u)
-			else:
+
 				connector.attach(red_end, blue_end, v)
+			else:
+				connector.attach(red_end, blue_end, u)
 
 		connector.paths()
 		line.red_frontline = connector.red_path

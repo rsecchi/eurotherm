@@ -3,7 +3,8 @@ from math import cos, sin, sqrt
 
 import numpy as np
 from PIL.ImageFont import truetype
-from pyclipper import PyclipperOffset, JT_MITER, ET_CLOSEDPOLYGON
+
+from reference_frame import adv, mul, versor
 
 
 
@@ -48,6 +49,9 @@ def dist(point1, point2):
 
 
 	
+def backtrack(p1: point_t, p2:point_t, val: float) -> point_t:
+	return adv(p2, mul(-val, versor(p1, p2)))
+
 
 def perpendicular_coord(point: point_t, line: poly_t) -> float:
 
@@ -270,35 +274,102 @@ def miter(poly, offs):
 	return opoly
 
 
-def offset(poly, off: float) -> poly_t:
+# def offset(poly, off: float) -> poly_t:
 
-	if len(poly)<2:
-		return []
+# 	if len(poly)<2:
+# 		return []
 
-	opoly = list()
+# 	opoly = list()
 
-	up = u = ou = (0, 0)
+# 	up = u = ou = (0, 0)
+# 	for i in range(len(poly)-1):
+# 		ux = poly[i+1][0] - poly[i][0]
+# 		uy = poly[i+1][1] - poly[i][1]
+# 		du = ux*ux + uy*uy
+# 		if du == 0:
+# 			continue
+# 		du = sqrt(du)
+
+# 		u = -uy/du, ux/du
+# 		k = 1 + u[0]*up[0] + u[1]*up[1]
+# 		if  k != 0:
+# 			ou = (u[0]+up[0])/k, (u[1]+up[1])/k
+
+# 		p = poly[i][0]+off*ou[0], poly[i][1]+off*ou[1]
+# 		opoly.append(p)
+
+# 		up = u
+
+# 	opoly.append((poly[-1][0]+off*u[0], poly[-1][1]+off*u[1]))
+
+# 	return opoly
+
+
+def offset(poly: poly_t, off: float | list[float]) -> poly_t:
+
+	if isinstance(off, float):
+		off = [off] * (len(poly) - 1)
+
+	if not isinstance(off, list):
+		return poly
+
+	segs = []
+	u = []
+	v = []
+
 	for i in range(len(poly)-1):
-		ux = poly[i+1][0] - poly[i][0]
-		uy = poly[i+1][1] - poly[i][1]
-		du = ux*ux + uy*uy
-		if du == 0:
+
+		sega = poly[i]
+		segb = poly[i+1]
+
+		tang = versor(sega, segb)
+		norm = (-tang[1], tang[0])
+		p1 = (sega[0] + off[i]*norm[0], sega[1] + off[i]*norm[1])
+		p2 = (segb[0] + off[i]*norm[0], segb[1] + off[i]*norm[1])
+		segs.append([p1,p2])
+		u.append(tang)
+		v.append(norm)
+	
+	opoly = []
+	opoly.append(segs[0][0])
+
+	for i in range(len(segs)-1):
+		xa1, ya1, xa2, ya2 = *segs[i][0],   *segs[i][1]
+		xb1, yb1, xb2, yb2 = *segs[i+1][0], *segs[i+1][1]
+
+		dxa = xa2 - xa1
+		dya = ya2 - ya1
+		dxb = xb2 - xb1
+		dyb = yb2 - yb1
+		dxx = xb1 - xa1
+		dyy = yb1 - ya1
+		
+		det = dya * dxb - dxa * dyb
+		adt = dxa * dyy - dya * dxx
+		ads = dxb * dyy - dyb * dxx
+
+		s = ads / det if det != 0 else ads * float('inf')
+		t = adt / det if det != 0 else adt * float('inf')
+
+		if (s<0 and t<0) or (s>1 and t>1):
+			lateral_shift = abs(off[i] - off[i+1])
+			join1 = adv(segs[i][1], mul(-lateral_shift, u[i]))
+			join2 = adv(segs[i+1][0], mul(lateral_shift, u[i+1]))
+			opoly.append(join1)
+			opoly.append(join2)
 			continue
-		du = sqrt(du)
 
-		u = -uy/du, ux/du
-		k = 1 + u[0]*up[0] + u[1]*up[1]
-		if  k != 0:
-			ou = (u[0]+up[0])/k, (u[1]+up[1])/k
+		if adt == 0 and ads == 0:
+			continue
 
-		p = poly[i][0]+off*ou[0], poly[i][1]+off*ou[1]
-		opoly.append(p)
+		m1 = ads / det
+		miter = xa1 + m1 * dxa, ya1 + m1 * dya
+		opoly.append(miter)
 
-		up = u
-
-	opoly.append((poly[-1][0]+off*u[0], poly[-1][1]+off*u[1]))
-
+	opoly.append(segs[-1][1])
+		
 	return opoly
+
 
 
 def extend_to_poly(poly, v):
@@ -656,21 +727,21 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t, leeway:float):
 		pipe2.append(ext2[1])
 
 
-def offset_poly(poly: poly_t, offset: float) -> list[poly_t]:
+# def offset_poly(poly: poly_t, offset: float) -> list[poly_t]:
 
-	scale = 1e6
-	scaled_poly = [(int(x * scale), int(y * scale)) for x, y in poly]
+# 	scale = 1e6
+# 	scaled_poly = [(int(x * scale), int(y * scale)) for x, y in poly]
 
-	pc = PyclipperOffset()
-	pc.AddPath(scaled_poly, JT_MITER, ET_CLOSEDPOLYGON)
-	paths = pc.Execute(offset * scale)
+# 	pc = PyclipperOffset()
+# 	pc.AddPath(scaled_poly, JT_MITER, ET_CLOSEDPOLYGON)
+# 	paths = pc.Execute(offset * scale)
 
-	polygons = []
-	for path in paths:
-		off_path = [(x/scale, y/scale) for x, y in path]
-		polygons.append(off_path+[off_path[0]])
+# 	polygons = []
+# 	for path in paths:
+# 		off_path = [(x/scale, y/scale) for x, y in path]
+# 		polygons.append(off_path+[off_path[0]])
 
-	return polygons
+# 	return polygons
 
 
 

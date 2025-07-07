@@ -752,7 +752,7 @@ class DxfDrawing:
 
 		for line in room.lines_manager.lines:
 			self.draw_frontline(room, line)
-			self.draw_collector_link(room, line)
+			# self.draw_collector_link(room, line)
 
 			for dorsal in line.dorsals:
 				ref = line.collector.name if line.collector else ""

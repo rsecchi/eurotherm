@@ -364,6 +364,8 @@ class Components(LeoObject):
 			count = 0
 			for poly in polylines:
 				assert isinstance(poly, lwpolyline.LWPolyline) 
+				if len(poly) < 2:
+					continue
 				
 				head = dist(poly[0], pos)
 				tail = dist(poly[-1], pos)
@@ -389,6 +391,8 @@ class Components(LeoObject):
 					poly.dxf.color == Config.color_supply_red)):
 				continue
 			points = list(poly.vertices())
+			if len(points) < 2:
+				continue
 
 			endpoint1 = endpoint2 = None
 			for room in self.model.processed:
