@@ -309,15 +309,17 @@ class LinesManager():
 				u1 = u0
 				u0 = (-u0[0], -u0[1])
 
-			if d0.bridged:
+			if d0.bridged and not d0.reversed:
 				u0 = versor(d0.back, d0.front)
+
+			if d1.bridged and d1.reversed:
+				u1 = versor(d1.back, d1.front)
 
 			connector.attach(d0.red_end, d0.blue_end, u0)
 			connector.attach(d1.red_end, d1.blue_end, u1)
 			connector.point_to_point()
 			line.red_frontline += connector.red_path
 			line.blue_frontline += connector.blue_path
-
 
 
 	def make_frontline2(self, line: Line):
