@@ -37,7 +37,7 @@ def mul(val, point):
 	return val*point[0], val*point[1]
 
 
-def neg(p1):
+def invert(p1):
 	return -p1[0], -p1[1]
 
 

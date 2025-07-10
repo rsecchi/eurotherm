@@ -2,9 +2,9 @@ from typing import Optional, Tuple
 from planner import Panel
 from collector import Collector
 from connector import Connector
-from reference_frame import adv, mul, versor
+from reference_frame import adv, invert, mul, versor
 from settings import Config, dist, MAX_DIST
-from geometry import Picture, horizontal_distance, vertical_distance
+from geometry import Picture, horizontal_distance, vertical_distance, xprod
 from geometry import poly_t, point_t
 from settings import leo_types
 
@@ -216,7 +216,7 @@ class Line:
 			d1 = dorsals[i-1]
 
 			u0 = versor(dorsal.front, dorsal.side)
-			u1 = (-u0[0], -u0[1])
+			u1 = invert(u0)
 			v = versor(d0.back, d0.front)
 
 			if d0.bridged:
@@ -355,8 +355,17 @@ class LinesManager():
 			line.dir_attach = dorsal.exit_dir
 			return
 
-		line.dir_attach = versor(dorsal.front, dorsal.side)
+		v = versor(dorsal.back, dorsal.front)
+		s = versor(dorsal.front, pos)
 
+		facing_forward = xprod(v, s) > Config.cos_beam_angle
+		if dorsal.boxed or facing_forward: 
+			line.dir_attach = v 
+			return
+
+		u0 = versor(dorsal.front, dorsal.side)
+		facing_inward = xprod(u0, s) > 0	
+		line.dir_attach = u0 if facing_inward else invert(u0)
 
 
 	def print_partition(self, partition):

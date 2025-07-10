@@ -736,6 +736,7 @@ class DxfDrawing:
 		connector.leeway = Config.leeway_cm/scale
 		connector.stub_length = Config.stub_length_cm/scale
 		connector.link_width = Config.pipes_width_cm/scale
+
 		red_attach = room.frame.real_from_local(line.red_attach)
 		blue_attach = room.frame.real_from_local(line.blue_attach)
 		dir = room.frame.real_versor(line.dir_attach)
