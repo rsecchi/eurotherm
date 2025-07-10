@@ -124,71 +124,6 @@ class Components(LeoObject):
 			self.num_panels += len(room.panels)
 
 
-	def get_lines(self):
-		for room in self.model.processed:
-			ptype = self.model.data["ptype"]
-			room.lines_manager.get_dorsals(room.panels, ptype)
-			room.lines_manager.mark_boxed_dorsals(room.local_points())
-			room.lines_manager.get_lines(ptype)
-
-
-	def redistribute_lines(self):
-		flow_m2 = self.model.flow_per_m2
-
-		for collector in self.model.collectors:
-
-			if collector != collector.backup[0]:
-				continue
-
-			backup = collector.backup
-			num_clt = len(backup)
-			cap = Config.flow_per_collector * num_clt
-			
-			# select room in collector group
-			room_group = []
-			for room in self.model.processed:
-				if room.collector == collector:
-					room_group.append(room)
-					if room.prefer_collector == None:
-						room.prefer_collector = collector
-
-			# calculate required flow
-			required_flow = 0.
-			for room in room_group:
-				room.flow = room.lines_manager.area_m2() * flow_m2
-				required_flow += room.flow
-
-			# assign the same flow to all collectors in the group
-			for clt in backup:
-				clt.freeflow = Config.feeds_per_collector
-
-			if required_flow > cap:
-				# distribute excess to all collectors
-				excess = (required_flow - cap) / num_clt
-				for clt in backup:
-					clt.overflow = True
-					clt.freeflow += excess
-
-			room_group.sort(key=lambda x: x.flow, reverse=True)
-			for room in room_group:
-			
-				for line in room.lines_manager.lines:
-					line_flow = line.area_m2 * flow_m2
-					k = backup.index(room.prefer_collector)
-					i = k - num_clt 
-					while i < k:
-						if backup[i].freeflow > 0:
-							backup[i].freeflow -= line_flow
-							line.collector = backup[i]
-							break
-						i += 1
-					# if no collector is available, assign to the last one
-					if i == k:
-						backup[k].freeflow -= line_flow
-						line.collector = backup[k]
-
-
-
 	def get_components(self):
 		self.get_panels()
 
@@ -196,7 +131,17 @@ class Components(LeoObject):
 			self.drop_excess_panels()
 
 		self.get_lines()
-		self.redistribute_lines()
+
+
+	def get_lines(self):
+		for room in self.model.processed:
+			ptype = self.model.data["ptype"]
+			room.build_lines(ptype)
+
+		self.model.redistribute_lines()
+
+		for room in self.model.processed:
+			room.setup_lines()
 
 
 	def count_panels(self, doc: Drawing):
@@ -355,7 +300,7 @@ class Components(LeoObject):
 
 		polylines = msp.query(f'LWPOLYLINE[layer=="{Config.layer_link}"]')
 
-		margin = (Config.leeway+1)/self.model.scale
+		margin = (Config.leeway_cm+1)/self.model.scale
 		for tags in coll_tags:
 			assert isinstance(tags, MText)
 			x, y, _ = tags.dxf.insert

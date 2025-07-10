@@ -189,6 +189,7 @@ class Room(Element):
 			next_room = queue.pop(0)
 			next_room.set_as_root(queue, collector)
 
+
 	def contains_vector(self, v):
 		p1 = (v.dxf.start[0], v.dxf.start[1])
 		p2 = (v.dxf.end[0], v.dxf.end[1])
@@ -197,6 +198,18 @@ class Room(Element):
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
+	def build_lines(self, ptype: str):
+		self.lines_manager.get_dorsals(self.panels, ptype)
+		self.lines_manager.mark_boxed_dorsals(self.local_points())
+		self.lines_manager.get_lines(ptype)
+
+
+	def setup_lines(self):
+		for line in self.lines_manager.lines:
+			if not line.collector:
+				continue
+			pos = self.frame.local_from_real(line.collector.pos)
+			self.lines_manager.line_attachment(line, pos)
 
 
 class Locale:

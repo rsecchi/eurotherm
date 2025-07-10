@@ -5,7 +5,7 @@ from connector import Connector
 from reference_frame import adv, mul, versor
 from settings import Config, dist, MAX_DIST
 from geometry import Picture, horizontal_distance, vertical_distance
-from geometry import poly_t
+from geometry import poly_t, point_t
 from settings import leo_types
 
 class Dorsal():
@@ -15,6 +15,7 @@ class Dorsal():
 		self.side = (0., 0.)
 		self.back = (0., 0.)
 		self.back_side = (0., 0.)
+
 		self.area_m2 = 0.
 		self.dorsal_row = 0
 		self.front_dorsal = True
@@ -30,6 +31,7 @@ class Dorsal():
 
 		self.red_attach = (0., 0.)
 		self.blue_attach = (0., 0.)
+		self.exit_dir = (0., 0.)
 		self.red_end = (0., 0.)
 		self.blue_end = (0., 0.)
 		self.bridged = False
@@ -130,10 +132,12 @@ class Line:
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
 		self.collector: Optional[Collector] = None
-		self.connector = Connector()
 
 		self.uplink_red: poly_t = []
 		self.uplink_blue: poly_t = []
+		self.red_attach = (0., 0.)
+		self.blue_attach = (0., 0.)
+		self.dir_attach = (1., 0.)
 
 		for dorsal in dorsals:
 			self.area_m2 += dorsal.area_m2
@@ -173,6 +177,73 @@ class Line:
 
 			
 		return _line	
+
+
+	def make_frontline(self):
+
+		dorsals = self.dorsals
+
+		if not dorsals:
+			return
+
+		for dorsal in reversed(dorsals):
+			v = versor(dorsal.back, dorsal.front)
+			u = versor(dorsal.front, dorsal.side)
+
+			us = mul(Config.tfit_offset, u)
+			vs = mul(Config.offset_front_cm, v)
+			dorsal.red_end = adv(dorsal.red_attach, vs)
+			dorsal.blue_end = adv(dorsal.blue_attach, vs)
+
+			if dorsal.boxed and not dorsal.terminal:
+				red_bridge_end = adv(dorsal.red_end, us)
+				blue_bridge_end = adv(dorsal.blue_end, us)
+				dorsal.bridged = True
+				dorsal.red_bridge = [dorsal.red_end, red_bridge_end]
+				dorsal.blue_bridge = [dorsal.blue_end, blue_bridge_end]
+				dorsal.red_end = red_bridge_end
+				dorsal.blue_end = blue_bridge_end
+
+		self.red_attach = dorsals[0].red_end
+		self.blue_attach = dorsals[0].blue_end
+
+
+		for i in range(len(dorsals)-1, 0, -1):
+			connector = Connector()
+			connector.stub_length = Config.stub_length_cm
+			connector.link_width = Config.link_width_cm
+			d0 = dorsals[i]
+			d1 = dorsals[i-1]
+
+			u0 = versor(dorsal.front, dorsal.side)
+			u1 = (-u0[0], -u0[1])
+			v = versor(d0.back, d0.front)
+
+			if d0.bridged:
+				dir0 = u0 if d0.reversed else v
+			else:
+				if dorsal.upright:
+					dir0 = u1 if d0.reversed else u0
+				else:
+					dir0 = u0 if d0.reversed else u1
+
+			if d1.bridged:
+				dir1 = v if d1.reversed else u0
+				d1.exit_dir = u0 if d1.reversed else v
+			else:
+				if dorsal.upright:
+					dir1 = u0 if d1.reversed else u1
+					d1.exit_dir = u1 if d1.reversed else u0
+				else:
+					dir1 = u1 if d1.reversed else u0
+					d1.exit_dir = u0 if d1.reversed else u1
+
+
+			connector.attach(d0.red_end, d0.blue_end, dir0)
+			connector.attach(d1.red_end, d1.blue_end, dir1)
+			connector.point_to_point()
+			self.red_frontline += connector.red_path
+			self.blue_frontline += connector.blue_path
 
 
 class LinesManager():
@@ -270,97 +341,22 @@ class LinesManager():
 
 				prev = dorsal
 
+	
+	def line_attachment(self, line: Line, pos: point_t):
 
-	def make_frontline(self, line: Line):
-
-		dorsals = line.dorsals
-
-		if len(dorsals) < 2:
+		if len(line.dorsals) < 1:
 			return
 
-		for dorsal in reversed(dorsals):
-			v = versor(dorsal.back, dorsal.front)
-			u = versor(dorsal.front, dorsal.side)
+		dorsal = line.dorsals[0]
+		line.red_attach = dorsal.red_end
+		line.blue_attach = dorsal.blue_end
 
-			us = mul(Config.tfit_offset, u)
-			vs = mul(Config.offset_front_cm, v)
-			dorsal.red_end = adv(dorsal.red_attach, vs)
-			dorsal.blue_end = adv(dorsal.blue_attach, vs)
-
-			if dorsal.boxed and not dorsal.terminal:
-				red_bridge_end = adv(dorsal.red_end, us)
-				blue_bridge_end = adv(dorsal.blue_end, us)
-				dorsal.bridged = True
-				dorsal.red_bridge = [dorsal.red_end, red_bridge_end]
-				dorsal.blue_bridge = [dorsal.blue_end, blue_bridge_end]
-				dorsal.red_end = red_bridge_end
-				dorsal.blue_end = blue_bridge_end
-
-
-		for i in range(len(line.dorsals)-1, 0, -1):
-			connector = Connector()
-			d0 = dorsals[i]
-			d1 = dorsals[i-1]
-			u0 = versor(dorsal.front, dorsal.side)
-			u1 = (-u0[0], -u0[1])
-
-			dir0 = versor(d0.red_end, d1.red_end)	
-			if u0[0]*dir0[0] + u0[1]*dir0[1] < 0:
-				u1 = u0
-				u0 = (-u0[0], -u0[1])
-
-			if d0.bridged and not d0.reversed:
-				u0 = versor(d0.back, d0.front)
-
-			if d1.bridged and d1.reversed:
-				u1 = versor(d1.back, d1.front)
-
-			connector.attach(d0.red_end, d0.blue_end, u0)
-			connector.attach(d1.red_end, d1.blue_end, u1)
-			connector.point_to_point()
-			line.red_frontline += connector.red_path
-			line.blue_frontline += connector.blue_path
-
-
-	def make_frontline2(self, line: Line):
-		
-		if len(line.dorsals) < 2:
+		if not dorsal.terminal:
+			line.dir_attach = dorsal.exit_dir
 			return
 
-		connector = Connector()
-		for dorsal in reversed(line.dorsals):
-			v = versor(dorsal.back, dorsal.front)
-			u = versor(dorsal.front, dorsal.side)
+		line.dir_attach = versor(dorsal.front, dorsal.side)
 
-			us = mul(Config.tfit_offset,u)
-			vs = mul(Config.offset_front_cm,v)
-			red_end = adv(dorsal.red_attach, vs)
-			blue_end = adv(dorsal.blue_attach, vs)
-
-			if dorsal.boxed and not dorsal.terminal:
-				red_bridge_end = adv(red_end, us)
-				blue_bridge_end = adv(blue_end, us)
-				dorsal.bridged = True
-				dorsal.red_bridge = [red_end, red_bridge_end]
-				dorsal.blue_bridge = [blue_end, blue_bridge_end]
-				red_end = red_bridge_end
-				blue_end = blue_bridge_end
-
-				connector.attach(red_end, blue_end, v)
-			else:
-				connector.attach(red_end, blue_end, u)
-
-		connector.paths()
-		line.red_frontline = connector.red_path
-		line.blue_frontline = connector.blue_path
-		line.red_attach = connector.red_path[-1]
-		line.blue_attach = connector.blue_path[-1]
-
-		stub = mul(Config.bridge_stub_length_cm, v)
-		red_stub = adv(line.red_attach, stub)
-		blue_stub = adv(line.blue_attach, stub)
-		line.uplink_red = [line.red_frontline[-1], red_stub]
-		line.uplink_blue = [line.blue_frontline[-1], blue_stub]
 
 
 	def print_partition(self, partition):
@@ -384,8 +380,7 @@ class LinesManager():
 		self.mark_linear_dorsals()
 
 		for line in self.lines:
-			self.make_frontline(line)
-			# self.make_frontline2(line)
+			line.make_frontline()
 
 
 	def partitions(self, l: list[Dorsal], level: int):

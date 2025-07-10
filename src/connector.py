@@ -1,7 +1,6 @@
 from typing import List, Optional
 from geometry import backtrack, midpoint, norm, offset, point_t, xprod
 from reference_frame import adv, diff, mul, versor
-from settings import Config
 
 COS45 = 0.7071067811865476  # sqrt(2) / 2, used for angle thresholding
 
@@ -14,20 +13,22 @@ class Anchor:
 		self.mid = midpoint(red, blue)
 
 		delta_red = diff(self.mid, red)
-		proj = xprod(self.dir, delta_red)
-
 		ortho = (-self.dir[1], self.dir[0])
+
 		self.width = abs(xprod(ortho, diff(red, blue)))/2
 		self.sign = 1 if xprod(ortho, delta_red) > 0 else -1
 
 
-		pipe = Config.stub_length_cm/2 + abs(proj)
-
-		self.stub_mid = adv(self.mid, mul(pipe, dir))
+	def set_stub(self, stub_length: float):
+		delta_red = diff(self.mid, self.red)
+		proj = xprod(self.dir, delta_red)
+		pipe = stub_length + abs(proj)
+		self.stub_mid = adv(self.mid, mul(pipe, self.dir))
 
 			
 
 class Connector:
+
 	def __init__(self):
 		self.anchors: List[Anchor] = []
 		self.target: Optional[point_t] = None
@@ -35,17 +36,21 @@ class Connector:
 		self.ofs_red: List[float] = []
 		self.red_path: List[point_t] = []
 		self.blue_path: List[point_t] = []
+		self.link_width = 0.0
+		self.stub_length = 0.0
+		self.leeway = 0.0
 	
 
 	def attach(self, red: point_t, blue: point_t, dir: point_t):
 		endpoint = Anchor(red=red, blue=blue, dir=dir)
+		endpoint.set_stub(self.stub_length/2)
 		self.anchors.append(endpoint)
 
 
 	def face_target(self, node: point_t, dir: point_t, target: point_t):
 
 		path = []
-		step = Config.stub_length_cm
+		step = self.stub_length
 
 		v = versor(node, target) 
 		while dir[0]*v[0] + dir[1]*v[1] < COS45:
@@ -65,7 +70,7 @@ class Connector:
 		if len(self.anchors) != 2:
 			return
 
-		link_width = Config.link_width_cm
+		link_width = self.link_width
 
 		self.path = []
 		self.ofs: list[float] = []
@@ -122,74 +127,37 @@ class Connector:
 		self.blue_path[-1] = self.anchors[-1].blue
 
 
-	def paths(self):
-		
-		if self.target is None and len(self.anchors) < 2:
+	def point_to_target(self):
+
+		if not self.target:
 			return
 
-		offs = self.anchors[0].sign * Config.link_width_cm / 2
-
-		if self.target:
-			self.path.append(self.anchors[0].mid)
-			self.path.append(self.anchors[0].stub_mid)
-			self.path.append(self.target)
-			self.red_path = offset(self.path, offs)
-			self.blue_path = offset(self.path, -offs)
-			self.red_path[0] = self.anchors[0].red
-			self.blue_path[0] = self.anchors[0].blue
+		if len(self.anchors) != 1:
 			return
 
+		self.path = []
+		self.ofs: list[float] = []
 
-		for i in range(1, len(self.anchors)):
-			link_path = []
-			link_path.append(self.anchors[i-1].mid)
-			link_path.append(self.anchors[i-1].stub_mid)
-			link_path.append(self.anchors[i].back_stub_mid)
-			link_path.append(self.anchors[i].mid)
+		node0 = self.anchors[0].stub_mid
+		dir0 = self.anchors[0].dir
+		sign0 = self.anchors[0].sign
 
-			red_path = offset(link_path, offs)
-			blue_path = offset(link_path, -offs)
+		self.path.append(self.anchors[0].mid)
+		self.path.append(node0)
+		self.ofs.append(sign0*self.anchors[0].width)
 
-			red_path[0] = self.anchors[i-1].red
-			blue_path[0] = self.anchors[i-1].blue
-			red_path[-1] = self.anchors[i].red
-			blue_path[-1] = self.anchors[i].blue
+		path = self.face_target(node0, dir0, self.target) 
+		for node in path:
+			self.path.append(node)
+			self.ofs.append(sign0*self.link_width)
 
-			self.red_path.extend(red_path)
-			self.blue_path.extend(blue_path)
-			self.path.extend(link_path)
-		
+		point = backtrack(self.path[-1], self.target, self.leeway)
+		self.path.append(point)
+		self.ofs.append(sign0*self.link_width)
 
-# picture = Picture()
-
-# for angle in [0, 90, 180, 270]:
-# 	connector = Connector()
-# 	red = (0.,0.)
-# 	blue = (5.,4.)
-# 	dir = (cos(angle * 3.14 / 180), sin(angle * 3.14 / 180))
-
-# 	connector.attach(red, blue, dir)
-# 	# red = (200., 100.)
-# 	# blue = (202., 104.)
-# 	# dir = (0., -1.)
-# 	# connector.attach(red, blue, dir)
-# 	connector.target = (200.*dir[0], 100.*dir[1])
-# 	connector.paths()
-
-# 	# picture.add(connector.endpoints[0].red, color='red')
-# 	# picture.add(connector.endpoints[0].blue, color='blue')
-# 	# picture.add(connector.endpoints[0].stub_red, color='red')
-# 	# picture.add(connector.endpoints[0].stub_blue, color='blue')
-# 	# picture.add(connector.endpoints[0].stub_mid, color='green')
-# 	# picture.add(connector.path, color='black')
-
-# 	picture.add(connector.red_path, color='red')
-# 	picture.add(connector.blue_path, color='blue')
-
-# picture.draw()
-
-
-
-
+		self.red_path = offset(self.path, self.ofs)
+		self.blue_path = offset(self.path, [-ofs for ofs in self.ofs])
+		self.red_path[0] = self.anchors[0].red
+		self.blue_path[0] = self.anchors[0].blue
 
 

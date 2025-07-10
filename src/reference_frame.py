@@ -83,6 +83,21 @@ class ReferenceFrame:
 
 		return (bx+orig[0], by+orig[1])
 	
+	def real_versor(self, versor):
+		(ux, uy) = self.vector
+		(vx, vy) = (-uy, ux)
+
+		R = rot_matrix[self.rotation]
+		ux1 = R[0][0] * ux + R[0][1] * uy
+		uy1 = R[1][0] * ux + R[1][1] * uy
+		vx1 = R[0][0] * vx + R[0][1] * vy
+		vy1 = R[1][0] * vx + R[1][1] * vy
+
+		bx = (ux1*versor[0] + vx1*versor[1])
+		by = (uy1*versor[0] + vy1*versor[1])
+
+		return (bx, by)
+
 
 	def local_from_real(self, point):
 		orig = self.rot_orig

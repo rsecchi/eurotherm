@@ -458,7 +458,7 @@ int rows;
 		score[k].dorsal = score[k-1].dorsal;
 		score[k].score = score[k-1].score;
 
-		if (dors_up[k].score >= dors_down[k].score)
+		if (dors_up[k].score > dors_down[k].score)
 			dorsal = &dors_up[k];
 		else
 			dorsal = &dors_down[k];

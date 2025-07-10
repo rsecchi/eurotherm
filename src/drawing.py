@@ -5,6 +5,7 @@ from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
 from collector import Collector
+from connector import Connector
 from element import Element
 from engine.panels import panel_names, panel_map
 
@@ -20,7 +21,7 @@ from geometry import point_t
 from reference_frame import adv, diff, dist, mul, versor
 
 dxf_version = "AC1032"
-from geometry import Picture, extend_pipes, norm, trim_segment_by_poly, xprod
+from geometry import Picture, norm, trim_segment_by_poly, xprod
 from geometry import poly_t
 
 
@@ -693,7 +694,6 @@ class DxfDrawing:
 		redfront = room.frame.real_coord(line.red_frontline)
 		bluefront = room.frame.real_coord(line.blue_frontline)
 
-
 		scale = self.model.scale
 
 		pline = self.msp.add_lwpolyline(redfront)
@@ -723,19 +723,28 @@ class DxfDrawing:
 
 	def draw_collector_link(self, room: Room, line: Line):
 
-		if not room.collector:
-			return
-
 		if line.collector:
 			pos = line.collector.pos
 		else:
+			if not room.collector:
+				return
 			pos = room.collector.pos
-		lw = Config.leeway/room.frame.scale
+
 		scale = self.model.scale
 
-		red_link = room.frame.real_coord(line.uplink_red)
-		blue_link = room.frame.real_coord(line.uplink_blue)
-		extend_pipes(red_link, blue_link, pos, leeway=lw)	
+		connector = Connector()
+		connector.leeway = Config.leeway_cm/scale
+		connector.stub_length = Config.stub_length_cm/scale
+		connector.link_width = Config.pipes_width_cm/scale
+		red_attach = room.frame.real_from_local(line.red_attach)
+		blue_attach = room.frame.real_from_local(line.blue_attach)
+		dir = room.frame.real_versor(line.dir_attach)
+		connector.attach(red_attach, blue_attach, dir) 
+		connector.target = pos 
+		connector.point_to_target()
+
+		red_link = connector.red_path 
+		blue_link = connector.blue_path
 
 		pline = self.msp.add_lwpolyline(red_link)
 		pline.dxf.layer = Config.layer_link
@@ -752,7 +761,7 @@ class DxfDrawing:
 
 		for line in room.lines_manager.lines:
 			self.draw_frontline(room, line)
-			# self.draw_collector_link(room, line)
+			self.draw_collector_link(room, line)
 
 			for dorsal in line.dorsals:
 				ref = line.collector.name if line.collector else ""

@@ -604,7 +604,7 @@ class Config:
 	supply_thick_mm = 2
 	
 	cos_beam_angle = 0.7071 
-	leeway = 28
+	leeway_cm = 28
 	inter_track = 50
 	extra_track = 60
 	track_thick_mm = 5
@@ -627,7 +627,8 @@ class Config:
 	bridge_stub_length_cm = 20.0
 
 	stub_length_cm = 10.0
-	link_width_cm = 2.0
+	link_width_cm = 1.0
+	pipes_width_cm = 1.0
 
 	_handlers = dict() 
 
