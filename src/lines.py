@@ -190,14 +190,15 @@ class Line:
 			v = versor(dorsal.back, dorsal.front)
 			u = versor(dorsal.front, dorsal.side)
 
-			us = mul(Config.tfit_offset, u)
-			vs = mul(Config.offset_front_cm, v)
+			ur = mul(Config.tfit_offset_red, u)
+			ub = mul(Config.tfit_offset_blue, u)
+			vs = mul(Config.tfit_offset_front_cm, v)
 			dorsal.red_end = adv(dorsal.red_attach, vs)
 			dorsal.blue_end = adv(dorsal.blue_attach, vs)
 
 			if dorsal.boxed and not dorsal.terminal:
-				red_bridge_end = adv(dorsal.red_end, us)
-				blue_bridge_end = adv(dorsal.blue_end, us)
+				red_bridge_end = adv(dorsal.red_end, ur)
+				blue_bridge_end = adv(dorsal.blue_end, ub)
 				dorsal.bridged = True
 				dorsal.red_bridge = [dorsal.red_end, red_bridge_end]
 				dorsal.blue_bridge = [dorsal.blue_end, blue_bridge_end]

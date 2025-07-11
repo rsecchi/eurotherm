@@ -449,25 +449,6 @@ class DxfDrawing:
 		name = leo_icons["tfit"]["name"]
 		frame = room.frame
 
-		u = versor(dorsal.front, dorsal.side)
-		if dorsal.wide_size:
-			centre = Config.bridge_centre_offset_wide_cm
-			u_red = mul(centre, u) 
-			u_blue = mul(centre, u)
-		else:
-			centre = Config.bridge_centre_offset_narrow_cm
-			u_red = mul(centre, u) 
-			u_blue = mul(centre, u)
-
-		v = versor(dorsal.back, dorsal.front)
-		v = mul(Config.bridge_indent, v)
-		u_red = adv(u_red, v)
-		u_blue = adv(u_blue, v) 
-
-		local_red = adv(dorsal.red_attach, u_red)
-		local_blue = adv(dorsal.blue_attach, u_blue)
-
-
 		rot = 0 if dorsal.upright else 1
 		rot = frame.block_rotation(rot)
 
@@ -476,12 +457,12 @@ class DxfDrawing:
 			'yscale': 0.1/room.frame.scale,
 			'rotation': rot
 		}
-		pos = frame.real_from_local(local_red)
+		pos = room.frame.real_from_local(dorsal.red_end)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
 		self.add_attrib(block, 'collector', ref)
 
-		pos = frame.real_from_local(local_blue)
+		pos = room.frame.real_from_local(dorsal.blue_end)
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
 		self.add_attrib(block, 'collector', ref)

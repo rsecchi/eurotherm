@@ -53,6 +53,11 @@ def backtrack(p1: point_t, p2:point_t, val: float) -> point_t:
 	return adv(p2, mul(-val, versor(p1, p2)))
 
 
+def shift(point: point_t, vector: point_t, distance: float = 1.) -> point_t:
+	u = norm(vector)
+	return (point[0] + distance*u[0], point[1] + distance*u[1])
+
+
 def perpendicular_coord(point: point_t, line: poly_t) -> float:
 
 	a = line[0]
