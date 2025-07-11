@@ -741,7 +741,7 @@ class DxfDrawing:
 
 	def draw_lines(self, room: Room):
 
-		for line in room.lines_manager.lines:
+		for line in room.lines:
 			self.draw_frontline(room, line)
 			self.draw_collector_link(room, line)
 
@@ -932,7 +932,7 @@ class DxfDrawing:
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
-		for line in room.lines_manager.lines:
+		for line in room.lines:
 			if not line.collector:
 				continue
 			

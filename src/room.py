@@ -5,7 +5,7 @@ from collector import Collector
 from element import Element
 from geometry import dist
 from settings import Config
-from lines import Panel, LinesManager
+from lines import Dorsal, Line, Panel
 from engine.panels import panel_map
 from math import sqrt
 from settings import Config, panel_sizes
@@ -106,6 +106,8 @@ class Room(Element):
 		self.coord = list()
 		self.collector: Optional[Collector] = None
 		self.collectors: set[Collector] = set()
+		self.dorsals: list[Dorsal] = list()
+		self.lines : list[Line] = list()
 
 
 		self.straighten_walls()
@@ -124,7 +126,6 @@ class Room(Element):
 		self.panel_dxf: list[Insert] = list()
 		self.panel_register: list[int] = []
 		self.quarters = 0
-		self.lines_manager = LinesManager()
 		self.active_m2 = 0.0
 		self.ratio = 0.0
 
@@ -198,18 +199,6 @@ class Room(Element):
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
-	def build_lines(self, ptype: str):
-		self.lines_manager.get_dorsals(self.panels, ptype)
-		self.lines_manager.mark_boxed_dorsals(self.local_points())
-		self.lines_manager.get_lines(ptype)
-
-
-	def setup_lines(self):
-		for line in self.lines_manager.lines:
-			if not line.collector:
-				continue
-			pos = self.frame.local_from_real(line.collector.pos)
-			self.lines_manager.line_attachment(line, pos)
 
 
 class Locale:

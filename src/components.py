@@ -10,6 +10,7 @@ from engine.planner import EngineConfig, Planner
 from ezdxf.document import Drawing
 from ezdxf.entities.insert import Insert
 from leo_object import LeoObject
+from lines_manager import LinesManager
 from model import Model
 from settings import Config, panel_sizes
 from geometry import dist
@@ -69,6 +70,8 @@ class Components(LeoObject):
 		self.smartcomforts = 0
 		self.air_handlers = []
 		self.dxfdorsals: List[DxfDorsal] = []
+
+		self.lines_manager = LinesManager()
 
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
@@ -134,14 +137,17 @@ class Components(LeoObject):
 
 
 	def get_lines(self):
+
+		lm = self.lines_manager
+
 		for room in self.model.processed:
 			ptype = self.model.data["ptype"]
-			room.build_lines(ptype)
+			lm.build_lines(room, ptype)
 
-		self.model.redistribute_lines()
+		lm.redistribute_lines(self.model)
 
 		for room in self.model.processed:
-			room.setup_lines()
+			lm.setup_lines(room)
 
 
 	def count_panels(self, doc: Drawing):
