@@ -932,6 +932,10 @@ class DxfDrawing:
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
+		if not room.panels:
+			self.draw_passive(room)
+			return
+
 		for line in room.lines:
 			if not line.collector:
 				continue

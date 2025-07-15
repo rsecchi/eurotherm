@@ -27,9 +27,7 @@ class LinesManager():
 		self.mark_linear_dorsals(room)
 
 		for line in room.lines:
-			print("ROOM", room.pindex, "----")
 			line.make_frontline()
-			print()
 
 
 	def setup_lines(self, room: Room):
@@ -69,10 +67,6 @@ class LinesManager():
 				room.dorsals.append(dorsal)
 
 			dorsal.insert(panel)
-
-		for dorsal in room.dorsals:
-			print("Room", room.pindex, "Dorsal", dorsal.dorsal_row,
-					dorsal.reversed)
 
 
 	def mark_boxed_dorsals(self, room: Room, poly: poly_t):
