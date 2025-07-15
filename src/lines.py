@@ -3,8 +3,8 @@ from planner import Panel
 from collector import Collector
 from connector import Connector
 from reference_frame import adv, invert, mul, versor
-from settings import Config, dist
-from geometry import poly_t
+from settings import Config
+from geometry import dist, poly_t
 
 class Dorsal():
 	def __init__(self):
@@ -91,8 +91,12 @@ class Dorsal():
 			self.rot = panel.rot
 			self.water_from_left = (self.rot==0 or self.rot==3)
 			self.upright = (panel.rot == 1 or panel.rot == 3)
+			self.reversed = (self.rot == 2 or self.rot == 3)
 			self.back = panel.rear_corner
 			self.back_side = panel.rear_side
+
+			# self.x_axis = versor(self.back, self.front)
+			# self.y_axis = versor(self.back, self.back_side)
 
 			dx = dist(self.front, self.back)
 			dy = dist(self.back_side, self.back)
@@ -102,10 +106,11 @@ class Dorsal():
 			dy_y = self.back_side[1] - self.back[1]
 			self.x_axis = (dx_x/dx, dx_y/dx)
 			self.y_axis = (dy_x/dy, dy_y/dy)
-			ux, uy = self.x_axis
-			vx, vy = self.y_axis
-			if ux*vy < vx*uy:
-				self.reversed = True
+			# ux, uy = self.x_axis
+			# vx, vy = self.y_axis
+			# if ux*vy < vx*uy:
+			# 	self.reversed = True
+
 
 		if self.upright:
 			self.top = min(self.front[0], self.side[0])
@@ -218,25 +223,17 @@ class Line:
 			u1 = invert(u0)
 			v = versor(d0.back, d0.front)
 
-			if d0.bridged:
+			if d0.boxed:
 				dir0 = u0 if d0.reversed else v
 			else:
-				if dorsal.upright:
-					dir0 = u1 if d0.reversed else u0
-				else:
-					dir0 = u0 if d0.reversed else u1
+				dir0 = u0 if d0.reversed else u1
 
-			if d1.bridged:
+			if d1.boxed:
 				dir1 = v if d1.reversed else u0
 				d1.exit_dir = u0 if d1.reversed else v
 			else:
-				if dorsal.upright:
-					dir1 = u0 if d1.reversed else u1
-					d1.exit_dir = u1 if d1.reversed else u0
-				else:
-					dir1 = u1 if d1.reversed else u0
-					d1.exit_dir = u0 if d1.reversed else u1
-
+				dir1 = u1 if d1.reversed else u0
+				d1.exit_dir = u0 if d1.reversed else u1
 
 			connector.attach(d0.red_end, d0.blue_end, dir0)
 			connector.attach(d1.red_end, d1.blue_end, dir1)

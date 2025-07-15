@@ -11,6 +11,8 @@ class Anchor:
 		self.blue = blue
 		self.dir = norm(dir)
 		self.mid = midpoint(red, blue)
+		self.stub_length = 0.0
+		self.path: list[point_t] = [self.mid]
 
 		delta_red = diff(self.mid, red)
 		ortho = (-self.dir[1], self.dir[0])
@@ -20,12 +22,34 @@ class Anchor:
 
 
 	def set_stub(self, stub_length: float):
+		self.stub_length = stub_length
 		delta_red = diff(self.mid, self.red)
 		proj = xprod(self.dir, delta_red)
 		pipe = stub_length + abs(proj)
 		self.stub_mid = adv(self.mid, mul(pipe, self.dir))
+		self.path.append(self.stub_mid)
 
 			
+	def face_target(self, target: point_t) -> List[point_t]:
+
+		path = []
+		step = self.stub_length
+		node = self.stub_mid
+		dir = self.dir
+
+		v = versor(node, target) 
+		while dir[0]*v[0] + dir[1]*v[1] < COS45:
+			if -dir[1]*v[0] + dir[0]*v[1] > 0:
+				dir = COS45*(dir[0]-dir[1]), COS45*(dir[0]+dir[1])
+			else:
+				dir = COS45*(dir[0]+dir[1]), COS45*(dir[1]-dir[0])
+
+			node = node[0] + dir[0]*step, node[1] + dir[1]*step
+			path.append(node)
+			self.path.append(node)
+
+		return path
+
 
 class Connector:
 
@@ -47,22 +71,18 @@ class Connector:
 		self.anchors.append(endpoint)
 
 
-	def face_target(self, node: point_t, dir: point_t, target: point_t):
+	def misalignment(self) -> float:
+		if len(self.anchors) != 2:
+			return 0.0
 
-		path = []
-		step = self.stub_length
+		if len(self.anchors[0].path) < 2 or len(self.anchors[1].path) < 2:
+			return 0.0
 
-		v = versor(node, target) 
-		while dir[0]*v[0] + dir[1]*v[1] < COS45:
-			if -dir[1]*v[0] + dir[0]*v[1] > 0:
-				dir = COS45*(dir[0]-dir[1]), COS45*(dir[0]+dir[1])
-			else:
-				dir = COS45*(dir[0]+dir[1]), COS45*(dir[1]-dir[0])
+		v1 = versor(self.anchors[0].path[-1], self.anchors[0].path[-2])
+		v2 = versor(self.anchors[1].path[-1], self.anchors[1].path[-2])
 
-			node = node[0] + dir[0]*step, node[1] + dir[1]*step
-			path.append(node)
+		return xprod(v1, v2)
 
-		return path
 
 
 	def point_to_point(self):
@@ -76,24 +96,22 @@ class Connector:
 		self.ofs: list[float] = []
 
 		node0 = self.anchors[0].stub_mid
-		dir0 = self.anchors[0].dir
 		sign0 = self.anchors[0].sign
 		node1 = self.anchors[1].stub_mid
-		dir1 = self.anchors[1].dir
 		sign1 = -self.anchors[1].sign
 
 		self.path.append(self.anchors[0].mid)
 		self.path.append(node0)
 		self.ofs.append(sign0*self.anchors[0].width)
 
-		path = self.face_target(node0, dir0, node1) 
+		path = self.anchors[0].face_target(self.anchors[1].stub_mid) 
 		for node in path:
 			self.path.append(node)
 			self.ofs.append(sign0*link_width)
 		self.ofs.append(sign0*link_width)
 		m = len(self.path) - 1
 
-		path = self.face_target(node1, dir1, node0)
+		path = self.anchors[1].face_target(self.anchors[0].stub_mid)
 		for node in reversed(path):
 			self.path.append(node)
 			self.ofs.append(sign0*link_width)
@@ -139,14 +157,13 @@ class Connector:
 		self.ofs: list[float] = []
 
 		node0 = self.anchors[0].stub_mid
-		dir0 = self.anchors[0].dir
 		sign0 = self.anchors[0].sign
 
 		self.path.append(self.anchors[0].mid)
 		self.path.append(node0)
 		self.ofs.append(sign0*self.anchors[0].width)
 
-		path = self.face_target(node0, dir0, self.target) 
+		path = self.anchors[0].face_target(self.target) 
 		for node in path:
 			self.path.append(node)
 			self.ofs.append(sign0*self.link_width)

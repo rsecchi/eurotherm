@@ -475,14 +475,14 @@ class DxfDrawing:
 
 		local_red = dorsal.red_attach
 		local_blue = dorsal.blue_attach
+		sign = 1
 
-		sign = 1 if dorsal.upright else -1
-		rot = 3 if dorsal.upright else 0
-		rot = frame.block_rotation(rot)
+		# sign = 1 if dorsal.upright else -1
+		# rot = 3 if dorsal.upright else 0
+		rot = frame.block_rotation(dorsal.rot)
 		
-		if (dorsal.boxed and 
-			not (dorsal.reversed ^ dorsal.upright)):
-			sign = -sign
+		# if (dorsal.boxed and dorsal.reversed):
+		# 	sign = -sign
 
 		attribs={
 			'xscale': 0.1/room.frame.scale,

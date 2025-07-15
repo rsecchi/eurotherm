@@ -19,7 +19,17 @@ class LinesManager():
 	def build_lines(self, room: Room, ptype: str):
 		self.get_dorsals(room, room.panels, ptype)
 		self.mark_boxed_dorsals(room, room.local_points())
-		self.get_lines(room, ptype)
+		self.partition_lines(room, ptype)
+		for dorsals in self.best_partition:
+			line = Line(dorsals)
+			room.lines.append(line)
+
+		self.mark_linear_dorsals(room)
+
+		for line in room.lines:
+			print("ROOM", room.pindex, "----")
+			line.make_frontline()
+			print()
 
 
 	def setup_lines(self, room: Room):
@@ -59,6 +69,10 @@ class LinesManager():
 				room.dorsals.append(dorsal)
 
 			dorsal.insert(panel)
+
+		for dorsal in room.dorsals:
+			print("Room", room.pindex, "Dorsal", dorsal.dorsal_row,
+					dorsal.reversed)
 
 
 	def mark_boxed_dorsals(self, room: Room, poly: poly_t):
@@ -149,16 +163,16 @@ class LinesManager():
 		print()
 
 
-	def make_lines(self, room: Room):
+	# def make_lines(self, room: Room):
 
-		for dorsals in self.best_partition:
-			line = Line(dorsals)
-			room.lines.append(line)
+	# 	for dorsals in self.best_partition:
+	# 		line = Line(dorsals)
+	# 		room.lines.append(line)
 
-		self.mark_linear_dorsals(room)
+	# 	self.mark_linear_dorsals(room)
 
-		for line in room.lines:
-			line.make_frontline()
+	# 	for line in room.lines:
+	# 		line.make_frontline()
 
 
 	def partitions(self, l: list[Dorsal], level: int):
@@ -232,7 +246,7 @@ class LinesManager():
 					dorsal.indent_side = (prev_level, dorsal.side[1])
 					
 
-	def get_lines(self, room: Room, ptype: str):
+	def partition_lines(self, room: Room, ptype: str):
 
 		if room.dorsals==[]:
 			return
@@ -262,7 +276,6 @@ class LinesManager():
 				self.pipe_length = pipe_length
 				self.best_partition = partition
 
-		self.make_lines(room)
 
 
 	def lines_picture(self, room: Room, poly: poly_t) -> Picture:
