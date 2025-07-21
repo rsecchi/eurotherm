@@ -21,7 +21,7 @@ from geometry import point_t
 from reference_frame import adv, diff, dist, mul, versor
 
 dxf_version = "AC1032"
-from geometry import Picture, norm, trim_segment_by_poly, xprod
+from geometry import Picture, trim_segment_by_poly, xprod
 from geometry import poly_t
 
 
@@ -480,9 +480,12 @@ class DxfDrawing:
 		rot = 3 if dorsal.upright else 0
 		rot = frame.block_rotation(rot)
 
-		if (dorsal.bridged and 
-				not (dorsal.reversed ^ dorsal.upright)):
-			sign = -sign
+		if not dorsal.detached:
+			if dorsal.bridged and not dorsal.water_from_left:
+				sign = -sign
+		else:
+			if not dorsal.facing_inward:
+				sign = -sign
 
 		attribs={
 			'xscale': 0.1/room.frame.scale,
@@ -642,27 +645,24 @@ class DxfDrawing:
 		self.draw_end_caps(room, dorsal, ref)
 		self.draw_panel_links(room, dorsal, ref)
 
-		if dorsal.terminal:
-
-			u = [dorsal.back, dorsal.front]
-			u = norm(room.frame.real_coord(u))
-
-			s = (0., 0.)
-			if room.collector:
-				front = room.frame.real_from_local(dorsal.front)
-				s = norm([front, room.collector.pos]) 
-
-			if dorsal.indented or (dorsal.detached and 
-				xprod(u,s)>Config.cos_beam_angle):
+		if dorsal.detached:
+			if dorsal.facing_forward:
 				self.draw_nipples(room, dorsal)
 			else:
 				self.draw_bend(room, dorsal)
+		
 		else:
-			if dorsal.boxed:
-				self.draw_bend(room, dorsal)
-				self.draw_bridge(room, dorsal, ref)
+			if dorsal.terminal:
+				if dorsal.indented: 
+					self.draw_nipples(room, dorsal)
+				else:
+					self.draw_bend(room, dorsal)
 			else:
-				self.draw_tlink(room, dorsal, ref)
+				if dorsal.boxed:
+					self.draw_bend(room, dorsal)
+					self.draw_bridge(room, dorsal, ref)
+				else:
+					self.draw_tlink(room, dorsal, ref)
 
 		self.draw_head_link(room, dorsal, ref)
 
@@ -744,9 +744,19 @@ class DxfDrawing:
 		for line in room.lines:
 			self.draw_frontline(room, line)
 			self.draw_collector_link(room, line)
+			ref = line.collector.name if line.collector else ""
+
+			# dorsal = line.dorsals[0]
+			# if dorsal.detached:
+			# 	self.draw_end_caps(room, dorsal, ref)
+			# 	self.draw_panel_links(room, dorsal, ref)
+			# 	self.draw_bend(room, dorsal)
+			# 	self.draw_head_link(room, dorsal, ref)
+			# 	continue
 
 			for dorsal in line.dorsals:
-				ref = line.collector.name if line.collector else ""
+				if dorsal.detached:
+					dorsal.exit_dir = line.dir_attach
 				self.draw_dorsal(room, dorsal, ref)
 
 

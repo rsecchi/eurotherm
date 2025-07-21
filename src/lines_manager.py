@@ -17,6 +17,10 @@ class LinesManager():
 
 
 	def build_lines(self, room: Room, ptype: str):
+
+		if not room.panels:
+			return
+
 		self.get_dorsals(room, room.panels, ptype)
 		self.mark_boxed_dorsals(room, room.local_points())
 		self.partition_lines(room, ptype)
@@ -135,14 +139,14 @@ class LinesManager():
 		v = versor(dorsal.back, dorsal.front)
 		s = versor(dorsal.front, pos)
 
-		facing_forward = xprod(v, s) > Config.cos_beam_angle
-		if dorsal.boxed or facing_forward: 
+		dorsal.facing_forward = xprod(v, s) > Config.cos_beam_angle
+		if dorsal.boxed or dorsal.facing_forward: 
 			line.dir_attach = v 
 			return
 
 		u0 = versor(dorsal.front, dorsal.side)
-		facing_inward = xprod(u0, s) > 0	
-		line.dir_attach = u0 if facing_inward else invert(u0)
+		dorsal.facing_inward = xprod(u0, s) > 0	
+		line.dir_attach = u0 if dorsal.facing_inward else invert(u0)
 
 
 	def print_partition(self, partition):

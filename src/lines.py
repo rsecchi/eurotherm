@@ -24,6 +24,8 @@ class Dorsal():
 		self.boxed = False
 		self.water_from_left = False
 		self.indented = False
+		self.facing_forward = False
+		self.facing_inward = False
 		self.indent_front = (0., 0.)
 		self.indent_side = (0., 0.)
 
