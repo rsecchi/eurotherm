@@ -334,7 +334,7 @@ class DxfDrawing:
 		name = leo_icons["cap"]["name"]
 		frame = room.frame
 
-		if dorsal.reversed:
+		if not dorsal.water_from_left:
 			ofs_red  = (Config.indent_cap_red_left, Config.offset_red)
 			ofs_blue = (Config.indent_cap_blue_left, Config.offset_blue)
 		else:
@@ -376,7 +376,7 @@ class DxfDrawing:
 			'rotation': rot
 		}
 
-		if dorsal.reversed:
+		if not dorsal.water_from_left:
 			ofs_red  = (-Config.indent_red, Config.offset_red)
 			ofs_blue = (-Config.indent_blue, Config.offset_blue)
 		else:
@@ -475,14 +475,14 @@ class DxfDrawing:
 
 		local_red = dorsal.red_attach
 		local_blue = dorsal.blue_attach
-		sign = 1
 
-		# sign = 1 if dorsal.upright else -1
-		# rot = 3 if dorsal.upright else 0
-		rot = frame.block_rotation(dorsal.rot)
-		
-		# if (dorsal.boxed and dorsal.reversed):
-		# 	sign = -sign
+		sign = 1 if dorsal.upright else -1
+		rot = 3 if dorsal.upright else 0
+		rot = frame.block_rotation(rot)
+
+		if (dorsal.bridged and 
+				not (dorsal.reversed ^ dorsal.upright)):
+			sign = -sign
 
 		attribs={
 			'xscale': 0.1/room.frame.scale,
@@ -502,7 +502,7 @@ class DxfDrawing:
 		frame = room.frame
 
 		# draw pipes
-		if dorsal.reversed:
+		if not dorsal.water_from_left:
 			ofs_red  = (-Config.indent_red, Config.offset_red)
 			ofs_blue = (-Config.indent_blue, Config.offset_blue)
 			ofs_red_rev  = (Config.indent_blue, Config.offset_red)
@@ -534,7 +534,7 @@ class DxfDrawing:
 		pline.dxf.const_width = Config.supply_thick_mm/self.model.scale
 
 		# draw nipples
-		if dorsal.reversed:
+		if not dorsal.water_from_left:
 			ofs_red = (Config.attach_red_left, Config.offset_red)
 			ofs_blue = (Config.attach_blue_left, Config.offset_blue)
 			ofs_red_rev = (-Config.attach_red_right, Config.offset_red)
@@ -612,7 +612,7 @@ class DxfDrawing:
 			'yscale': 0.1/room.frame.scale,
 			'rotation': rot
 		}
-		if dorsal.reversed:
+		if not dorsal.water_from_left:
 			ofs_red  = (-Config.indent_red, Config.offset_red)
 			ofs_blue = (-Config.indent_blue, Config.offset_blue)
 		else:

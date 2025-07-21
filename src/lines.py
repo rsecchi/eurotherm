@@ -66,7 +66,7 @@ class Dorsal():
 
 	def local_attachments(self):
 
-		if self.reversed:
+		if not self.water_from_left:
 			offs_red = (Config.attach_red_left, Config.offset_red)
 			offs_blue = (Config.attach_blue_left, Config.offset_blue)
 		else:

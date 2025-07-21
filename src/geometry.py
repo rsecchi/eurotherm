@@ -569,8 +569,8 @@ class Picture:
 
 	width_px = 600
 	height_px = 400
-	margin = 10
-	radius = 5
+	margin = 10.
+	radius = 5.
 
 	id = 0
 
