@@ -132,20 +132,26 @@ class LinesManager():
 		line.red_attach = dorsal.red_end
 		line.blue_attach = dorsal.blue_end
 
-		if not dorsal.terminal:
+		if not dorsal.detached:
 			line.dir_attach = dorsal.exit_dir
 			return
 
 		v = versor(dorsal.back, dorsal.front)
 		s = versor(dorsal.front, pos)
+		u0 = versor(dorsal.front, dorsal.side)
 
 		dorsal.facing_forward = xprod(v, s) > Config.cos_beam_angle
-		if dorsal.boxed or dorsal.facing_forward: 
+		dorsal.facing_inward = xprod(u0, s) > 0	
+
+		if dorsal.facing_forward: 
 			line.dir_attach = v 
 			return
 
-		u0 = versor(dorsal.front, dorsal.side)
-		dorsal.facing_inward = xprod(u0, s) > 0	
+		if dorsal.boxed and not dorsal.facing_inward:
+			dorsal.facing_forward = True
+			line.dir_attach = v 
+			return
+
 		line.dir_attach = u0 if dorsal.facing_inward else invert(u0)
 
 

@@ -481,10 +481,11 @@ class DxfDrawing:
 		rot = frame.block_rotation(rot)
 
 		if not dorsal.detached:
-			if dorsal.bridged and not dorsal.water_from_left:
+			if (dorsal.bridged and  
+				(dorsal.water_from_left ^ dorsal.facing_inward)):
 				sign = -sign
 		else:
-			if not dorsal.facing_inward:
+			if not (dorsal.water_from_left ^ dorsal.facing_inward):
 				sign = -sign
 
 		attribs={
