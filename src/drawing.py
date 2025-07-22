@@ -739,17 +739,8 @@ class DxfDrawing:
 			self.draw_collector_link(room, line)
 			ref = line.collector.name if line.collector else ""
 
-			# dorsal = line.dorsals[0]
-			# if dorsal.detached:
-			# 	self.draw_end_caps(room, dorsal, ref)
-			# 	self.draw_panel_links(room, dorsal, ref)
-			# 	self.draw_bend(room, dorsal)
-			# 	self.draw_head_link(room, dorsal, ref)
-			# 	continue
 
 			for dorsal in line.dorsals:
-				if dorsal.detached:
-					dorsal.exit_dir = line.dir_attach
 				self.draw_dorsal(room, dorsal, ref)
 
 

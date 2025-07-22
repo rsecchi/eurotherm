@@ -221,7 +221,7 @@ class Line:
 			d0 = dorsals[i]
 			d1 = dorsals[i-1]
 
-			u0 = versor(dorsal.front, dorsal.side)
+			u0 = versor(d0.front,d0.side)
 			u1 = invert(u0)
 			v = versor(d0.back, d0.front)
 
@@ -229,6 +229,10 @@ class Line:
 				dir0 = u0 if d0.reversed else v
 			else:
 				dir0 = u0 if d0.reversed else u1
+
+			u0 = versor(d1.front,d1.side)
+			u1 = invert(u0)
+			v = versor(d1.back, d1.front)
 
 			if d1.boxed:
 				dir1 = v if d1.reversed else u0

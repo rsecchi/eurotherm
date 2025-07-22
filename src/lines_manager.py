@@ -134,6 +134,11 @@ class LinesManager():
 			return
 
 		dorsal = line.dorsals[0]
+
+		if dorsal.bridged:
+			line.dir_attach = dorsal.exit_dir
+			return
+
 		line.red_attach = dorsal.red_end
 		line.blue_attach = dorsal.blue_end
 
@@ -173,17 +178,6 @@ class LinesManager():
 			print(end="]  ")
 		print()
 
-
-	# def make_lines(self, room: Room):
-
-	# 	for dorsals in self.best_partition:
-	# 		line = Line(dorsals)
-	# 		room.lines.append(line)
-
-	# 	self.mark_linear_dorsals(room)
-
-	# 	for line in room.lines:
-	# 		line.make_frontline()
 
 
 	def partitions(self, l: list[Dorsal], level: int):
