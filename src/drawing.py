@@ -476,17 +476,9 @@ class DxfDrawing:
 		local_red = dorsal.red_attach
 		local_blue = dorsal.blue_attach
 
-		sign = 1 if dorsal.upright else -1
 		rot = 3 if dorsal.upright else 0
 		rot = frame.block_rotation(rot)
-
-		if not dorsal.detached:
-			if (dorsal.bridged and  
-				(dorsal.water_from_left ^ dorsal.facing_inward)):
-				sign = -sign
-		else:
-			if not (dorsal.water_from_left ^ dorsal.facing_inward):
-				sign = -sign
+		sign = -1 if dorsal.water_from_left ^ dorsal.facing_inward else 1
 
 		attribs={
 			'xscale': 0.1/room.frame.scale,

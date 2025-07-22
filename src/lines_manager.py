@@ -35,9 +35,14 @@ class LinesManager():
 
 
 	def setup_lines(self, room: Room):
+
 		for line in room.lines:
 			if not line.collector:
 				continue
+
+			for dorsal in line.dorsals:
+				dorsal.facing_inward = dorsal.reversed or dorsal.boxed
+
 			pos = room.frame.local_from_real(line.collector.pos)
 			self.line_attachment(line, pos)
 
@@ -132,9 +137,6 @@ class LinesManager():
 		line.red_attach = dorsal.red_end
 		line.blue_attach = dorsal.blue_end
 
-		if not dorsal.detached:
-			line.dir_attach = dorsal.exit_dir
-			return
 
 		v = versor(dorsal.back, dorsal.front)
 		s = versor(dorsal.front, pos)
@@ -142,6 +144,11 @@ class LinesManager():
 
 		dorsal.facing_forward = xprod(v, s) > Config.cos_beam_angle
 		dorsal.facing_inward = xprod(u0, s) > 0	
+
+		if not dorsal.detached:
+			p = line.dir_attach = dorsal.exit_dir
+			dorsal.facing_inward = xprod(p, u0) > 0
+			return
 
 		if dorsal.facing_forward: 
 			line.dir_attach = v 
