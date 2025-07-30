@@ -940,7 +940,7 @@ class DxfDrawing:
 				for panel in dorsal.panels:
 					self.draw_panel(room, panel, line.collector.name)
 
-		if not room.main_room:
+		if room.group and room.is_group_master:
 			self.draw_lines(room)
 			# self.draw_airlines(room)
 		self.draw_passive(room)

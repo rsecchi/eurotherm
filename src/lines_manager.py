@@ -254,8 +254,10 @@ class LinesManager():
 	def partition_lines(self, room: Room, ptype: str):
 
 		dorsals = room.dorsals
-		for extension in room.extensions:
-			dorsals += extension.dorsals 
+		if room.group and room.is_group_master:
+			for extension in room.group.rooms:
+				if extension != room:
+					dorsals += extension.dorsals 
 
 		if dorsals==[]:
 			return

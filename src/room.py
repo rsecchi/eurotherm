@@ -108,9 +108,8 @@ class Room(Element):
 		self.collectors: set[Collector] = set()
 		self.dorsals: list[Dorsal] = list()
 		self.lines : list[Line] = list()
-		self.extensions: list['Room'] = list()
-		self.main_room: Optional['Room'] = None
-
+		self.group: Optional[RoomGroup] = None
+		self.is_group_master = False
 
 		self.straighten_walls()
 
@@ -201,6 +200,56 @@ class Room(Element):
 		return self.is_point_inside(p1) and self.is_point_inside(p2)
 
 
+class RoomGroup:
+
+	def __init__(self):
+		self.rooms: list[Room] = list()
+		self.group_master: Optional[Room] = None
+		self.fixed_collector: Optional[Collector] = None
+
+
+	def join(self, room: Room) -> bool:
+		if self.group_master is None:
+			self.group_master = room
+			room.is_group_master = True
+		self.rooms.append(room)
+		room.group = self
+
+		if room.fixed_collector and not self.fixed_collector:
+			self.fixed_collector = room.fixed_collector
+
+		if self.fixed_collector and not room.fixed_collector:
+			room.fixed_collector = self.fixed_collector
+
+		if room.fixed_collector != self.fixed_collector:
+			return False
+
+		return True
+
+
+	def merge(self, group: 'RoomGroup'):
+		if group.fixed_collector and not self.fixed_collector:
+			self.fixed_collector = group.fixed_collector
+
+		if self.fixed_collector and not group.fixed_collector:
+			group.fixed_collector = self.fixed_collector
+
+		if group.fixed_collector != self.fixed_collector:
+			return False
+
+		for room in group.rooms:
+			self.join(room)
+			room.group = self
+			room.fixed_collector = self.fixed_collector
+			room.is_group_master = False
+
+		return True
+
+
+	def print(self):
+		for room in self.rooms:
+			print("Room", room.pindex, room.is_group_master)
+			
 
 
 class Locale:

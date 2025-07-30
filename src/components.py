@@ -129,7 +129,7 @@ class Components(LeoObject):
 
 	def get_components(self):
 
-		self.model.processed.sort(key=lambda x: x.main_room is None)
+		self.model.processed.sort(key=lambda x: x.is_group_master is True)
 
 		self.get_panels()
 
