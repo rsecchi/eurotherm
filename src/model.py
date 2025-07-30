@@ -407,9 +407,14 @@ class Model(LeoObject):
 			self.connect_rooms(copy(room_iter), partial)
 			return
 
-		# if collector is fixed, just to that case
-		if room.fixed_collector:
-			collector = room.fixed_collector
+		# if collector is fixed or room is ancillary, 
+		# just assign the collector and move on
+		if room.fixed_collector or room.main_room:
+			if room.fixed_collector:
+				collector = room.fixed_collector
+
+			if room.main_room:
+				collector = room.main_room._collector
 			room_dist = 0
 			
 			new_partial = partial + room_dist
@@ -806,6 +811,9 @@ class Model(LeoObject):
 	def mapping_rooms(self):
 		global tot_iterations, max_iterations
 
+		# move ancillaries at the end of the list
+		self.processed.sort(key=lambda x: x.main_room is not None)
+
 		for k in range(max_steps):
 
 			extra_flow = extra_flow_probe * k
@@ -875,7 +883,7 @@ class Model(LeoObject):
 			if (type(elem1) == Room and 
 				type(elem2) == Room and
 				elem1 != elem2):
-				print("VECTOR between rooms")
+				self.associate_rooms(elem1, elem2)
 				continue
 			
 			wstr = "WARNING: Vector outside room @\n"
@@ -894,6 +902,24 @@ class Model(LeoObject):
 				room.fixed_collector = room.fixed_collector.backup[0]
 
 
+	# Associate two rooms with a vectors
+	def associate_rooms(self, room1: Room, room2: Room):
+		
+		if room1.fixed_collector and not room2.fixed_collector:
+			room2.fixed_collector = room1.fixed_collector
+
+		if room2.fixed_collector and not room1.fixed_collector:
+			room1.fixed_collector = room2.fixed_collector
+
+		if room1.fixed_collector != room2.fixed_collector:
+			wstr ="WARNING: Rooms %d and %d " % (room1.pindex, room2.pindex)
+			wstr += "associated with different collectors @\n"
+			self.output.print(wstr)
+			return
+
+		print("Associating Room %d and %d" % (room1.pindex, room2.pindex))
+		room1.extensions.append(room2)
+		room2.main_room = room1
 
 	def get_locale(self, room: Room, collector: str) -> Locale:
 		

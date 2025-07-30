@@ -108,6 +108,8 @@ class Room(Element):
 		self.collectors: set[Collector] = set()
 		self.dorsals: list[Dorsal] = list()
 		self.lines : list[Line] = list()
+		self.extensions: list['Room'] = list()
+		self.main_room: Optional['Room'] = None
 
 
 		self.straighten_walls()

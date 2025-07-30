@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 from planner import Panel
 from collector import Collector
 from connector import Connector
@@ -6,8 +6,13 @@ from reference_frame import adv, invert, mul, versor
 from settings import Config
 from geometry import dist, poly_t
 
+
+if TYPE_CHECKING:
+	from room import Room
+
 class Dorsal():
-	def __init__(self):
+	def __init__(self, room: 'Room'):
+		self.room = room
 		self.panels: list[Panel] = []
 		self.front = (0., 0.)
 		self.side = (0., 0.)
@@ -241,8 +246,17 @@ class Line:
 				dir1 = u1 if d1.reversed else u0
 				d1.exit_dir = u0 if d1.reversed else u1
 
-			connector.attach(d0.red_end, d0.blue_end, dir0)
-			connector.attach(d1.red_end, d1.blue_end, dir1)
+			frame = d0.room.frame
+			red_end = tuple(frame.real_from_local(d0.red_end))
+			blue_end = tuple(frame.real_from_local(d0.blue_end))
+			dir0 = frame.real_versor(dir0)
+			connector.attach(red_end, blue_end, dir0)
+
+			frame = d1.room.frame
+			red_end = tuple(frame.real_from_local(d1.red_end))
+			blue_end = tuple(frame.real_from_local(d1.blue_end))
+			dir1 = frame.real_versor(dir1)
+			connector.attach(red_end, blue_end, dir1)
 			connector.point_to_point()
 			self.red_frontline += connector.red_path
 			self.blue_frontline += connector.blue_path

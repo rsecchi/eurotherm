@@ -67,7 +67,7 @@ class LinesManager():
 
 			if (panel.dorsal_row != dorsal_row or
 			   dorsal.area_m2 + panel.area_m2 > self.line_coverage_m2):
-				dorsal = Dorsal()
+				dorsal = Dorsal(room)
 			
 				if (dorsal_row == panel.dorsal_row):
 					dorsal.front_dorsal = False
@@ -253,7 +253,11 @@ class LinesManager():
 
 	def partition_lines(self, room: Room, ptype: str):
 
-		if room.dorsals==[]:
+		dorsals = room.dorsals
+		for extension in room.extensions:
+			dorsals += extension.dorsals 
+
+		if dorsals==[]:
 			return
 
 		self.line_coverage_m2 = 2.4 * leo_types[ptype]["panels"] + 0.01
@@ -262,7 +266,7 @@ class LinesManager():
 		self.pipe_length = MAX_DIST
 
 		self.best_partition = []
-		for partition in self.partitions(room.dorsals, 1):
+		for partition in self.partitions(dorsals, 1):
 			partition_length = len(partition)
 
 			if partition_length > self.num_lines:

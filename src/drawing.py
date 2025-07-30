@@ -665,8 +665,8 @@ class DxfDrawing:
 		if len(line.dorsals)<1:
 			return
 
-		redfront = room.frame.real_coord(line.red_frontline)
-		bluefront = room.frame.real_coord(line.blue_frontline)
+		redfront = line.red_frontline
+		bluefront = line.blue_frontline
 
 		scale = self.model.scale
 
@@ -741,7 +741,7 @@ class DxfDrawing:
 
 
 			for dorsal in line.dorsals:
-				self.draw_dorsal(room, dorsal, ref)
+				self.draw_dorsal(dorsal.room, dorsal, ref)
 
 
 	def find_free_box(self, room: Room, u: point_t) -> point_t:
@@ -935,12 +935,14 @@ class DxfDrawing:
 				continue
 			
 			for dorsal in line.dorsals:
+				if dorsal.room != room:
+					continue
 				for panel in dorsal.panels:
 					self.draw_panel(room, panel, line.collector.name)
 
-
-		self.draw_lines(room)
-		# self.draw_airlines(room)
+		if not room.main_room:
+			self.draw_lines(room)
+			# self.draw_airlines(room)
 		self.draw_passive(room)
 
 		frame = room.frame

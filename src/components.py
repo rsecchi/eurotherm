@@ -128,6 +128,9 @@ class Components(LeoObject):
 
 
 	def get_components(self):
+
+		self.model.processed.sort(key=lambda x: x.main_room is None)
+
 		self.get_panels()
 
 		if "enable_target" in self.data.keys():
