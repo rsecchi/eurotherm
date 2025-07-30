@@ -1,10 +1,14 @@
 from functools import cached_property
+from typing import TYPE_CHECKING
 from ezdxf.entities.lwpolyline import LWPolyline
 
 from element import Element
 from geometry import poly_t
 from settings import Config
 
+
+if TYPE_CHECKING:
+	from room import Room
 
 class Collector(Element):
 
@@ -13,8 +17,11 @@ class Collector(Element):
 		# collector related variables
 		self.number = 0
 		self.zone_num = 0
-		self.inputs = 0 
+		self.inputs = 0
 		self.name = ""
+		self.is_leader = False
+		self.zone_num = 0
+		self.zone_rooms: list["Room"] = list()
 
 		self.flow = 0.
 		self.box: poly_t = list()
@@ -23,7 +30,7 @@ class Collector(Element):
 		self.freeflow = 0.
 		self.items = []
 
-		self.backup: list["Collector"] = [self] 
+		self.backup: list["Collector"] = [self]
 		self.overflow = False
 
 
@@ -38,7 +45,7 @@ class Collector(Element):
 		for p in poly:
 			points.append((cx+cmf*(p[0]-cx), cy+cmf*(p[1]-cy)))
 		points.append((cx+cmf*(poly[0][0]-cx), cy+cmf*(poly[0][1]-cy)))
-		
+
 		return points
 
 

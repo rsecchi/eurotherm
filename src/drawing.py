@@ -99,10 +99,10 @@ class Preview:
 			px, py = collector.pos
 			offs = Config.collector_size/2/self.model.scale
 			collector_shape = [(px-offs, py-offs),
-							  (px+offs, py-offs),
-							  (px+offs, py+offs),
-							  (px-offs, py+offs),
-							  (px-offs, py-offs)]
+							(px+offs, py-offs),
+							(px+offs, py+offs),
+							(px-offs, py+offs),
+							(px-offs, py-offs)]
 
 			self.picture.add(collector_shape, color="red")
 
@@ -163,7 +163,7 @@ class DxfDrawing:
 
 		for room in self.model.processed:
 			self.write_text("Locale %d" %
-				   room.pindex, room.pos, zoom=2.0)
+				room.pindex, room.pos, zoom=2.0)
 
 			if room.error:
 				hatch = self.msp.add_hatch(color=41)
@@ -260,7 +260,7 @@ class DxfDrawing:
 						ax = p[0]; by = p[1]
 
 			self.write_text("Zone %d" % clt.zone_num,
-			  (ax, by + Config.boxzone_padding/scale),
+				(ax, by + Config.boxzone_padding/scale),
 				const.MTEXT_BOTTOM_LEFT, zoom=0.6)
 
 
@@ -299,8 +299,8 @@ class DxfDrawing:
 
 			block.dxf.layer = Config.layer_collector
 			self.write_text("%s" % collector.name,
-				   collector.pos, zoom=0.6,
-				   layer=Config.layer_collector)
+				collector.pos, zoom=0.6,
+				layer=Config.layer_collector)
 
 
 	def draw_panel(self, room: Room, panel: Panel, ref: str):
@@ -782,11 +782,11 @@ class DxfDrawing:
 					d -= step
 					bsize = Config.size_smartp_icon/scale
 					box = SimpleNamespace(points =
-						   [(sd[0] + bsize, sd[1] + bsize),
-					        (sd[0] + bsize, sd[1] - bsize),
-					        (sd[0] - bsize, sd[1] - bsize),
-					        (sd[0] - bsize, sd[1] + bsize),
-					        (sd[0] + bsize, sd[1] + bsize)])
+							[(sd[0] + bsize, sd[1] + bsize),
+							(sd[0] + bsize, sd[1] - bsize),
+							(sd[0] - bsize, sd[1] - bsize),
+							(sd[0] - bsize, sd[1] + bsize),
+							(sd[0] + bsize, sd[1] + bsize)])
 
 					if not room.embeds(box):
 						continue
@@ -818,8 +818,8 @@ class DxfDrawing:
 		pos = self.find_free_box(room, vers)
 
 		if (self.model.data["head"] == "none" or
-			  (room.color == Config.color_bathroom  and
-			  room.area_m2() <= Config.min_area_probe_th_m2)):
+				(room.color == Config.color_bathroom  and
+				room.area_m2() <= Config.min_area_probe_th_m2)):
 			icon = leo_icons["probe_T"]["name"]
 		else:
 			icon = leo_icons["probe_TH"]["name"]
