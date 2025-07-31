@@ -4,7 +4,7 @@ from model import Model
 from reference_frame import MAX_DIST, invert, versor
 from room import Room
 from settings import leo_types, Config
-from geometry import Picture, dist, horizontal_distance, xprod 
+from geometry import Picture, dist, horizontal_distance, xprod
 from geometry import poly_t, point_t, vertical_distance
 
 
@@ -68,7 +68,7 @@ class LinesManager():
 			if (panel.dorsal_row != dorsal_row or
 			   dorsal.area_m2 + panel.area_m2 > self.line_coverage_m2):
 				dorsal = Dorsal(room)
-			
+
 				if (dorsal_row == panel.dorsal_row):
 					dorsal.front_dorsal = False
 
@@ -79,7 +79,7 @@ class LinesManager():
 
 
 	def mark_boxed_dorsals(self, room: Room, poly: poly_t):
-		
+
 		if not room.dorsals:
 			return
 
@@ -89,14 +89,14 @@ class LinesManager():
 
 
 				if (dorsal.front[0] > prev.front[0] and
-					prev.bottom - dorsal.front[1] < 
+					prev.bottom - dorsal.front[1] <
 						Config.lateral_margin_cm):
 						dorsal.boxed = True
 
 				if i<len(room.dorsals)-1:
 					next = room.dorsals[i+1]
 					if (dorsal.front[0] > next.front[0] and
-						dorsal.front[1] - next.top < 
+						dorsal.front[1] - next.top <
 							Config.lateral_margin_cm):
 						dorsal.boxed = True
 
@@ -110,14 +110,14 @@ class LinesManager():
 			for i, dorsal in enumerate(room.dorsals):
 
 				if (dorsal.front[1] < prev.front[1] and
-					dorsal.front[0] - prev.bottom < 
+					dorsal.front[0] - prev.bottom <
 						Config.lateral_margin_cm):
 						dorsal.boxed = True
 
 				if i<len(room.dorsals)-1:
 					next = room.dorsals[i+1]
 					if (dorsal.front[1] < next.front[1] and
-						next.top - dorsal.front[0]  < 
+						next.top - dorsal.front[0]  <
 							Config.lateral_margin_cm):
 						dorsal.boxed = True
 
@@ -127,7 +127,7 @@ class LinesManager():
 
 				prev = dorsal
 
-	
+
 	def line_attachment(self, line: Line, pos: point_t):
 
 		if len(line.dorsals) < 1:
@@ -148,20 +148,20 @@ class LinesManager():
 		u0 = versor(dorsal.front, dorsal.side)
 
 		dorsal.facing_forward = xprod(v, s) > Config.cos_beam_angle
-		dorsal.facing_inward = xprod(u0, s) > 0	
+		dorsal.facing_inward = xprod(u0, s) > 0
 
 		if not dorsal.detached:
 			p = line.dir_attach = dorsal.exit_dir
 			dorsal.facing_inward = xprod(p, u0) > 0
 			return
 
-		if dorsal.facing_forward: 
-			line.dir_attach = v 
+		if dorsal.facing_forward:
+			line.dir_attach = v
 			return
 
 		if dorsal.boxed and not dorsal.facing_inward:
 			dorsal.facing_forward = True
-			line.dir_attach = v 
+			line.dir_attach = v
 			return
 
 		line.dir_attach = u0 if dorsal.facing_inward else invert(u0)
@@ -173,7 +173,7 @@ class LinesManager():
 		for lines in partition:
 			print(end="[")
 			for dorsal in lines:
-				print(end=" (%d->%.2f) " % 
+				print(end=" (%d->%.2f) " %
 					(dorsal.dorsal_row, dorsal.area_m2))
 			print(end="]  ")
 		print()
@@ -208,15 +208,16 @@ class LinesManager():
 
 			for group in self.partitions(others, level+1):
 				yield [first, *group]
-		
 
-	def eval(self, lines) -> float:
-		
+
+	def eval_partition(self, partition:list[list[Dorsal]]) -> float:
+
 		total_length = 0.
-		for line in lines:
+		for list_dorsal in partition:
 			length = 0.
-			point = line[0].front
-			for dorsal in line:
+			point = list_dorsal[0].front
+
+			for dorsal in list_dorsal:
 				point_next = dorsal.front
 				length += dist(point_next, point)
 				point = point_next
@@ -225,7 +226,7 @@ class LinesManager():
 
 		return total_length
 
-	
+
 	def mark_linear_dorsals(self, room: Room):
 
 		dors = room.dorsals
@@ -249,7 +250,7 @@ class LinesManager():
 					dorsal.indented = True
 					dorsal.indent_front = (prev_level, dorsal.front[1])
 					dorsal.indent_side = (prev_level, dorsal.side[1])
-					
+
 
 	def partition_lines(self, room: Room, ptype: str):
 
@@ -257,14 +258,14 @@ class LinesManager():
 		if room.group and room.is_group_master:
 			for extension in room.group.rooms:
 				if extension != room:
-					dorsals += extension.dorsals 
+					dorsals += extension.dorsals
 
 		if dorsals==[]:
 			return
 
 		self.line_coverage_m2 = 2.4 * leo_types[ptype]["panels"] + 0.01
 
-		self.num_lines = len(room.dorsals) + 1 
+		self.num_lines = len(room.dorsals) + 1
 		self.pipe_length = MAX_DIST
 
 		self.best_partition = []
@@ -274,12 +275,12 @@ class LinesManager():
 			if partition_length > self.num_lines:
 				continue
 
-			pipe_length = self.eval(partition)
+			pipe_length = self.eval_partition(partition)
 
 			if partition_length < self.num_lines:
 				self.num_lines = partition_length
 				self.pipe_length = pipe_length
-				self.best_partition = partition	
+				self.best_partition = partition
 				continue
 
 			if pipe_length < self.pipe_length:
@@ -319,7 +320,7 @@ class LinesManager():
 			backup = collector.backup
 			num_clt = len(backup)
 			cap = Config.flow_per_collector * num_clt
-			
+
 			# select room in collector group
 			room_group = []
 			for room in model.processed:
@@ -347,11 +348,11 @@ class LinesManager():
 
 			room_group.sort(key=lambda x: x.flow, reverse=True)
 			for room in room_group:
-			
+
 				for line in room.lines:
 					line_flow = line.area_m2 * flow_m2
 					k = backup.index(room.prefer_collector)
-					i = k - num_clt 
+					i = k - num_clt
 					while i < k:
 						if backup[i].freeflow > 0:
 							backup[i].freeflow -= line_flow

@@ -23,7 +23,7 @@ class Dorsal():
 		self.dorsal_row = 0
 		self.front_dorsal = True
 		self.upright = False
-		self.terminal = False 
+		self.terminal = False
 		self.detached = False
 		self.reversed = False
 		self.boxed = False
@@ -55,7 +55,7 @@ class Dorsal():
 	def flow(self) -> float:
 		flow = 0.
 		for panel in self.panels:
-			print(panel)	
+			print(panel)
 		return flow
 
 
@@ -142,6 +142,7 @@ class Line:
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
 		self.collector: Optional[Collector] = None
+		self.collector_link: poly_t = []
 
 		self.uplink_red: poly_t = []
 		self.uplink_blue: poly_t = []
@@ -179,14 +180,14 @@ class Line:
 				front = dorsal.dorsal_to_local(ofs, dorsal.front)
 				side = dorsal.dorsal_to_local(ofs, dorsal.side)
 
-			if dorsal.rot == 2 or dorsal.rot == 3:				
+			if dorsal.rot == 2 or dorsal.rot == 3:
 				front, side = side, front
 
 			_line.append(front)
 			_line.append(side)
 
-			
-		return _line	
+
+		return _line
 
 
 	def make_frontline(self):

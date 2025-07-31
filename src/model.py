@@ -903,6 +903,9 @@ class Model(LeoObject):
 				room.prefer_collector = room.fixed_collector
 				room.fixed_collector = room.fixed_collector.backup[0]
 
+		for group in self.roomgroups:
+			group.choose_master(self.collectors)
+
 
 	# Associate two rooms with a vectors
 	def associate_rooms(self, room1: Room, room2: Room):

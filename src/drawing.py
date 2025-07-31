@@ -95,6 +95,12 @@ class Preview:
 			self.picture.text(room.pos, "%d" % room.pindex, color=col)
 			self.picture.add(room.points, color=col)
 
+
+			for line in room.lines:
+				self.picture.add(line.red_frontline, color="purple")
+				self.picture.add(line.collector_link, color="purple")
+
+
 		for collector in self.model.collectors:
 			px, py = collector.pos
 			offs = Config.collector_size/2/self.model.scale
@@ -730,6 +736,7 @@ class DxfDrawing:
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
 		pline.dxf.const_width = Config.supply_thick_mm/scale
+		line.collector_link = red_link
 
 
 	def draw_lines(self, room: Room):

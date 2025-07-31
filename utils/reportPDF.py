@@ -1,4 +1,3 @@
-from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -6,7 +5,7 @@ from reportlab.pdfgen import canvas
 from datetime import datetime
 
 class PagePDF:
-   
+
     top_margin = 200
     bottom_margin = 50
     left_margin = 50
@@ -96,21 +95,21 @@ class ReportPDF:
     def create_cover_page(self):
         # Create a canvas for the PDF
         pdf = self.pdf
-        
+
         self.report_title(self.title)
-        
+
         pdf.setFont(self.text_font, self.text_font_size)
         current_date = datetime.now().strftime("%B %d, %Y")
         pdf.drawString(250, 650, f"Date: {current_date}")
-       
+
         # Add a note at the top
         pdf.setFont(self.addition_font, self.addition_font_size)
         pdf.drawString(150, 600, self.addition_text)
-        
+
         # Draw the company or author name at the bottom
         pdf.setFont(self.author_font, self.author_font_size)
         pdf.drawString(230, 100, self.author_text)
-        
+
         pdf.showPage()
 
 

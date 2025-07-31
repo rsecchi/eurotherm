@@ -28,7 +28,7 @@ cfg = {
 
 for file in sorted(os.listdir(spool_dir)):
 	print(file)
-	
+
 	if not file[:4] == "test":
 		continue
 
@@ -36,14 +36,14 @@ for file in sorted(os.listdir(spool_dir)):
 	cfg["file"] = file
 	cfg["infile"] = file
 	cfg["outfile"] = "LEO_" + file
- 
+
 	data = json.dumps(cfg, indent=4)
 	print(data)
 
 	cfgfile = open(spool_dir + "config.cfg", "w")
 	cfgfile.write(data)
 	cfgfile.close()
-	process = Popen(['/usr/bin/bash', 'run_leo_main.sh', 
+	process = Popen(['/usr/bin/bash', 'run_leo_main.sh',
 			spool_dir + 'config.cfg'], stdout=subprocess.PIPE, text=True)
 	print(process.communicate()[0])
 
@@ -61,6 +61,6 @@ for file in sorted(os.listdir(spool_dir)):
 # 		cfgfile.close()
 # 		process = Popen(['/usr/bin/python3', 'src/leo_main.py', '../reg_tests/config.cfg'], stdout=subprocess.PIPE, text=True)
 # 		print(process.communicate()[0])
-		
+
 
 

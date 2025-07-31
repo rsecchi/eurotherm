@@ -15,7 +15,7 @@ MAX_DIST  = 1e20
 
 
 def is_gate(line, target):
-	
+
 	(xa0,ya0), (xa1,ya1) = line
 	(xb0,yb0), (xb1,yb1) = target
 
@@ -26,7 +26,7 @@ def is_gate(line, target):
 		return (False, (None, None))
 	(uvx, uvy) = (ux/u, uy/u)
 	(uox, uoy) = (-uvy, uvx)
-	
+
 	# change of reference for p and q
 	(px, py) = (xa0-xb0, ya0-yb0)
 	(qx, qy) = (xa1-xb0, ya1-yb0)
@@ -66,7 +66,7 @@ def is_gate(line, target):
 
 	d1 = abs((npy*(nqx-l1) - (npx-l1)*nqy)/w)
 	d2 = abs((npy*(nqx-l2) - (npx-l2)*nqy)/w)
-	
+
 	if (d1<= Config.wall_depth and d2<=Config.wall_depth):
 		return (True, (p1, p2))
 
@@ -135,7 +135,7 @@ class Room(Element):
 		for panel in panel_map:
 			self.panel_record[panel+"_classic"] = 0
 			self.panel_record[panel+"_hydro"] = 0
-	
+
 
 	def straighten_walls(self):
 
@@ -163,9 +163,9 @@ class Room(Element):
 		p1 = self.points
 		p2 = room.points
 		for i in range(0, len(p1)-1):
-			line1 = (p1[i], p1[i+1]) 
+			line1 = (p1[i], p1[i+1])
 			for j in range(0, len(p2)-1):
-				line2 = (p2[j], p2[j+1]) 
+				line2 = (p2[j], p2[j+1])
 				cond, wall = is_gate(line2, line1)
 				if (cond):
 					self.gates.append((room, wall))
@@ -249,7 +249,23 @@ class RoomGroup:
 	def print(self):
 		for room in self.rooms:
 			print("Room", room.pindex, room.is_group_master)
-			
+
+
+	def choose_master(self, collectors: list[Collector]):
+
+		min_reach = MAX_DIST
+		group_master = None
+		for collector in collectors:
+			pos = collector.pos
+			for room in self.rooms:
+				reach = dist(pos, room.pos)
+				if reach < min_reach:
+					min_reach = reach
+					group_master = room
+
+		self.group_master = group_master
+		for room in self.rooms:
+			room.is_group_master = (room == group_master)
 
 
 class Locale:
@@ -273,5 +289,5 @@ class Locale:
 		self.flow += panel_sizes[handler] * self.flow_per_m2
 		self.panel_record[handler] = self.panel_record.get(handler, 0) + 1
 		self.active_m2 += panel_sizes[handler]
-	
+
 
