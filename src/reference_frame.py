@@ -41,6 +41,13 @@ def invert(p1):
 	return -p1[0], -p1[1]
 
 
+def rot2d(versor1, versor2):
+	(ux, uy) = versor1
+	(vx, vy) = versor2
+	rx, ry = (ux*vx - uy*vy), (uy*vx + ux*vy)
+	return (rx, ry)
+
+
 class Outline:
 	def __init__(self):
 		self.points = list()
@@ -154,8 +161,8 @@ class ReferenceFrame:
 
 	def rotate_frame(self, pos):
 
-		deltax = pos[0] - self.room.pos[0]
-		deltay = pos[1] - self.room.pos[1]
+		delta = versor(self.room.pos, pos)
+		deltax, deltay = rot2d(self.vector, delta)
 
 		if deltax>0 and deltay>0: self.rotation = 1
 		if deltax<0 and deltay>0: self.rotation = 0

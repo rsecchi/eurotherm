@@ -13,6 +13,7 @@ class Element:
 
 		self.color = poly.dxf.color
 		self.poly = poly
+		self.clockwise = False
 
 		if poly.has_arc:
 			p = self.points = []
@@ -85,17 +86,22 @@ class Element:
 		self.frame = ReferenceFrame(self)
 		self.contained_in: Optional["Element"] = None
 		self.bounding_box
+		self.area
 
 		self.user_zone: Optional["Element"] = None
 		self.zone: Optional["Zone"] = None
 
 	@cached_property
 	def area(self):
-		a = 0
+		_area = 0
 		p = self.points
 		for i in range(0, len(p)-1):
-			a += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
-		return abs(a/10000)
+			_area += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
+
+		if _area < 0:
+			self.clockwise = True
+
+		return abs(_area/10000)
 
 	def area_m2(self):
 		scale = self.frame.scale

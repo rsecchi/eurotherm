@@ -675,7 +675,7 @@ class Picture:
 			color = self.colors[i]
 			dpoly = self.scale(poly)
 			if len(dpoly)==1:
-				r = Picture.radius
+				r = self.radius
 				p = dpoly[0]
 				point = (p[0]-r,p[1]-r,p[0]+r,p[1]+r)
 				self.drawing.ellipse(point, fill=color)
