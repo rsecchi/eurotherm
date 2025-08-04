@@ -933,6 +933,9 @@ class DxfDrawing:
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
+		if room.pindex != 6:
+			return
+
 		if not room.panels:
 			self.draw_passive(room)
 			return

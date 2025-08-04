@@ -24,7 +24,7 @@ def midpoint(a: point_t, b: point_t) -> point_t:
 
 def ortho(a: point_t, b: point_t):
 	return a[0]*b[1]-a[1]*b[0]
-	
+
 
 def parallel_proj(vector: point_t, vers: point_t):
 	proj = vector[0]*vers[0] + vector[1]*vers[1]
@@ -48,7 +48,7 @@ def dist(point1, point2):
 	return sqrt(dx*dx+dy*dy)
 
 
-	
+
 def backtrack(p1: point_t, p2:point_t, val: float) -> point_t:
 	return adv(p2, mul(-val, versor(p1, p2)))
 
@@ -157,7 +157,7 @@ def vertical_distance(poly: poly_t, point: point_t) -> float:
 		return MAX_DIST
 
 	d = MAX_DIST
-	
+
 	for i in range(len(poly)-1):
 		ax, ay = poly[i]
 		bx, by = poly[i+1]
@@ -184,7 +184,7 @@ def horizontal_distance(poly: poly_t, point: point_t) -> float:
 		return MAX_DIST
 
 	d = MAX_DIST
-	
+
 	for i in range(len(poly)-1):
 		ax, ay = poly[i]
 		bx, by = poly[i+1]
@@ -225,7 +225,7 @@ def project_hor(poly, point) -> tuple[float,float]:
 				if pa[1]<=y and y<=pb[1]:
 					u = pb[0]*(y-pa[1]) + pa[0]*(pb[1]-y)
 					d = pb[1] - pa[1]
-					return (u/d, y)	
+					return (u/d, y)
 			else:
 				if pb[1]<=y and y<=pa[1]:
 					u = pa[0]*(y-pb[1]) + pb[0]*(pa[1]-y)
@@ -235,7 +235,7 @@ def project_hor(poly, point) -> tuple[float,float]:
 		if ymin > pb[1]:
 			xmin = pb[0]
 			ymin = pb[1]
-		
+
 		if ymax < pb[1]:
 			xmin = pb[0]
 			ymax = pb[1]
@@ -249,10 +249,10 @@ def project_hor(poly, point) -> tuple[float,float]:
 def miter(poly, offs):
 
 	if len(poly)<3:
-		return 
-	
+		return
+
 	opoly = [poly[0]]
-	
+
 	for i in range(1, len(poly)-1):
 		u1x = poly[i-1][0] - poly[i][0]
 		u1y = poly[i-1][1] - poly[i][1]
@@ -260,16 +260,16 @@ def miter(poly, offs):
 		u2x = poly[i+1][0] - poly[i][0]
 		u2y = poly[i+1][1] - poly[i][1]
 		d2u = sqrt(u2x*u2x + u2y*u2y)
-		
+
 		if (d1u==0 or d2u==0):
 			opoly.append(poly[i])
 			continue
 
 		off = min(offs, d1u/3, d2u/3)
-	
+
 		u1 = off*u1x/d1u, off*u1y/d1u
 		u2 = off*u2x/d2u, off*u2y/d2u
-		
+
 		o1 = poly[i][0] + u1[0], poly[i][1] + u1[1]
 		o2 = poly[i][0] + u2[0], poly[i][1] + u2[1]
 		opoly.append(o1)
@@ -334,7 +334,7 @@ def offset(poly: poly_t, off: float | list[float]) -> poly_t:
 		segs.append([p1,p2])
 		u.append(tang)
 		v.append(norm)
-	
+
 	opoly = []
 	opoly.append(segs[0][0])
 
@@ -348,7 +348,7 @@ def offset(poly: poly_t, off: float | list[float]) -> poly_t:
 		dyb = yb2 - yb1
 		dxx = xb1 - xa1
 		dyy = yb1 - ya1
-		
+
 		det = dya * dxb - dxa * dyb
 		adt = dxa * dyy - dya * dxx
 		ads = dxb * dyy - dyb * dxx
@@ -372,7 +372,7 @@ def offset(poly: poly_t, off: float | list[float]) -> poly_t:
 		opoly.append(miter)
 
 	opoly.append(segs[-1][1])
-		
+
 	return opoly
 
 
@@ -394,9 +394,9 @@ def extend_to_poly(poly, v):
 		miny = min(miny, poly[i][1])
 		maxy = max(maxy, poly[i][1])
 
-	if ((maxx < v[0][0] and ux>0) or 
+	if ((maxx < v[0][0] and ux>0) or
 		(minx > v[0][0] and ux<0) or
-		(maxy < v[0][1] and uy>0) or 
+		(maxy < v[0][1] and uy>0) or
 		(miny > v[0][1] and uy<0)):
 		return None
 
@@ -445,7 +445,7 @@ def extend_to_poly(poly, v):
 
 
 def trim_segment_by_poly(poly, seg):
-	
+
 	crss = list()
 	for i in range(len(poly)-1):
 		line = (poly[i], poly[i+1])
@@ -484,7 +484,7 @@ def trim_poly_by_vector(poly, vector):
 		if cross:
 			opoly.append(cross)
 			return opoly
-	
+
 	opoly.append(poly[-1])
 	return opoly
 
@@ -492,11 +492,11 @@ def trim_poly_by_vector(poly, vector):
 def trim(polyline: poly_t, line: poly_t, from_tail:bool=False) -> poly_t:
 	""" Given a polyline and a line defined by two points, trim all the
 		points that are on the opposite side of the first point w.r.t the line
-		scanning the line up to first line crossing. 
+		scanning the line up to first line crossing.
 
 		If from_tail is True, the polyline is reversed
 		and the last point is considered for trimming
-	""" 
+	"""
 
 	orig = line[0]
 	ux, uy = (line[1][0]-orig[0], line[1][1]-orig[1])
@@ -528,7 +528,7 @@ def trim(polyline: poly_t, line: poly_t, from_tail:bool=False) -> poly_t:
 			if yc==yp:
 				opoly.append(point)
 				break
-			
+
 			t = (xc*yp-xp*yc)/(yp-yc)
 			opoly.append((t*ux+orig[0], t*uy+orig[1]))
 			break
@@ -548,9 +548,9 @@ class CoordSystem:
 		self.ux = cos(angle)/scale
 		self.uy = sin(angle)/scale
 
-	
+
 	def local_to_real(self, point: point_t) -> point_t:
-		xl, yl = point	
+		xl, yl = point
 		ox, oy = self.origin
 		xr = self.ux*xl - self.uy*yl + ox
 		yr = self.uy*xl + self.ux*yl + oy
@@ -567,8 +567,8 @@ class CoordSystem:
 
 class Picture:
 
-	width_px = 600
-	height_px = 400
+	width_px = 1200
+	height_px = 800
 	margin = 10.
 	radius = 5.
 
@@ -583,7 +583,7 @@ class Picture:
 		h = Picture.height_px
 		self.image = Image.new("RGBA", (w, h), 255)
 		self.font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-		self.font = truetype(self.font_path, 12)
+		self.font = truetype(self.font_path, 16)
 		self.drawing = ImageDraw.Draw(self.image)
 		self.xscale = 1.0
 		self.yscale = 1.0
@@ -594,13 +594,13 @@ class Picture:
 	def add(self, poly, color="black"):
 		if not poly:
 			return
-		
+
 		if isinstance(poly, tuple):
 			poly = [poly]
 
 		self.polylines.append(poly)
 		self.colors.append(color)
-		
+
 
 	def add_shaded_area(self, poly, color="grey"):
 		if not poly:
@@ -633,7 +633,7 @@ class Picture:
 			y_min = min([x[1] for x in polyline])
 			x_max = max([x[0] for x in polyline])
 			y_max = max([x[1] for x in polyline])
-			
+
 			xmin = min(x_min,xmin)
 			ymin = min(y_min,ymin)
 			xmax = max(x_max,xmax)
@@ -655,7 +655,7 @@ class Picture:
 
 
 	def text(self, point, text, color="black"):
-		self.messages.append({"point": point, 
+		self.messages.append({"point": point,
 						   "text": text,
 					       "color": color})
 
@@ -688,7 +688,7 @@ class Picture:
 			text = msg["text"]
 			width, height = self.drawing.textsize(text)
 			point = (point[0]-width/2, point[1]-height/2)
-			self.drawing.text(point, text, fill=color)
+			self.drawing.text(point, text, fill=color, font=self.font)
 
 		self.image.save(filename)
 
@@ -719,7 +719,7 @@ def extend_pipes(pipe1: poly_t, pipe2: poly_t, target: point_t, leeway:float):
 	ext2 = [(mid[0]+w*qx, mid[1]+w*qy), (trg[0]+w*qx, trg[1]+w*qy)]
 	dir1 = [end1, (end1[0]+ux, end1[1]+uy)]
 	dir2 = [end2, (end2[0]+ux, end2[1]+uy)]
-	
+
 	point1 = meeting_point(ext1, dir1)
 	point2 = meeting_point(ext2, dir2)
 

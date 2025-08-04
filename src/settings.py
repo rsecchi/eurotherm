@@ -99,7 +99,7 @@ leo_types = {
         "flow_line"  : 280,
         "flow_ring"  : 28,
         "flow_panel" : 56,
-		
+
 		"panel_names_classic": {
 			"full"    : "LEONARDO CS 5,5 - 1200x2000x60mm",
 			"lux"     : "LEONARDO CS LUX - 1200x2000x60mm",
@@ -473,7 +473,7 @@ accessories = {
 	},
 	"filtro": {
 		"code": "7910080980",
-		"desc": "Box filtro con lampada UV e silenziatore"	
+		"desc": "Box filtro con lampada UV e silenziatore"
 	},
 	"dcr1000": {
 		"code": "7910090901",
@@ -512,7 +512,7 @@ class Config:
 	input_layer = 'AREE LEONARDO'
 	symbol_file = '/usr/local/src/eurotherm/Symbol_CS.dxf'
 	font_size = 10.
-	line_coverage_m2 = 12.001 
+	line_coverage_m2 = 12.001
 	boxzone_padding = 10.
 
 	layer_text      = 'Eurotherm_text'
@@ -543,7 +543,7 @@ class Config:
 
 	max_room_area = 500
 	target_eff = 0.7
-	
+
 	xlsx_template_ita = 'leo_template.xlsx'
 	xlsx_template_eng = 'leo_template_eng.xlsx'
 
@@ -551,22 +551,22 @@ class Config:
 		('LEONARDO 5.5', 'Dettaglio Stanze L55', 85.0, 51.8),
 		('LEONARDO 3.5', 'Dettaglio Stanze L35', 84.2, 64.8),
 		('LEONARDO 3.0 PLUS', 'Dettaglio Stanze 30p', 82.3, 80.9)
-	]	
+	]
 
 	sheet_templates_eng = [
 		('LEONARDO 5.5','Room Breakdown L55', 85.0, 51.8),
 		('LEONARDO 3.5','Room Breakdown L35', 84.2, 64.8),
 		('LEONARDO 3.0 PLUS','Room Breakdown 30p', 82.3, 80.9)
-	]	
+	]
 
 	# sheet_breakdown_ita = [
-	# 	('Dettaglio Stanze L55', 85.0, 51.8), 
+	# 	('Dettaglio Stanze L55', 85.0, 51.8),
 	# 	('Dettaglio Stanze L35', 84.2, 64.8),
 	# 	('Dettaglio Stanze 30p', 82.3, 80.9)
 	# ]
 
 	# sheet_breakdown_eng = [
-	# 	('Room Breakdown L55', 85.0, 51.8), 
+	# 	('Room Breakdown L55', 85.0, 51.8),
 	# 	('Room Breakdown L35', 84.2, 64.8),
 	# 	('Room Breakdown 30p', 82.3, 80.9)
 	# ]
@@ -576,7 +576,7 @@ class Config:
 	offset_blue = 16.12567
 	indent_red = -2.0409
 	indent_blue = 1.95951
-	
+
 	indent_cap_red_right = 0.95951
 	indent_cap_blue_right = 4.95951
 	indent_cap_red_left = 5.04049
@@ -598,11 +598,11 @@ class Config:
 
 	supply_out = 9.18099
 	supply_in  = 5.18099
-	color_supply_red = 11 
+	color_supply_red = 11
 	color_supply_blue = 171
 	supply_thick_mm = 2
-	
-	cos_beam_angle = 0.7071 
+
+	cos_beam_angle = 0.7071
 	leeway_cm = 28
 	inter_track = 50
 	extra_track = 60
@@ -623,10 +623,11 @@ class Config:
 
 
 	stub_length_cm = 10.0
+	stub_init_cm = 15.0
 	link_width_cm = 1.0
 	pipes_width_cm = 1.0
 
-	_handlers = dict() 
+	_handlers = dict()
 
 	@classmethod
 	def panel_handlers(cls):
@@ -671,7 +672,7 @@ class Config:
 				if not block_name in catalog.keys():
 					catalog[block_name] = {
 							"name": panel_name,
-							"code": code_name, 
+							"code": code_name,
 							"type": key,
 							"area": panel_sizes[key]}
 
@@ -701,14 +702,14 @@ class Config:
 				parts = key.split("_")
 				if len(parts) <= 1:
 					continue
-				
+
 				var_type = parts[-1]
 				var_name = "_".join(parts[:-1])
 				if var_type == "int":
 					value = int(value)
 				elif var_type == "float":
 					value = float(value)
-				
+
 				setattr(cls, var_name, value)
 
 

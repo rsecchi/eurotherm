@@ -220,10 +220,12 @@ class Line:
 		self.blue_attach = dorsals[0].blue_end
 
 
+		scale = dorsals[0].room.frame.scale
 		for i in range(len(dorsals)-1, 0, -1):
 			connector = Connector()
-			connector.stub_length = Config.stub_length_cm
-			connector.link_width = Config.link_width_cm
+			connector.stub_length = Config.stub_length_cm/scale
+			connector.stub_init = Config.stub_init_cm/scale
+			connector.link_width = Config.link_width_cm/scale
 			d0 = dorsals[i]
 			d1 = dorsals[i-1]
 

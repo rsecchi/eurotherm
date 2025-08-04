@@ -12,6 +12,7 @@ class Anchor:
 		self.dir = norm(dir)
 		self.mid = midpoint(red, blue)
 		self.stub_length = 0.0
+		self.stub_init = 0.0
 		self.path: list[point_t] = [self.mid]
 
 		delta_red = diff(self.mid, red)
@@ -25,7 +26,7 @@ class Anchor:
 		self.stub_length = stub_length
 		delta_red = diff(self.mid, self.red)
 		proj = xprod(self.dir, delta_red)
-		pipe = stub_length + abs(proj)
+		pipe = stub_length + abs(proj) + self.stub_init
 		self.stub_mid = adv(self.mid, mul(pipe, self.dir))
 		self.path.append(self.stub_mid)
 
@@ -62,12 +63,14 @@ class Connector:
 		self.blue_path: List[point_t] = []
 		self.link_width = 0.0
 		self.stub_length = 0.0
+		self.stub_init = 0.0
 		self.leeway = 0.0
 
 
 	def attach(self, red: point_t, blue: point_t, dir: point_t):
 		endpoint = Anchor(red=red, blue=blue, dir=dir)
 		endpoint.set_stub(self.stub_length/2)
+		endpoint.stub_init = self.stub_init
 		self.anchors.append(endpoint)
 
 
