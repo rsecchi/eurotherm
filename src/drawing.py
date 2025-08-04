@@ -128,13 +128,8 @@ class DxfDrawing:
 
 
 	def add_attrib(self, insert: Insert, tag: str, value: str):
-		insert.add_attrib(
-				tag=tag,
-				text=value,
-				insert=insert.dxf.insert,
-				dxfattribs={
-					'height': Config.tag_height_cm/self.model.scale,
-				})
+		insert.add_auto_attribs({tag: value})
+
 
 	def import_layer(self, filename:str, layer_name:str):
 		input_doc = readfile(filename)
@@ -1023,6 +1018,21 @@ class DxfDrawing:
 			importer.import_block(block['name'])
 
 		importer.finalize()
+
+
+	def create_attribs(self):
+
+		names = list(self.blocks["classic"].values())
+		names.extend(list(self.blocks["hydro"].values()))
+		names.extend([block['name'] for block in leo_icons.values()])
+
+		for name in names:
+			block = self.doc.blocks.get(name)
+			attdef = block.add_attdef(
+				tag = "collector",
+				insert= (0, 0),
+				dxfattribs={ "height": 0.25 }, )
+			attdef.is_invisible = True
 
 
 	def save(self):
