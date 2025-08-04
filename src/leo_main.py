@@ -58,6 +58,7 @@ class App:
 
 		if not self.model.refit:
 			self.dxf.import_blocks(self.data["ptype"])
+			self.dxf.create_attribs()
 			self.components.get_components()
 			self.dxf.draw_model()
 			self.dxf.save()

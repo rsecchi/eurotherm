@@ -196,6 +196,13 @@ class Components(LeoObject):
 				
 				break
 		
+		# create locales for disabled rooms
+		for room in self.model.processed:
+			if room.color == Config.color_disabled_room:
+				locale = self.model.get_locale(room, "passive")
+				if room.collector:
+					locale.zone = room.collector.zone_num
+
 		# assign names to locales
 		self.model.locales.sort(key=lambda x: x.pindex)
 
