@@ -1009,8 +1009,8 @@ class DxfDrawing:
 			if not (typ=="full" or typ=="lux"):
 				continue
 
-			lux_width = Config.lux_hole_width
-			lux_height = Config.lux_hole_height
+			lux_width = Config.lux_hole_width/scale
+			lux_height = Config.lux_hole_height/scale
 
 			ax = (width - lux_width)/2 
 			bx = ax + lux_width
