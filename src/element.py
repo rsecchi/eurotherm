@@ -3,7 +3,7 @@ from math import ceil, cos, pi, sin, sqrt
 from typing import Optional
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.math import Vec2, intersection_line_line_2d
-from geometry import dist, poly_t
+from geometry import dist, poly_t, point_t
 from reference_frame import ReferenceFrame
 from settings import Config
 
@@ -246,3 +246,14 @@ class Element:
 			return p
 
 		return self.frame.local_coord(self.points)
+
+
+	def rototranslate(self, vector: point_t, angle: float) -> poly_t:
+		"""Rotates and translates a point to the local coordinates."""
+		for i, point in enumerate(self.points):
+			x, y = point
+			x_rt = x*cos(angle) - y*sin(angle) + vector[0]
+			y_rt = x*sin(angle) + y*cos(angle) + vector[1]
+			self.points[i] = (x_rt, y_rt)
+
+		return self.points

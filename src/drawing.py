@@ -1,5 +1,6 @@
 from math import  pi, cos, sin
 from types import SimpleNamespace
+from typing import Protocol, cast
 from ezdxf.addons.importer import Importer 
 from ezdxf.entities.insert import Insert
 from ezdxf.filemanagement import new, readfile
@@ -50,6 +51,11 @@ def panel_tracks(panel: Insert, u: point_t, scale: float) -> list[float]:
 		coords.append(point)
 
 	return coords
+
+
+class HasInserts(Protocol):
+	inserts: list[Insert]
+
 
 
 
@@ -832,31 +838,43 @@ class DxfDrawing:
 		block.dxf.layer = Config.layer_probes
 
 
-	def draw_structure(self, room: Room):
+	def get_inserts(self, room: Room) -> list[Insert]:
 
-		panels = self.doc.query('*[layer=="%s"]' % Config.layer_panel)
-		scale = room.frame.scale
-		step = Config.inter_track/scale
+		if hasattr(room, 'inserts'):
+			return cast(HasInserts, room).inserts
+		
+		list_inserts = cast(HasInserts, room)
+		list_inserts.inserts = []
 
-		room_panels: list[Insert] = []
-		for panel in panels:
+		panes = self.doc.query('*[layer=="%s"]' % Config.layer_panel)
+
+		for panel in panes:
 			if not isinstance(panel, Insert):
 				continue
 			attribs = panel.dxfattribs()
 			panelx, panely, _ = attribs["insert"]
 			if room.is_point_inside((panelx, panely)):
-				room_panels.append(panel)
+				list_inserts.inserts.append(panel)
 
-		if not room_panels:
+		return list_inserts.inserts
+
+
+	def draw_structure(self, room: Room):
+
+		scale = room.frame.scale
+		step = Config.inter_track/scale
+		inserts = self.get_inserts(room)
+
+		if not inserts:
 			return
 
 		# Derive main axes
-		u = ux, uy = Panel.versor(room_panels[0])
+		u = ux, uy = Panel.versor(inserts[0])
 		vx, vy = -uy, ux
 
 		ucoords: list[float] = []
-		for panel in room_panels:
-			ucoords.extend(panel_tracks(panel, u, scale))
+		for insert in inserts:
+			ucoords.extend(panel_tracks(insert, u, scale))
 		ucoords.sort()
 
 		ux_min = min([xprod(p, u) for p in room.points])
@@ -921,10 +939,6 @@ class DxfDrawing:
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
-		if not room.panels:
-			self.draw_passive(room)
-			return
-
 		for line in room.lines:
 			if not line.collector:
 				continue
@@ -938,12 +952,6 @@ class DxfDrawing:
 		# self.draw_airlines(room)
 		self.draw_passive(room)
 
-		frame = room.frame
-		for panel in room.panels:
-			contour = frame.real_coord(panel.contour())
-			panel_obs = Element.from_points(contour)
-			panel_obs.color = Config.color_panel_contour
-			room.obstacles.append(panel_obs)
 
 
 	def draw_model(self):
@@ -966,6 +974,10 @@ class DxfDrawing:
 
 	def draw_passive(self, room: Room):
 
+		scale = room.frame.scale
+		inserts = self.get_inserts(room)
+		catalog = Config.panel_catalog()
+
 		hatch = self.msp.add_hatch(color=41)
 		hatch.set_pattern_fill("ANSI31", scale=2/self.model.scale)
 
@@ -974,22 +986,46 @@ class DxfDrawing:
 			flags=const.BOUNDARY_PATH_EXTERNAL)
 
 		hatch.dxf.layer = Config.layer_lux
+		panels_poly: list[poly_t] = []
 
-		for panel in room.panels:
-			poly = room.frame.real_coord(panel.contour())
-			hatch.paths.add_polyline_path(poly, 
+		for insert in inserts:
+			typ = catalog[insert.dxf.name]["type"]
+			width = panel_map[typ]["width_cm"]/scale
+			height = panel_map[typ]["height_cm"]/scale
+			contour = [ (-width, -height), 
+						(-width, 0.), 
+						(0., 0.), 
+						(0, -height), 
+						(-width, -height)]
+			edges = Element.from_points(contour)
+			pos = insert.dxf.insert.x, insert.dxf.insert.y
+			edges.rototranslate(pos, insert.dxf.rotation/180 * pi)
+			panels_poly.append(edges.points)
+
+			hatch.paths.add_polyline_path(edges.points, 
 				is_closed=True,
 				flags=const.BOUNDARY_PATH_OUTERMOST)
+
+			if not (typ=="full" or typ=="lux"):
+				continue
+
+			lux_width = Config.lux_hole_width
+			lux_height = Config.lux_hole_height
+
+			ax = (width - lux_width)/2 
+			bx = ax + lux_width
+			ay = (height - lux_height)/2
+			by = ay + lux_height
+			pline = [(-ax,-ay),(-ax,-by),(-bx,-by),(-bx,-ay),(-ax,-ay)]
 								 
-			lux_poly = panel.lux_poly()
-			if lux_poly:
-				luxp = room.frame.real_coord(lux_poly)
-				lux = self.msp.add_hatch(color=Config.color_collector)
-				lux.dxf.layer = Config.layer_lux
-				lux.set_pattern_fill("ANSI31", scale=2/self.model.scale)
-				lux.paths.add_polyline_path(luxp, is_closed=True)
-				pl = self.msp.add_lwpolyline(luxp)
-				pl.dxf.layer = Config.layer_lux	
+			lux_poly = Element.from_points(pline)
+			luxp = lux_poly.rototranslate(pos, insert.dxf.rotation/180 * pi)
+			lux = self.msp.add_hatch(color=Config.color_collector)
+			lux.dxf.layer = Config.layer_lux
+			lux.set_pattern_fill("ANSI31", scale=2/self.model.scale)
+			lux.paths.add_polyline_path(luxp, is_closed=True)
+			pl = self.msp.add_lwpolyline(luxp)
+			pl.dxf.layer = Config.layer_lux	
 
 
 		for obstacle in room.obstacles:
@@ -998,6 +1034,12 @@ class DxfDrawing:
 			hatch.paths.add_polyline_path(obstacle.points, 
 				is_closed=True,
 				flags=const.BOUNDARY_PATH_OUTERMOST)
+
+
+		for contour in panels_poly:
+			panel_obs = Element.from_points(contour)
+			panel_obs.color = Config.color_panel_contour
+			room.obstacles.append(panel_obs)
 
 
 	def import_blocks(self, ptype):

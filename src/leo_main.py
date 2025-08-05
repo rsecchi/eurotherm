@@ -72,13 +72,21 @@ class App:
 				Config.layer_panelp,   
 				Config.layer_link,     
 				Config.layer_error,    
-				Config.layer_lux,      
 				Config.layer_probes,   
-				Config.layer_struct,   
 				Config.layer_collector,
 				Config.layer_fittings] 
 			for layer in layers:
 				self.dxf.import_layer(self.model.input_file, layer)
+
+			self.dxf.doc.layers.remove(Config.layer_lux)
+			self.dxf.doc.layers.remove(Config.layer_struct)
+			self.dxf.new_layer(Config.layer_lux, 0)
+			self.dxf.new_layer(Config.layer_struct, Config.color_tracks)
+			self.dxf.doc.layers.get(Config.layer_lux).off()
+			self.dxf.doc.layers.get(Config.layer_struct).off()
+			for room in self.model.processed:
+				self.dxf.draw_structure(room)
+				self.dxf.draw_passive(room)
 
 		# count components and save
 		self.components.count_components(self.dxf.doc)
