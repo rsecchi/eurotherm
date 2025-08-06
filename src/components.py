@@ -9,6 +9,7 @@ from engine.planner import EngineConfig, Planner
 
 from ezdxf.document import Drawing
 from ezdxf.entities.insert import Insert
+from interfaces import InsertRef
 from leo_object import LeoObject
 from lines_manager import LinesManager
 from model import Model
@@ -336,6 +337,30 @@ class Components(LeoObject):
 					 "count": count//2})
 
 			self.num_lines += count//2
+
+			if count//2 > Config.feeds_per_collector:
+
+				text = "WARNING: %s exceed lines limit @\n\n" % tags.text
+				self.model.text = text + self.model.text
+				scale = self.model.scale
+				size = Config.collector_size/scale
+				pos = (pos[0] - size/2, pos[1] - size/2) 
+				old_block = InsertRef(tags, "block").get()
+				name = settings.leo_icons["collector_W"]["name"]
+				if old_block:
+					old_block.dxf.name = name
+				else:
+					block = Insert.new(
+						dxfattribs= {
+							'name': name,
+							'insert': pos,
+							'xscale': 0.1/scale,
+							'yscale': 0.1/scale,
+							'layer': Config.layer_collector,
+							'rotation': 0 
+						}
+					)
+					msp.add_entity(block)
 
 
 	def count_lines_from_room(self, doc:Drawing):

@@ -338,6 +338,9 @@ class LinesManager():
 				for clt in backup:
 					clt.overflow = True
 					clt.freeflow += excess
+				model.text = (
+					f"WARNING: {collector.name} overflow, " +
+					f"{required_flow:.2f} l/h required @\n\n") + model.text
 
 			room_group.sort(key=lambda x: x.flow, reverse=True)
 			for room in room_group:

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Protocol, cast
 from ezdxf.addons.importer import Importer 
 from ezdxf.entities.insert import Insert
+from ezdxf.entities.mtext import MText
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
 from collector import Collector
@@ -10,6 +11,7 @@ from connector import Connector
 from element import Element
 from engine.panels import panel_names, panel_map
 
+from interfaces import InsertRef
 from lines import Dorsal, Line 
 from model import Model, Room
 from planner import Panel
@@ -202,7 +204,7 @@ class DxfDrawing:
 	def write_text(self, message:str, position: tuple[float, float],
 				align: int=const.MTEXT_MIDDLE_CENTER, 
 		zoom=1., col=Config.color_text,
-		layer=Config.layer_text):
+		layer=Config.layer_text) -> MText:
 		
 		text = self.msp.add_mtext(message, 
 			dxfattribs={"style": "Arial"})
@@ -211,6 +213,7 @@ class DxfDrawing:
 		text.dxf.char_height = Config.font_size*zoom/self.model.scale
 		text.dxf.layer = layer
 		text.dxf.color = col
+		return text
 
 
 	def draw_coord_system(self, room: Room):
@@ -288,8 +291,14 @@ class DxfDrawing:
 			pos = collector.pos
 			size = Config.collector_size/scale
 			pos = (pos[0] - size/2, pos[1] - size/2) 
+
+			if collector.overflow:
+				icon = leo_icons["collector_W"]["name"]	
+			else:
+				icon = leo_icons["collector"]["name"]
+
 			block = self.msp.add_blockref(
-				leo_icons["collector"]["name"],
+				icon,
 				pos,
 				dxfattribs={
 					'xscale': 0.1/scale,
@@ -299,9 +308,11 @@ class DxfDrawing:
 			)
 
 			block.dxf.layer = Config.layer_collector
-			self.write_text("%s" % collector.name, 
+			text = self.write_text("%s" % collector.name, 
 				   collector.pos, zoom=0.6, 
 				   layer=Config.layer_collector)
+
+			InsertRef(text, "block").set(block)
 
 
 	def draw_panel(self, room: Room, panel: Panel, ref: str):
