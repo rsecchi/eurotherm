@@ -502,7 +502,7 @@ class Config:
 	collector_size = 60.
 	collector_margin_factor = 1.5
 	flow_per_collector = 1700.
-	feeds_per_collector = 13
+	feeds_per_collector = 14
 
 	min_dist = 20.
 	min_dist2 = min_dist*min_dist
