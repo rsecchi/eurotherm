@@ -337,6 +337,9 @@ class Model(LeoObject):
 
 		total_area = 0.
 		for poly in self.polylines:
+			if not poly.dxf.color in [Config.color_bathroom,
+							 Config.color_valid_room]:
+				continue
 			total_area += Model.polyline_area(poly)
 
 		n = len(self.polylines)	
