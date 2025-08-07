@@ -18,7 +18,7 @@ from planner import Panel
 
 from settings import Config
 from settings import debug
-from settings import leo_types 
+from settings import leo_types
 from settings import leo_icons
 from geometry import point_t
 from reference_frame import adv, diff, dist, mul, versor
@@ -72,7 +72,7 @@ class Preview:
 
 		for room in self.model.processed:
 			if room.error:
-				self.picture.add_shaded_area(room.points, 
+				self.picture.add_shaded_area(room.points,
 					color=Config.error_shade)
 
 		col = "black"
@@ -93,25 +93,31 @@ class Preview:
 
 			if room.color == Config.color_valid_room:
 				col = "blue"
-			
+
 			if room.color == Config.color_bathroom:
 				col = "green"
 
 			if room.color == Config.color_disabled_room:
 				col = "magenta"
 
-			self.picture.text(room.pos, "%d" % room.pindex, color=col)	
+			self.picture.text(room.pos, "%d" % room.pindex, color=col)
 			self.picture.add(room.points, color=col)
+
+
+			for line in room.lines:
+				self.picture.add(line.red_frontline, color="purple")
+				self.picture.add(line.collector_link, color="purple")
+
 
 		for collector in self.model.collectors:
 			px, py = collector.pos
 			offs = Config.collector_size/2/self.model.scale
-			collector_shape = [(px-offs, py-offs), 
-							  (px+offs, py-offs),
-							  (px+offs, py+offs),
-							  (px-offs, py+offs),
-							  (px-offs, py-offs)]
-					
+			collector_shape = [(px-offs, py-offs),
+							(px+offs, py-offs),
+							(px+offs, py+offs),
+							(px-offs, py+offs),
+							(px-offs, py-offs)]
+
 			self.picture.add(collector_shape, color="red")
 
 		self.picture.set_frame()
@@ -165,20 +171,20 @@ class DxfDrawing:
 			self.doc.layers.remove(Config.layer_panelp)
 
 		for room in self.model.processed:
-			self.write_text("Locale %d" % 
-				   room.pindex, room.pos, zoom=2.0)
+			self.write_text("Locale %d" %
+				room.pindex, room.pos, zoom=2.0)
 
 			if room.error:
 				hatch = self.msp.add_hatch(color=41)
 				hatch.set_pattern_fill("ANSI31", scale=2/self.model.scale)
-				hatch.paths.add_polyline_path(room.points, 
+				hatch.paths.add_polyline_path(room.points,
 					is_closed=True,
 					flags=const.BOUNDARY_PATH_EXTERNAL)
 				hatch.dxf.layer = Config.layer_error
 
 		self.doc.saveas(self.model.outfile)
 
-	
+
 	def draw_point(self, room, pos):
 		frame = room.frame
 		poly = frame.small_square(pos)
@@ -202,7 +208,7 @@ class DxfDrawing:
 
 
 	def write_text(self, message:str, position: tuple[float, float],
-				align: int=const.MTEXT_MIDDLE_CENTER, 
+				align: int=const.MTEXT_MIDDLE_CENTER,
 		zoom=1., col=Config.color_text,
 		layer=Config.layer_text) -> MText:
 		
@@ -220,7 +226,7 @@ class DxfDrawing:
 		frame = room.frame
 		scale = frame.scale
 		orig = frame.rot_orig
-		
+
 		(ux, uy) = frame.vector
 		(vx, vy) = (-uy, ux)
 		p0 = (orig[0] + 100*ux/scale, orig[1] + 100*uy/scale)
@@ -249,7 +255,7 @@ class DxfDrawing:
 				ay = min([c.ay for c in clt.zone_rooms]) - margin
 				bx = max([c.bx for c in clt.zone_rooms]) + margin
 				by = max([c.by for c in clt.zone_rooms]) + margin
-			
+
 				pline = [(ax,ay),(ax,by),(bx,by),(bx,ay),(ax,ay)]
 				pl = self.msp.add_lwpolyline(pline)
 				pl.dxf.layer = Config.layer_text
@@ -263,8 +269,8 @@ class DxfDrawing:
 					if p[1] > by or (p[1] == by and p[0] < ax):
 						ax = p[0]; by = p[1]
 
-			self.write_text("Zone %d" % clt.zone_num, 
-			  (ax, by + Config.boxzone_padding/scale), 
+			self.write_text("Zone %d" % clt.zone_num,
+				(ax, by + Config.boxzone_padding/scale),
 				const.MTEXT_BOTTOM_LEFT, zoom=0.6)
 
 
@@ -303,7 +309,7 @@ class DxfDrawing:
 				dxfattribs={
 					'xscale': 0.1/scale,
 					'yscale': 0.1/scale,
-					'rotation': 0 
+					'rotation': 0
 				}
 			)
 
@@ -394,7 +400,7 @@ class DxfDrawing:
 		else:
 			ofs_red  = (Config.indent_red, Config.offset_red)
 			ofs_blue = (Config.indent_blue, Config.offset_blue)
-		
+
 		name = leo_icons["link"]["name"]
 		for i, _ in enumerate(dorsal.panels[1:]):
 			a = dorsal.panels[i+1].front_corner
@@ -610,7 +616,7 @@ class DxfDrawing:
 		block = self.msp.add_blockref(name, pos, attribs)
 		block.dxf.layer = Config.layer_fittings
 
-	
+
 	def draw_head_link(self, room: Room, dorsal: Dorsal, ref: str):
 		frame = room.frame
 		rot = (dorsal.rot + 2) % 4
@@ -642,7 +648,7 @@ class DxfDrawing:
 
 
 	def draw_dorsal(self, room: Room, dorsal: Dorsal, ref: str):
-	
+
 		if not dorsal.panels:
 			return
 
@@ -655,10 +661,10 @@ class DxfDrawing:
 				self.draw_nipples(room, dorsal)
 			else:
 				self.draw_bend(room, dorsal)
-		
+
 		else:
 			if dorsal.terminal:
-				if dorsal.indented: 
+				if dorsal.indented:
 					self.draw_nipples(room, dorsal)
 				else:
 					self.draw_bend(room, dorsal)
@@ -677,8 +683,8 @@ class DxfDrawing:
 		if len(line.dorsals)<1:
 			return
 
-		redfront = room.frame.real_coord(line.red_frontline)
-		bluefront = room.frame.real_coord(line.blue_frontline)
+		redfront = line.red_frontline
+		bluefront = line.blue_frontline
 
 		scale = self.model.scale
 
@@ -726,11 +732,11 @@ class DxfDrawing:
 		red_attach = room.frame.real_from_local(line.red_attach)
 		blue_attach = room.frame.real_from_local(line.blue_attach)
 		dir = room.frame.real_versor(line.dir_attach)
-		connector.attach(red_attach, blue_attach, dir) 
-		connector.target = pos 
+		connector.attach(red_attach, blue_attach, dir)
+		connector.target = pos
 		connector.point_to_target()
 
-		red_link = connector.red_path 
+		red_link = connector.red_path
 		blue_link = connector.blue_path
 
 		pline = self.msp.add_lwpolyline(red_link)
@@ -741,7 +747,8 @@ class DxfDrawing:
 		pline = self.msp.add_lwpolyline(blue_link)
 		pline.dxf.layer = Config.layer_link
 		pline.dxf.color = Config.color_supply_blue
-		pline.dxf.const_width = Config.supply_thick_mm/scale	
+		pline.dxf.const_width = Config.supply_thick_mm/scale
+		line.collector_link = red_link
 
 
 	def draw_lines(self, room: Room):
@@ -753,7 +760,7 @@ class DxfDrawing:
 
 
 			for dorsal in line.dorsals:
-				self.draw_dorsal(room, dorsal, ref)
+				self.draw_dorsal(dorsal.room, dorsal, ref)
 
 
 	def find_free_box(self, room: Room, u: point_t) -> point_t:
@@ -771,7 +778,7 @@ class DxfDrawing:
 		ux_min = min(ux)
 		ux_max = max(ux)
 
-		sd0 = False 
+		sd0 = False
 
 		coord = ux_min
 		while coord<ux_max:
@@ -793,12 +800,12 @@ class DxfDrawing:
 					sd = adv(mul(d,ss), seg[0])
 					d -= step
 					bsize = Config.size_smartp_icon/scale
-					box = SimpleNamespace(points = 
-						   [(sd[0] + bsize, sd[1] + bsize),
-					        (sd[0] + bsize, sd[1] - bsize),
-					        (sd[0] - bsize, sd[1] - bsize),
-					        (sd[0] - bsize, sd[1] + bsize),
-					        (sd[0] + bsize, sd[1] + bsize)])
+					box = SimpleNamespace(points =
+							[(sd[0] + bsize, sd[1] + bsize),
+							(sd[0] + bsize, sd[1] - bsize),
+							(sd[0] - bsize, sd[1] - bsize),
+							(sd[0] - bsize, sd[1] + bsize),
+							(sd[0] + bsize, sd[1] + bsize)])
 
 					if not room.embeds(box):
 						continue
@@ -830,8 +837,8 @@ class DxfDrawing:
 		pos = self.find_free_box(room, vers)
 
 		if (self.model.data["head"] == "none" or
-			  (room.color == Config.color_bathroom  and 
-			  room.area_m2() <= Config.min_area_probe_th_m2)):
+				(room.color == Config.color_bathroom  and
+				room.area_m2() <= Config.min_area_probe_th_m2)):
 			icon = leo_icons["probe_T"]["name"]
 		else:
 			icon = leo_icons["probe_TH"]["name"]
@@ -842,7 +849,7 @@ class DxfDrawing:
 				dxfattribs={
 					'xscale': 0.05/scale,
 					'yscale': 0.05/scale,
-					'rotation': 0 
+					'rotation': 0
 					}
 				)
 
@@ -900,13 +907,13 @@ class DxfDrawing:
 			ltracks = int(lgap/step)
 			incr = lgap/(ltracks+1)
 			lcoords = [ux_min + i*incr for i in range(1,ltracks+1)]
-	
+
 		rgap = ux_max - ucoords[-1]
 		if rgap>step:
 			rtracks = int(rgap/step)
 			incr = rgap/(rtracks+1)
 			rcoords = [ucoords[-1] + i*incr for i in range(1,rtracks+1)]
-		
+
 		ucoords = lcoords + ucoords + rcoords
 
 
@@ -944,23 +951,30 @@ class DxfDrawing:
 			line = self.msp.add_lwpolyline(track)
 			line.dxf.layer = Config.layer_struct
 			line.dxf.const_width = Config.track_thick_mm/scale
-			
+
 
 	def draw_room(self, room: Room):
 
 		self.write_text("Locale %d" % room.pindex, room.pos, zoom=2.0)
 
+
+		if not room.panels:
+			self.draw_passive(room)
+			return
+
 		for line in room.lines:
 			if not line.collector:
 				continue
-			
+
 			for dorsal in line.dorsals:
+				if dorsal.room != room:
+					continue
 				for panel in dorsal.panels:
 					self.draw_panel(room, panel, line.collector.name)
 
-
-		self.draw_lines(room)
-		# self.draw_airlines(room)
+		if room.is_group_master or not room.group:
+			self.draw_lines(room)
+			# self.draw_airlines(room)
 		self.draw_passive(room)
 
 
@@ -974,7 +988,7 @@ class DxfDrawing:
 			self.draw_room(room)
 
 		self.draw_collector()
-		
+
 		for room in self.model.processed:
 			self.draw_structure(room)
 			if not self.model.data["control"] == "noreg":
@@ -992,7 +1006,7 @@ class DxfDrawing:
 		hatch = self.msp.add_hatch(color=41)
 		hatch.set_pattern_fill("ANSI31", scale=2/self.model.scale)
 
-		hatch.paths.add_polyline_path(room.points, 
+		hatch.paths.add_polyline_path(room.points,
 			is_closed=True,
 			flags=const.BOUNDARY_PATH_EXTERNAL)
 
@@ -1042,7 +1056,7 @@ class DxfDrawing:
 		for obstacle in room.obstacles:
 			if obstacle.color == Config.color_obstacle:
 				continue
-			hatch.paths.add_polyline_path(obstacle.points, 
+			hatch.paths.add_polyline_path(obstacle.points,
 				is_closed=True,
 				flags=const.BOUNDARY_PATH_OUTERMOST)
 

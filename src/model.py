@@ -9,7 +9,7 @@ from copy import copy
 from ezdxf.filemanagement import readfile
 
 import conf
-from room import Locale, Room
+from room import Locale, Room, RoomGroup
 
 
 
@@ -88,7 +88,7 @@ class Model(LeoObject):
 		p = list(poly.vertices())
 		if poly.dxf.flags & LWPOLYLINE_CLOSED:
 			p.append(p[0])
-		for i in range(0, len(p)-1): 
+		for i in range(0, len(p)-1):
 			area += (p[i+1][0]-p[i][0])*(p[i+1][1] + p[i][1])/2
 
 		return abs(area/10000)
@@ -100,6 +100,7 @@ class Model(LeoObject):
 		self.data = data
 		self.polylines = list()
 		self.rooms = list()
+		self.roomgroups: list[RoomGroup] = list()
 		self.locales: List[Locale] = []
 		self.vectors = list()
 		self.collectors: list[Collector] = list()
@@ -110,7 +111,7 @@ class Model(LeoObject):
 		self.zones = list()
 		self.zone_bb = list()
 		self.user_zones = list()
-		self.output = self 
+		self.output = self
 		self.text = ""
 		self.best_list = list()
 		self.text_nav = ""
@@ -118,15 +119,15 @@ class Model(LeoObject):
 		self.laid = "without"
 		self.area = 0.0
 		self.active_area = 0.0
-		self.outfile = conf.spool + data['outfile'] 
+		self.outfile = conf.spool + data['outfile']
 
 		for	ctype in panel_types:
 			if (ctype['handler'] == data['ptype']):
 				self.type = ctype['full_name']
 
 		self.input_file = conf.spool + data['infile']
-	
-		self.input_doc = readfile(self.input_file)	
+
+		self.input_doc = readfile(self.input_file)
 		self.msp = self.input_doc.modelspace()
 		self.refit = False
 		for layer in self.input_doc.layers:
@@ -136,11 +137,11 @@ class Model(LeoObject):
 
 		self.scale = 1.0
 		self.inputlayer = Config.input_layer
-		self.filename = self.input_file 
-		self.control = data['control'] 
+		self.filename = self.input_file
+		self.control = data['control']
 		self.head =  data['head']
-		self.mtype = data['inst'] 
-		self.regulator = data['regulator'] 
+		self.mtype = data['inst']
+		self.regulator = data['regulator']
 		self.height = data['height']
 
 		if data['laid']=="with":
@@ -155,7 +156,7 @@ class Model(LeoObject):
 				if (ctype == ptype['full_name']):
 					self.ptype = ptype
 
-		self.ents = self.msp.query('*[layer=="%s"]' 
+		self.ents = self.msp.query('*[layer=="%s"]'
 				% self.inputlayer)
 
 		for layer in self.input_doc.layers:
@@ -180,7 +181,7 @@ class Model(LeoObject):
 
 
 	def find_gates(self):
-		
+
 		for room1 in self.processed:
 			for room2 in self.processed:
 				if (room1 != room2):
@@ -189,7 +190,7 @@ class Model(LeoObject):
 
 	def merge_rooms(self, collector):
 
-		# calculate distances from collector 
+		# calculate distances from collector
 		for room in self.processed:
 			room.visited = False
 			room.uplink = None
@@ -223,7 +224,7 @@ class Model(LeoObject):
 			link_item = (collector, room.walk, room.uplink)
 			room.links.append(link_item)
 
-			if not (room.walk<MAX_DIST or 
+			if not (room.walk<MAX_DIST or
 				room.fixed_collector == collector):
 				continue
 
@@ -240,19 +241,19 @@ class Model(LeoObject):
 				room.zone = leader
 				leader.zone_rooms.append(room)
 
-			# A related room is already assigned to a zone	
+			# A related room is already assigned to a zone
 			else:
 				if (leader and room.user_zone != leader.user_zone):
 					continue
 
-				if leader and room.zone != leader: 
+				if leader and room.zone != leader:
 					leader.is_leader = False
 					self.zones.remove(leader)
 					for r in leader.zone_rooms:
 						r.zone = room.zone
 					room.zone.zone_rooms += leader.zone_rooms
 					leader = room.zone
-		
+
 		return leader
 
 
@@ -277,7 +278,7 @@ class Model(LeoObject):
 
 			if leader:
 				leader.zone_collectors.append(collector)
-	
+
 		# number zones
 		zone_num = 0
 		for zone in self.zones:
@@ -299,11 +300,11 @@ class Model(LeoObject):
 		# trim distance vectors
 		for room in self.processed:
 			room.links.sort(key=lambda x: x[1])
-			if (room.links[0][1]> Config.max_clt_distance 
+			if (room.links[0][1]> Config.max_clt_distance
 					and not room.fixed_collector):
 				self.output.print(
 					"ABORT: No collectors from Room %d @\n" % room.pindex)
-				self.output.print("Check %s layer @" % Config.layer_error + 
+				self.output.print("Check %s layer @" % Config.layer_error +
 					" to visualize errors @\n")
 
 				room.poly.dxf.layer = Config.layer_error
@@ -312,7 +313,7 @@ class Model(LeoObject):
 
 		bound = 0
 		for room in reversed(self.processed):
-			if (room.fixed_collector or 
+			if (room.fixed_collector or
 				room.color==Config.color_disabled_room):
 				room.bound = 0
 				continue
@@ -323,13 +324,13 @@ class Model(LeoObject):
 		for room in self.processed:
 			i = 0
 			for i, link in enumerate(room.links):
-				if (link[1]>Config.max_clt_distance 
+				if (link[1]>Config.max_clt_distance
 					or i>=max_clt_break):
 					break
 
 			if (i+1 < len(room.links)):
 				del room.links[i:]
-		
+
 		return True
 
 
@@ -342,7 +343,7 @@ class Model(LeoObject):
 				continue
 			total_area += Model.polyline_area(poly)
 
-		n = len(self.polylines)	
+		n = len(self.polylines)
 
 		return pow(10, ceil(log10(sqrt(n/total_area))))
 
@@ -376,10 +377,10 @@ class Model(LeoObject):
 			return
 
 		room = next(room_iter)
-		while (room and len(room.links)==0 and 
+		while (room and len(room.links)==0 and
 			not room.fixed_collector):
 			room = next(room_iter)
-		
+
 		# Terminal case
 		if (room == None):
 
@@ -410,20 +411,26 @@ class Model(LeoObject):
 			self.connect_rooms(copy(room_iter), partial)
 			return
 
-		# if collector is fixed, just to that case
-		if room.fixed_collector:
-			collector = room.fixed_collector
+		# if collector is fixed or room is ancillary,
+		# just assign the collector and move on
+		if room.fixed_collector or (
+			room.group and not room.is_group_master):
+			if room.fixed_collector:
+				collector = room.fixed_collector
+
+			if room.group:
+				collector = room.group.group_master._collector
 			room_dist = 0
-			
+
 			new_partial = partial + room_dist
-			
-			if ((new_partial+room.bound<self.best_dist and 
+
+			if ((new_partial+room.bound<self.best_dist and
 				collector.freespace>=room.feeds and
 				collector.freeflow>=room.flow)):
 				collector.items.append(room)
 				collector.freespace -= room.feeds
 				collector.freeflow  -= room.flow
-				room._uplink = collector.contained_in 
+				room._uplink = collector.contained_in
 				room._collector = collector
 				self.connect_rooms(copy(room_iter), new_partial)
 				collector.items.remove(room)
@@ -435,16 +442,16 @@ class Model(LeoObject):
 		# Recursive cases
 		for link in room.links:
 			collector, room_dist, uplink = link
-		
+
 			# If room if fixed to a collector, skip
 			# other collectors
 			if room.fixed_collector:
 				collector = room.fixed_collector
 				room_dist = 0
-				
+
 			new_partial = partial + room_dist
-			
-			if ((new_partial+room.bound<self.best_dist and 
+
+			if ((new_partial+room.bound<self.best_dist and
 				collector.freespace>=room.feeds and
 				collector.freeflow>=room.flow)):
 				collector.items.append(room)
@@ -477,7 +484,7 @@ class Model(LeoObject):
 			if (area > Config.max_room_area and
 				(color == Config.color_valid_room or
 				 color == Config.color_bathroom)):
-				wstr = "ABORT: Zone %d larger than %d m2 @\n" % (pindex, 
+				wstr = "ABORT: Zone %d larger than %d m2 @\n" % (pindex,
 					Config.max_room_area)
 				wstr += "Consider splitting area \n\n"
 				self.output.print(wstr)
@@ -519,7 +526,7 @@ class Model(LeoObject):
 				continue
 
 			if (e.dxftype() == 'LWPOLYLINE'):
-				
+
 
 				# Add a final point to closed polylines
 				if (not e.dxf.flags & LWPOLYLINE_CLOSED):
@@ -588,8 +595,8 @@ class Model(LeoObject):
 			else:
 				self.processed.append(room)
 
-		# renumber rooms	
-		self.processed.sort(reverse=True, key=lambda room: (room.ay, -room.ax))	
+		# renumber rooms
+		self.processed.sort(reverse=True, key=lambda room: (room.ay, -room.ax))
 		for pindex, room in enumerate(self.processed):
 			room.pindex = pindex + 1
 
@@ -624,13 +631,13 @@ class Model(LeoObject):
 					else:
 						collector.user_zone = zone
 
-		
+
 		# add guard box to collector
 		for collector in self.collectors:
 			points = collector.guard_box
 			polyline = self.msp.add_lwpolyline(points)
 			polyline.dxf.layer = self.inputlayer
-			polyline.dxf.color = Config.color_obstacle	
+			polyline.dxf.color = Config.color_obstacle
 			if type(collector.contained_in) == Room:
 				collector_box = Room(polyline, self.output)
 				collector.contained_in.obstacles.append(collector_box)
@@ -648,7 +655,7 @@ class Model(LeoObject):
 						return False
 					else:
 						room.user_zone = zone
-					
+
 
 		# assign obstacles to rooms
 		for obs in self.obstacles:
@@ -659,7 +666,7 @@ class Model(LeoObject):
 
 
 		# check if two rooms collide
-		self.valid_rooms.sort(key=lambda room: room.ax)	
+		self.valid_rooms.sort(key=lambda room: room.ax)
 		room = self.processed
 		for i in range(len(room)):
 			j=i+1
@@ -697,17 +704,17 @@ class Model(LeoObject):
 			room.frame.scale = self.scale
 			# orient room without vector
 			if (not room.frame.vector):
-				room.frame.orient_frame()	
+				room.frame.orient_frame()
 
 
-		self.output.print("Detected rooms ........................... %3d\n" 
+		self.output.print("Detected rooms ........................... %3d\n"
 			% len(self.processed))
-		self.output.print("Detected collectors ....................... %2d\n" 
+		self.output.print("Detected collectors ....................... %2d\n"
 			% len(self.collectors))
 		if (len(self.collectors) == 0):
 			self.output.print("ABORT: Please insert at least 1 collector @\n")
 			return False
-			
+
 
 		# Check if room too large  for a collector
 		for room in self.processed:
@@ -725,7 +732,7 @@ class Model(LeoObject):
 				wstr = "ABORT: Room %d larger than a single collector @\n" %\
 						room.pindex
 				wstr += "capacity and not linked to any collector group. @\n"
-				wstr += ("Check %s layer" % Config.layer_error + 
+				wstr += ("Check %s layer" % Config.layer_error +
 					" to visualize errors @\n")
 				room.poly.dxf.layer = Config.layer_error
 				room.error = True
@@ -760,23 +767,23 @@ class Model(LeoObject):
 			flow_eff += room.flow_eff
 			flow_max += room.flow_max
 			room.flow = room.flow_max
-			#self.output.print("Room%3d   lines:%2d  flow:%6.2lf l/h\n" % 
+			#self.output.print("Room%3d   lines:%2d  flow:%6.2lf l/h\n" %
 			#	(room.pindex, room.feeds, room.flow_eff))
 			self.area += area
 
 		available_feeds = Config.feeds_per_collector * len(self.collectors)
 		available_flow  = Config.flow_per_collector * len(self.collectors)
-		self.output.print("Available lines .......................... %3d\n" 
+		self.output.print("Available lines .......................... %3d\n"
 				% available_feeds)
-		self.output.print("Estimated lines for %2d%% cover ............ %3d\n" 
+		self.output.print("Estimated lines for %2d%% cover ............ %3d\n"
 				% (100*target_eff, feeds_eff))
-		self.output.print("Estimated lines for 100%% cover ........... %3d\n" 
+		self.output.print("Estimated lines for 100%% cover ........... %3d\n"
 				% feeds_max)
-		self.output.print("Available flow ......................... %5d l/h\n" 
+		self.output.print("Available flow ......................... %5d l/h\n"
 				% available_flow)
-		self.output.print("Estimated flow for %2d%% cover ............%5d l/h\n" 
+		self.output.print("Estimated flow for %2d%% cover ............%5d l/h\n"
 				% (100*target_eff, flow_eff))
-		self.output.print("Estimated flow for 100%% cover .......... %5d l/h\n" 
+		self.output.print("Estimated flow for 100%% cover .......... %5d l/h\n"
 				% flow_max)
 
 		################################################################
@@ -785,10 +792,10 @@ class Model(LeoObject):
 
 		# Disabled room with collector forms its own zone
 		for room in self.processed:
-			if (room.color==Config.color_disabled_room 
+			if (room.color==Config.color_disabled_room
 				and room.zone
 				and not room.collector):
-					room.collector = room.zone	
+					room.collector = room.zone
 
 
 		#  Mapping rooms to collectors
@@ -808,6 +815,9 @@ class Model(LeoObject):
 
 	def mapping_rooms(self):
 		global tot_iterations, max_iterations
+
+		# move extensions at the end of the list
+		self.processed.sort(key=lambda x: x.is_group_master is False)
 
 		for k in range(max_steps):
 
@@ -842,13 +852,13 @@ class Model(LeoObject):
 				if elem.is_point_inside(p1):
 					elem1 = elem
 					break
-			
+
 			for elem in self.collectors + self.processed:
 				if elem.is_point_inside(p2):
 					elem2 = elem
 					break
 
-			if (type(elem1) == Collector and 
+			if (type(elem1) == Collector and
 				type(elem2) == Collector and
 				elem1 != elem2):
 				for elem in elem1.backup:
@@ -865,7 +875,7 @@ class Model(LeoObject):
 				elem1.fixed_collector = elem2
 				continue
 
-			if (type(elem1) == Room and type(elem2) == Room and 
+			if (type(elem1) == Room and type(elem2) == Room and
 				 elem1 == elem2):
 				norm = dist(p1, p2)
 				uv = elem1.frame.vector = \
@@ -875,31 +885,70 @@ class Model(LeoObject):
 				elem1.vector = True
 				continue
 
-			if (type(elem1) == Room and 
+			if (type(elem1) == Room and
 				type(elem2) == Room and
 				elem1 != elem2):
-				print("VECTOR between rooms")
+				self.associate_rooms(elem1, elem2)
 				continue
-			
+
 			wstr = "WARNING: Vector outside room @\n"
-			wstr += ("Check %s layer" % Config.layer_error + 
+			wstr += ("Check %s layer" % Config.layer_error +
 				" to visualize errors @")
 			vector.dxf.layer = Config.layer_error
 			self.output.print(wstr)
 
 
-		# Move fixed collector to preferred collector 
+		# Move fixed collector to preferred collector
 		# if it is not the main collector of the group
 		for room in self.processed:
-			if (room.fixed_collector and 
+			if (room.fixed_collector and
 				room.fixed_collector.backup[0] != room.fixed_collector):
 				room.prefer_collector = room.fixed_collector
 				room.fixed_collector = room.fixed_collector.backup[0]
 
+		for group in self.roomgroups:
+			group.choose_master(self.collectors)
+
+
+	# Associate two rooms with a vectors
+	def associate_rooms(self, room1: Room, room2: Room):
+
+		if room1.group and not room2.group:
+			if not room1.group.join(room2):
+				wstr ="WARNING: Rooms %d and %d " % \
+						(room1.pindex, room2.pindex)
+				wstr += "associated with different collectors @\n"
+				self.output.print(wstr)
+			return
+
+		if room2.group and not room1.group:
+			if not room2.group.join(room1):
+				wstr ="WARNING: Rooms %d and %d " % \
+						(room1.pindex, room2.pindex)
+				wstr += "associated with different collectors @\n"
+				self.output.print(wstr)
+			return
+
+		if room1.group and room2.group:
+			if room1.group == room2.group:
+				return
+			if not room1.group.merge(room2.group):
+				wstr ="WARNING: Rooms %d and %d " % \
+						(room1.pindex, room2.pindex)
+				wstr += "associated with different collectors @\n"
+				self.output.print(wstr)
+				self.roomgroups.remove(room1.group)
+			self.roomgroups.remove(room2.group)
+			return
+
+		group = RoomGroup()
+		group.join(room1)
+		group.join(room2)
+		self.roomgroups.append(group)
 
 
 	def get_locale(self, room: Room, collector: str) -> Locale:
-		
+
 		for locale in self.locales:
 			if (locale.room == room and locale.collector == collector):
 				return locale
@@ -907,6 +956,6 @@ class Model(LeoObject):
 			locale = Locale(room, collector)
 			self.locales.append(locale)
 			return locale
-	
 
-	
+
+

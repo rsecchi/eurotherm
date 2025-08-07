@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 from planner import Panel
 from collector import Collector
 from connector import Connector
@@ -6,8 +6,13 @@ from reference_frame import adv, invert, mul, versor
 from settings import Config
 from geometry import dist, poly_t
 
+
+if TYPE_CHECKING:
+	from room import Room
+
 class Dorsal():
-	def __init__(self):
+	def __init__(self, room: 'Room'):
+		self.room = room
 		self.panels: list[Panel] = []
 		self.front = (0., 0.)
 		self.side = (0., 0.)
@@ -18,7 +23,7 @@ class Dorsal():
 		self.dorsal_row = 0
 		self.front_dorsal = True
 		self.upright = False
-		self.terminal = False 
+		self.terminal = False
 		self.detached = False
 		self.reversed = False
 		self.boxed = False
@@ -50,7 +55,7 @@ class Dorsal():
 	def flow(self) -> float:
 		flow = 0.
 		for panel in self.panels:
-			print(panel)	
+			print(panel)
 		return flow
 
 
@@ -137,6 +142,7 @@ class Line:
 		self.red_frontline: poly_t = []
 		self.blue_frontline: poly_t = []
 		self.collector: Optional[Collector] = None
+		self.collector_link: poly_t = []
 
 		self.uplink_red: poly_t = []
 		self.uplink_blue: poly_t = []
@@ -174,14 +180,14 @@ class Line:
 				front = dorsal.dorsal_to_local(ofs, dorsal.front)
 				side = dorsal.dorsal_to_local(ofs, dorsal.side)
 
-			if dorsal.rot == 2 or dorsal.rot == 3:				
+			if dorsal.rot == 2 or dorsal.rot == 3:
 				front, side = side, front
 
 			_line.append(front)
 			_line.append(side)
 
-			
-		return _line	
+
+		return _line
 
 
 	def make_frontline(self):
@@ -214,10 +220,12 @@ class Line:
 		self.blue_attach = dorsals[0].blue_end
 
 
+		scale = dorsals[0].room.frame.scale
 		for i in range(len(dorsals)-1, 0, -1):
 			connector = Connector()
-			connector.stub_length = Config.stub_length_cm
-			connector.link_width = Config.link_width_cm
+			connector.stub_length = Config.stub_length_cm/scale
+			connector.stub_init = Config.stub_init_cm/scale
+			connector.link_width = Config.link_width_cm/scale
 			d0 = dorsals[i]
 			d1 = dorsals[i-1]
 
@@ -241,8 +249,17 @@ class Line:
 				dir1 = u1 if d1.reversed else u0
 				d1.exit_dir = u0 if d1.reversed else u1
 
-			connector.attach(d0.red_end, d0.blue_end, dir0)
-			connector.attach(d1.red_end, d1.blue_end, dir1)
+			frame = d0.room.frame
+			red_end = tuple(frame.real_from_local(d0.red_end))
+			blue_end = tuple(frame.real_from_local(d0.blue_end))
+			dir0 = frame.real_versor(dir0)
+			connector.attach(red_end, blue_end, dir0)
+
+			frame = d1.room.frame
+			red_end = tuple(frame.real_from_local(d1.red_end))
+			blue_end = tuple(frame.real_from_local(d1.blue_end))
+			dir1 = frame.real_versor(dir1)
+			connector.attach(red_end, blue_end, dir1)
 			connector.point_to_point()
 			self.red_frontline += connector.red_path
 			self.blue_frontline += connector.blue_path

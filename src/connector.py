@@ -12,6 +12,7 @@ class Anchor:
 		self.dir = norm(dir)
 		self.mid = midpoint(red, blue)
 		self.stub_length = 0.0
+		self.stub_init = 0.0
 		self.path: list[point_t] = [self.mid]
 
 		delta_red = diff(self.mid, red)
@@ -25,11 +26,11 @@ class Anchor:
 		self.stub_length = stub_length
 		delta_red = diff(self.mid, self.red)
 		proj = xprod(self.dir, delta_red)
-		pipe = stub_length + abs(proj)
+		pipe = stub_length + abs(proj) + self.stub_init
 		self.stub_mid = adv(self.mid, mul(pipe, self.dir))
 		self.path.append(self.stub_mid)
 
-			
+
 	def face_target(self, target: point_t) -> List[point_t]:
 
 		path = []
@@ -37,7 +38,7 @@ class Anchor:
 		node = self.stub_mid
 		dir = self.dir
 
-		v = versor(node, target) 
+		v = versor(node, target)
 		while dir[0]*v[0] + dir[1]*v[1] < COS45:
 			if -dir[1]*v[0] + dir[0]*v[1] > 0:
 				dir = COS45*(dir[0]-dir[1]), COS45*(dir[0]+dir[1])
@@ -62,12 +63,14 @@ class Connector:
 		self.blue_path: List[point_t] = []
 		self.link_width = 0.0
 		self.stub_length = 0.0
+		self.stub_init = 0.0
 		self.leeway = 0.0
-	
+
 
 	def attach(self, red: point_t, blue: point_t, dir: point_t):
 		endpoint = Anchor(red=red, blue=blue, dir=dir)
 		endpoint.set_stub(self.stub_length/2)
+		endpoint.stub_init = self.stub_init
 		self.anchors.append(endpoint)
 
 
@@ -104,7 +107,7 @@ class Connector:
 		self.path.append(node0)
 		self.ofs.append(sign0*self.anchors[0].width)
 
-		path = self.anchors[0].face_target(self.anchors[1].stub_mid) 
+		path = self.anchors[0].face_target(self.anchors[1].stub_mid)
 		for node in path:
 			self.path.append(node)
 			self.ofs.append(sign0*link_width)
@@ -115,7 +118,7 @@ class Connector:
 		for node in reversed(path):
 			self.path.append(node)
 			self.ofs.append(sign0*link_width)
-		
+
 		self.path.append(node1)
 		self.ofs.append(sign0*self.anchors[1].width)
 		self.path.append(self.anchors[1].mid)
@@ -135,7 +138,7 @@ class Connector:
 			mid0_blue = backtrack(self.blue_path[m], mid_blue, link_width)
 			mid1_blue = backtrack(self.red_path[m+1], mid_blue, link_width)
 			br0_red = self.red_path[:m+1] + [mid0_red]
-			br0_blue = self.blue_path[:m+1] + [mid0_blue] 
+			br0_blue = self.blue_path[:m+1] + [mid0_blue]
 			br1_red = [mid1_red] + self.red_path[m+1:]
 			br1_blue = [mid1_blue] + self.blue_path[m+1:]
 			self.red_path = br0_red + br1_blue
@@ -163,7 +166,7 @@ class Connector:
 		self.path.append(node0)
 		self.ofs.append(sign0*self.anchors[0].width)
 
-		path = self.anchors[0].face_target(self.target) 
+		path = self.anchors[0].face_target(self.target)
 		for node in path:
 			self.path.append(node)
 			self.ofs.append(sign0*self.link_width)
