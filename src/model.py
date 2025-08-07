@@ -418,7 +418,7 @@ class Model(LeoObject):
 			if room.fixed_collector:
 				collector = room.fixed_collector
 
-			if room.group:
+			if room.group and not room.is_group_master:
 				collector = room.group.group_master._collector
 			room_dist = 0
 
