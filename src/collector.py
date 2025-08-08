@@ -4,6 +4,7 @@ from ezdxf.entities.lwpolyline import LWPolyline
 
 from element import Element
 from geometry import poly_t
+from hub import Hub
 from settings import Config
 
 
@@ -32,6 +33,8 @@ class Collector(Element):
 
 		self.backup: list["Collector"] = [self]
 		self.overflow = False
+		self.hub = Hub()
+		self.hub.set_target(self.pos)
 
 
 	@cached_property

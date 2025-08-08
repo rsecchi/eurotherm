@@ -7,7 +7,7 @@ from ezdxf.entities.mtext import MText
 from ezdxf.filemanagement import new, readfile
 from ezdxf.lldxf import const
 from collector import Collector
-from connector import Connector
+from connector import Anchor
 from element import Element
 from engine.panels import panel_names, panel_map
 
@@ -713,51 +713,31 @@ class DxfDrawing:
 				pline.dxf.const_width = Config.supply_thick_mm/scale
 
 
-	def draw_collector_link(self, room: Room, line: Line):
+	def add_anchor_to_collector(self, room: Room, line: Line):
 
 		if line.collector:
-			pos = line.collector.pos
+			collector = line.collector
 		else:
 			if not room.collector:
 				return
-			pos = room.collector.pos
-
-		scale = self.model.scale
-
-		connector = Connector()
-		connector.leeway = Config.leeway_cm/scale
-		connector.stub_length = Config.stub_length_cm/scale
-		connector.link_width = Config.pipes_width_cm/scale
+			collector = room.collector
 
 		red_attach = room.frame.real_from_local(line.red_attach)
 		blue_attach = room.frame.real_from_local(line.blue_attach)
 		dir = room.frame.real_versor(line.dir_attach)
-		connector.attach(red_attach, blue_attach, dir)
-		connector.target = pos
-		connector.point_to_target()
 
-		red_link = connector.red_path
-		blue_link = connector.blue_path
-
-		pline = self.msp.add_lwpolyline(red_link)
-		pline.dxf.layer = Config.layer_link
-		pline.dxf.color = Config.color_supply_red
-		pline.dxf.const_width = Config.supply_thick_mm/scale
-
-		pline = self.msp.add_lwpolyline(blue_link)
-		pline.dxf.layer = Config.layer_link
-		pline.dxf.color = Config.color_supply_blue
-		pline.dxf.const_width = Config.supply_thick_mm/scale
-		line.collector_link = red_link
+		anchor = Anchor(red_attach, blue_attach, dir)
+		anchor.set_stub(Config.stub_length_cm/self.model.scale)
+		anchor.extend_anchor(Config.hub_fit_extension_cm/self.model.scale)
+		collector.hub.add_anchor(anchor)		
 
 
 	def draw_lines(self, room: Room):
 
 		for line in room.lines:
 			self.draw_frontline(room, line)
-			self.draw_collector_link(room, line)
+			self.add_anchor_to_collector(room, line)
 			ref = line.collector.name if line.collector else ""
-
 
 			for dorsal in line.dorsals:
 				self.draw_dorsal(dorsal.room, dorsal, ref)
@@ -978,6 +958,32 @@ class DxfDrawing:
 		self.draw_passive(room)
 
 
+	def draw_hubs(self):
+
+		scale = self.model.scale
+		for collector in self.model.collectors:
+			hub = collector.hub
+			hub.target = collector.pos
+			hub.slot_width = Config.hub_slot_width_cm/scale
+			hub.fit_clearance = Config.hub_fit_clearance_cm/scale
+			hub.link_width = Config.link_width_cm/scale
+			hub.stub_length = Config.hub_stub_cm/scale
+			hub.build_paths()
+
+			for connector in hub.connectors:
+				self.msp.add_lwpolyline(connector.red_path,
+					dxfattribs={
+						'layer': Config.layer_link,
+						'color': Config.color_supply_red,
+						'const_width': Config.supply_thick_mm/scale,
+					})
+				self.msp.add_lwpolyline(connector.blue_path,
+					dxfattribs={
+						'layer': Config.layer_link,
+						'color': Config.color_supply_blue,
+						'const_width': Config.supply_thick_mm/scale,
+					})
+
 
 	def draw_model(self):
 
@@ -988,6 +994,7 @@ class DxfDrawing:
 			self.draw_room(room)
 
 		self.draw_collector()
+		self.draw_hubs()
 
 		for room in self.model.processed:
 			self.draw_structure(room)

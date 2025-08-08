@@ -623,9 +623,12 @@ class Config:
 
 
 	stub_length_cm = 10.0
-	stub_init_cm = 15.0
 	link_width_cm = 1.0
 	pipes_width_cm = 1.0
+	hub_slot_width_cm = 5.0
+	hub_stub_cm = 20.0
+	hub_fit_extension_cm = 4.0
+	hub_fit_clearance_cm = 15.0
 
 	_handlers = dict()
 

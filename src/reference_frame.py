@@ -22,6 +22,8 @@ def versor(point1, point2):
 	dx = point2[0] - point1[0]
 	dy = point2[1] - point1[1]
 	size = sqrt(dx*dx+dy*dy)
+	if size == 0:
+		return (0, 0)
 	return (dx/size, dy/size)
 	
 

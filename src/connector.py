@@ -1,5 +1,6 @@
 from typing import List, Optional
-from geometry import backtrack, midpoint, norm, offset, point_t, xprod
+from geometry import backtrack, midpoint, norm, offset, point_t
+from geometry import poly_t, shift, xprod
 from reference_frame import adv, diff, mul, versor
 
 COS45 = 0.7071067811865476  # sqrt(2) / 2, used for angle thresholding
@@ -12,7 +13,6 @@ class Anchor:
 		self.dir = norm(dir)
 		self.mid = midpoint(red, blue)
 		self.stub_length = 0.0
-		self.stub_init = 0.0
 		self.path: list[point_t] = [self.mid]
 
 		delta_red = diff(self.mid, red)
@@ -20,22 +20,33 @@ class Anchor:
 
 		self.width = abs(xprod(ortho, diff(red, blue)))/2
 		self.sign = 1 if xprod(ortho, delta_red) > 0 else -1
+		self.pos = self.mid
 
 
 	def set_stub(self, stub_length: float):
 		self.stub_length = stub_length
 		delta_red = diff(self.mid, self.red)
 		proj = xprod(self.dir, delta_red)
-		pipe = stub_length + abs(proj) + self.stub_init
+		pipe = stub_length + abs(proj)
 		self.stub_mid = adv(self.mid, mul(pipe, self.dir))
 		self.path.append(self.stub_mid)
+		self.pos = self.stub_mid
+
+
+	def extend_anchor(self, length: float):
+		if len(self.path) < 2:
+			return
+		u = versor(self.path[-2], self.path[-1])
+		shifted = shift(self.path[-1], u, length)
+		self.path.append(shifted)
+		self.pos = shifted
 
 
 	def face_target(self, target: point_t) -> List[point_t]:
 
 		path = []
 		step = self.stub_length
-		node = self.stub_mid
+		node = self.pos
 		dir = self.dir
 
 		v = versor(node, target)
@@ -47,12 +58,19 @@ class Anchor:
 
 			node = node[0] + dir[0]*step, node[1] + dir[1]*step
 			path.append(node)
+			self.pos = node
 			self.path.append(node)
+
 
 		return path
 
 
 class Connector:
+
+	link_width = 0.0
+	link_width = 0.0
+	stub_length = 0.0
+	leeway = 0.0
 
 	def __init__(self):
 		self.anchors: List[Anchor] = []
@@ -61,17 +79,16 @@ class Connector:
 		self.ofs_red: List[float] = []
 		self.red_path: List[point_t] = []
 		self.blue_path: List[point_t] = []
-		self.link_width = 0.0
-		self.stub_length = 0.0
-		self.stub_init = 0.0
-		self.leeway = 0.0
 
 
 	def attach(self, red: point_t, blue: point_t, dir: point_t):
 		endpoint = Anchor(red=red, blue=blue, dir=dir)
 		endpoint.set_stub(self.stub_length/2)
-		endpoint.stub_init = self.stub_init
 		self.anchors.append(endpoint)
+
+
+	def attach_anchor(self, anchor: Anchor):
+		self.anchors.append(anchor)
 
 
 	def misalignment(self) -> float:
@@ -179,5 +196,26 @@ class Connector:
 		self.blue_path = offset(self.path, [-ofs for ofs in self.ofs])
 		self.red_path[0] = self.anchors[0].red
 		self.blue_path[0] = self.anchors[0].blue
+
+
+	def build_from_path(self, path: poly_t):
+
+		if len(self.anchors) != 1:
+			raise ValueError("Connector must have exactly one"
+					"anchor for building from path.")
+
+		anchor = self.anchors[0]
+		self.path = anchor.path.copy()
+		self.path.extend(path[1:])
+
+		sign0 = anchor.sign
+		for _ in self.path:
+			self.ofs_red.append(sign0*self.link_width)
+		self.ofs_red[0] = sign0*anchor.width
+			
+		self.red_path = offset(self.path, self.ofs_red)
+		self.red_path[0] = anchor.red
+		self.blue_path = offset(self.path, [-ofs for ofs in self.ofs_red])
+		self.blue_path[0] = anchor.blue
 
 

@@ -1,29 +1,34 @@
-from numpy import argmin
-from geometry import point_t, poly_t 
+from connector import Anchor, Connector
+from geometry import point_t, poly_t
+
 
 class Hub:
+	slot_width = 0.
+	fit_clearance = 0.
+	link_width = 0.
+	stub_length = 0.
+	fit_extension = 0.
 
 	def __init__(self):
-		self.sources: list[point_t] = []
-		self.target: point_t =(0.0, 0.0)
-		self.paths: list[poly_t] = []
+		self.anchors: list[Anchor] = []
+		self.target: point_t =(0., 0.)
+		self.connectors: list[Connector] = []
 
 
-	def set_sources(self, sources: list[point_t]): 
-		self.sources = sources
+	def add_anchor(self, anchor: Anchor):
+		self.anchors.append(anchor)
 
 
 	def set_target(self, target: point_t):
 		self.target = target
 
+	def route(self, src:point_t, dst:point_t) -> poly_t:
 
-	def route(self, source:point_t) -> poly_t:
-
-		x0, y0 = source
-		x1, y1 = self.target
+		x0, y0 = src
+		x1, y1 = dst
 
 		path = []
-		path.append(source)
+		path.append(src)
 
 		dx = abs(x1-x0)
 		dy = abs(y1-y0)
@@ -32,10 +37,8 @@ class Hub:
 			margin = (dy - dx)
 			if y0 < y1:
 				path.append((x0, y0 + margin))
-				path.append((x1, y1))
 			else:
 				path.append((x0, y0 - margin))
-				path.append((x1, y1))
 		else:
 			margin = dx - dy	
 			if x0 < x1:
@@ -43,7 +46,6 @@ class Hub:
 			else:
 				path.append((x0 - margin, y0))
 
-			path.append((x1, y1))
 
 		path.append((x1, y1))
 
@@ -52,52 +54,95 @@ class Hub:
 
 	def build_paths(self):
 
-		global picture
-		delta = 5.0
-		overhead = 20.0
-		paths = self.paths = []
+		for anchor in self.anchors:
+			anchor.face_target(self.target)
 
-		up = [src for src in self.sources if src[1] > self.target[1]]
-		down = [src for src in self.sources if src[1] <= self.target[1]]
+		up: list[Anchor] = []
+		down: list[Anchor] = []
 
-		up.sort(key=lambda p: p[1])
-		down.sort(key=lambda p: p[1], reverse=True)
+		for anchor in self.anchors:
+			if anchor.pos[1] > self.target[1]:
+				up.append(anchor)
+			else:
+				down.append(anchor)
+			
+		up.sort(key=lambda anchor: anchor.pos[1])
+		down.sort(key=lambda anchor: anchor.pos[1], reverse=True)
 
-		width = len(up)
-		if width is []:
+		self.build_side(up, True)
+		self.build_side(down, False)
+
+
+	def build_side(self, anchors: list[Anchor], upside: bool):
+
+		width = len(anchors)
+		if width == 0:
 			return []
 
-		halfw = width//2
-		start = self.target[0] - delta * halfw
-
 		targets = []
-		levels = [self.target[1]] * width
+		slot_width = self.slot_width
+		overpass = self.fit_clearance
 
+		target_x, hub_centre = self.target
+		if upside:
+			target_y = hub_centre + self.stub_length
+		else:
+			target_y = hub_centre - self.stub_length
+		left_margin = target_x - slot_width * (width//2)
+		levels = [target_y] * width
+
+		# prepare target slots
 		for i in range(width):
-			idx = i
-			pos = self.target[0] + delta*(i-halfw), self.target[1]
-			targets.append((idx, pos))
+			slot_x = left_margin + i * slot_width
+			targets.append( {"index": i, "x_val": slot_x} )
 
-		for src in up:
-			j = argmin([abs(src[0] - t[1][0]) for t in targets])
-			endpoint = targets[j]
-			idx, pos = endpoint
-			var = (src[0] - start)/delta
-			loc = min(max(int(var), 0), width-1)
-			range_min = min(loc, idx)
-			range_max = max(loc, idx) + 1
 
-			level = levels[idx]
+		for anchor in anchors:
+
+			# choose the closest available slot for the anchor
+			anchor_x, anchor_y = anchor.pos
+			offset_x = float("inf")
+			selected_target = targets[0] 
+			for target in targets:
+				delta_x = abs(anchor_x - target["x_val"])
+				if delta_x < offset_x:
+					offset_x = delta_x
+					selected_target = target
+			target_idx = selected_target["index"]
+			target_x = selected_target["x_val"]
+
+			# calculate the initial hub slot for the anchor
+			slot = (anchor_x - left_margin)/slot_width
+			slot = min(max(int(slot), 0), width - 1)
+
+			# calculate the path to align the anchor with the target
+			level = levels[target_idx]
+			range_min = min(slot, target_idx)
+			range_max = max(slot, target_idx) + 1
 			for k in range(range_min, range_max):
-				level = max(levels[k] - delta*abs(k-idx), level)
-				
-				 
-			path = self.route(src)
-			path.append(pos)
-			paths.append(path)
-			dx = abs(src[0] - pos[0])
-			dy = abs(src[1] - pos[1])
-			levels[idx] = max(src[1] - min(dx, dy), level) + overhead
-			targets.remove(endpoint)
-		
+				slope = slot_width * abs(k - target_idx)
+				if upside:
+					level = max(levels[k] - slope, level)
+				else:
+					level = min(levels[k] + slope, level) 
+			path = self.route(anchor.pos, (target_x, level))
+			path.append((target_x, hub_centre))
 
+			# create connector
+			connector = Connector() 
+			connector.attach_anchor(anchor)
+			connector.link_width = self.link_width
+			connector.build_from_path(path)
+			self.connectors.append(connector)
+
+			# update the level for the target slot
+			dx = abs(anchor_x - target_x)
+			dy = abs(anchor_y - target_y)
+			margin = min(dx, dy)
+			if upside:
+				levels[target_idx] = max(anchor_y - margin, level) + overpass
+			else:
+				levels[target_idx] = min(anchor_y + margin, level) - overpass
+			targets.remove(selected_target)
+
+		
